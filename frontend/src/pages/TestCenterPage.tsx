@@ -21,6 +21,7 @@ export const TestCenterPage: React.FC = () => {
         results,
         timeStarted,
         pendingSessionId,
+        quizSource,
         startTestCenter,
         submitAnswer,
         submitQuiz,
@@ -101,8 +102,9 @@ export const TestCenterPage: React.FC = () => {
         );
     }
 
-    // 1. Landing / Entry View
-    if (!activeQuiz && !results) {
+    // 1. Landing / Entry View (also when results or active quiz are from Take Quiz – don't show those here)
+    const showTestCenterLanding = (!activeQuiz && (!results || quizSource !== 'test_center')) || (activeQuiz && quizSource !== 'test_center');
+    if (showTestCenterLanding) {
         return (
             <div className="max-w-3xl mx-auto py-10 px-4 animate-in fade-in duration-700">
                 <div className="text-center mb-8 space-y-4">
@@ -195,7 +197,8 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
         URL.revokeObjectURL(url);
     };
 
-    if (results) {
+    // 2. Results View – only for Test Center simulations
+    if (results && quizSource === 'test_center') {
         const isSuccess = results.score >= 50;
         return (
             <div className="max-w-4xl mx-auto py-8 px-4">
@@ -295,8 +298,8 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
         );
     }
 
-    // 3. Active Test View
-    if (activeQuiz && currentQ) {
+    // 3. Active Test View – only when this session is from Test Center
+    if (activeQuiz && currentQ && quizSource === 'test_center') {
         const showCountdown = activeQuiz.time_limit_minutes != null;
         const timerValue = showCountdown && timeLeft !== null ? formatTime(timeLeft) : formatTime(elapsedSeconds);
         const timerLabel = showCountdown ? 'Time left' : 'Elapsed';

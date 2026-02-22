@@ -23,6 +23,7 @@ export const QuizPage: React.FC = () => {
         results,
         timeStarted,
         quizHistory,
+        quizSource,
         generateQuiz,
         generateChapterQuiz,
         submitAnswer,
@@ -100,15 +101,16 @@ export const QuizPage: React.FC = () => {
     const currentQ = activeQuiz?.questions[currentQuestion];
     const selectedAnswer = currentQ ? answers[currentQ.question_id] : undefined;
 
-    // Fetch quiz history when on config view so user can see their previous attempts
+    // Fetch quiz history when we're showing the config view (including when results are from Test Center)
+    const showQuizConfig = (!activeQuiz && !results) || quizSource === 'test_center';
     React.useEffect(() => {
-        if (!activeQuiz && !results) {
+        if (showQuizConfig) {
             fetchHistory();
         }
-    }, [activeQuiz, results, fetchHistory]);
+    }, [showQuizConfig, fetchHistory]);
 
-    // Quiz Generation Form
-    if (!activeQuiz && !results) {
+    // Quiz Generation Form (also when results/active are from Test Center – don't show those here)
+    if (showQuizConfig) {
         return (
             <div className="max-w-2xl mx-auto py-12 px-4 animate-in fade-in duration-700 space-y-10">
                 <div className="text-center mb-10 space-y-4">
@@ -204,8 +206,8 @@ export const QuizPage: React.FC = () => {
         );
     }
 
-    // Quiz Results
-    if (results) {
+    // Quiz Results – only for Take Quiz / chapter quiz, not Test Center
+    if (results && (quizSource === 'quiz' || quizSource === null)) {
         const isSuccess = results.score >= 70;
         return (
             <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -340,8 +342,8 @@ export const QuizPage: React.FC = () => {
         );
     }
 
-    // Active Quiz
-    if (activeQuiz && currentQ) {
+    // Active Quiz – only when this session is from Take Quiz, not Test Center
+    if (activeQuiz && currentQ && (quizSource === 'quiz' || quizSource === null)) {
         const progress = ((currentQuestion + 1) / activeQuiz.questions.length) * 100;
 
         return (

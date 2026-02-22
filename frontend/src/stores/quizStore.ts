@@ -8,6 +8,8 @@ const POLL_TIMEOUT_MS = 120000; // 2 minutes
 
 let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
+export type QuizSource = 'test_center' | 'quiz' | null;
+
 interface QuizState {
     activeQuiz: Quiz | null;
     currentQuestion: number;
@@ -18,6 +20,8 @@ interface QuizState {
     timeStarted: number | null;
     /** Set while Test Center is generating questions (polling). */
     pendingSessionId: string | null;
+    /** Origin of current session/results so Quiz page and Test Center each show only their own. */
+    quizSource: QuizSource;
 
     // Actions
     generateQuiz: (topic: string, subject: string, count?: number, difficulty?: string, examType?: string | null) => Promise<void>;
@@ -42,6 +46,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     isLoading: false,
     timeStarted: null,
     pendingSessionId: null,
+    quizSource: null as QuizSource,
 
     generateChapterQuiz: async (chapterId) => {
         try {
@@ -55,6 +60,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 results: null,
                 timeStarted: Date.now(),
                 isLoading: false,
+                quizSource: 'quiz',
             });
 
             toast.success('Chapter quiz generated with PYQs!');
@@ -73,6 +79,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 results: response.data,
                 activeQuiz: null, // Ensure we are not in "taking quiz" mode
                 isLoading: false,
+                quizSource: 'quiz',
             });
         } catch (error) {
             set({ isLoading: false });
@@ -117,6 +124,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                                 results: null,
                                 timeStarted: Date.now(),
                                 pendingSessionId: null,
+                                quizSource: 'test_center',
                             });
                             toast.success(`Exam simulation for ${examName} started!`);
                         }
@@ -135,6 +143,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                     results: null,
                     timeStarted: Date.now(),
                     isLoading: false,
+                    quizSource: 'test_center',
                 });
                 toast.success(`Exam simulation for ${examName} started!`);
             }
@@ -157,6 +166,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 results: null,
                 timeStarted: Date.now(),
                 isLoading: false,
+                quizSource: 'quiz',
             });
 
             toast.success('Quiz generated successfully!');
@@ -251,6 +261,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             results: null,
             timeStarted: null,
             pendingSessionId: null,
+            quizSource: null,
         });
     },
 }));

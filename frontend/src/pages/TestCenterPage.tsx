@@ -20,6 +20,7 @@ export const TestCenterPage: React.FC = () => {
         answers,
         results,
         timeStarted,
+        pendingSessionId,
         startTestCenter,
         submitAnswer,
         submitQuiz,
@@ -33,10 +34,9 @@ export const TestCenterPage: React.FC = () => {
     const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
 
-    // Initialization: If we come back and there's no active quiz, reset
+    // Initialization: If we come back and there's no active quiz and no pending session, reset
     React.useEffect(() => {
-        // Only reset if we are not in progress
-        if (!activeQuiz && !results) {
+        if (!activeQuiz && !results && !pendingSessionId) {
             resetQuiz();
         }
     }, []);
@@ -91,6 +91,15 @@ export const TestCenterPage: React.FC = () => {
 
     const currentQ = activeQuiz?.questions[currentQuestion];
     const selectedAnswer = currentQ ? answers[currentQ.question_id] : undefined;
+
+    // Preparing: Test Center session is generating questions (polling)
+    if (pendingSessionId) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <Loading text="Preparing your test..." />
+            </div>
+        );
+    }
 
     // 1. Landing / Entry View
     if (!activeQuiz && !results) {

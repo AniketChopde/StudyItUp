@@ -17,6 +17,7 @@ from models.quiz import (
 )
 from utils.auth import get_current_user, TokenData
 from agents.quiz_agent import quiz_agent
+from tasks.quiz_tasks import generate_test_center_questions_task
 
 router = APIRouter()
 
@@ -72,32 +73,24 @@ async def start_test_center(
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Start a fast exam simulation (20 questions, single LLM call, under 10s)."""
+    """Create a pending Test Center session and enqueue question generation. Returns immediately."""
     try:
-        logger.info(f"Test Center started for exam: {test_data.exam_name} (fast 20Q)")
-        # Single LLM call, no search_exam_pattern, no PYQ — minimal latency
-        all_questions = await quiz_agent.generate_test_center_questions(
-            topic=test_data.exam_name,
-            count=TEST_CENTER_QUESTION_COUNT,
-            exam_type=test_data.exam_name,
-            skip_pyq=True,
-        )
-        all_questions = all_questions[:TEST_CENTER_QUESTION_COUNT]
-        if len(all_questions) < TEST_CENTER_QUESTION_COUNT:
-            logger.warning(f"Got {len(all_questions)} questions, expected {TEST_CENTER_QUESTION_COUNT}")
+        logger.info(f"Test Center requested for exam: {test_data.exam_name} (async)")
         quiz_session = QuizSession(
             user_id=current_user.user_id,
             topic=test_data.exam_name,
             subject="General",
             difficulty="hard",
-            questions=all_questions,
-            total_questions=len(all_questions),
+            questions=[],
+            total_questions=0,
             time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
+            status="pending",
         )
         db.add(quiz_session)
         await db.commit()
         await db.refresh(quiz_session)
-        logger.info(f"Test Center ready: {len(all_questions)} questions in <10s path")
+        generate_test_center_questions_task.delay(str(quiz_session.id), test_data.exam_name)
+        logger.info(f"Test Center session {quiz_session.id} created (pending), task enqueued")
         return quiz_session
     except Exception as e:
         logger.error(f"Error starting test center: {str(e)}")
@@ -105,6 +98,28 @@ async def start_test_center(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to initialize Test Center: {str(e)}",
         )
+
+
+@router.get("/test-center/status/{session_id}", response_model=QuizResponse)
+async def get_test_center_status(
+    session_id: uuid.UUID,
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Poll until Test Center session is ready (status != pending, questions loaded)."""
+    result = await db.execute(
+        select(QuizSession).where(
+            QuizSession.id == session_id,
+            QuizSession.user_id == current_user.user_id,
+        )
+    )
+    quiz_session = result.scalar_one_or_none()
+    if not quiz_session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz not found",
+        )
+    return quiz_session
 
 
 @router.post("/chapter/{chapter_id}/generate", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)

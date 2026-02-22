@@ -3,6 +3,11 @@ import { quizService } from '../api/services';
 import type { Quiz, QuizResult, QuizHistoryItem } from '../types';
 import toast from 'react-hot-toast';
 
+const POLL_INTERVAL_MS = 2500;
+const POLL_TIMEOUT_MS = 120000; // 2 minutes
+
+let pollIntervalId: ReturnType<typeof setInterval> | null = null;
+
 interface QuizState {
     activeQuiz: Quiz | null;
     currentQuestion: number;
@@ -11,6 +16,8 @@ interface QuizState {
     quizHistory: QuizHistoryItem[];
     isLoading: boolean;
     timeStarted: number | null;
+    /** Set while Test Center is generating questions (polling). */
+    pendingSessionId: string | null;
 
     // Actions
     generateQuiz: (topic: string, subject: string, count?: number, difficulty?: string, examType?: string | null) => Promise<void>;
@@ -34,6 +41,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     quizHistory: [],
     isLoading: false,
     timeStarted: null,
+    pendingSessionId: null,
 
     generateChapterQuiz: async (chapterId) => {
         try {
@@ -76,19 +84,62 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         try {
             set({ isLoading: true });
             const response = await quizService.startTestCenter(examName);
+            const data = response.data;
+            const isPending = data.status === 'pending' && (!data.questions || data.questions.length === 0);
 
-            set({
-                activeQuiz: response.data,
-                currentQuestion: 0,
-                answers: {},
-                results: null,
-                timeStarted: Date.now(),
-                isLoading: false,
-            });
+            if (isPending && data.id) {
+                set({
+                    isLoading: false,
+                    pendingSessionId: data.id,
+                });
+                const sessionId = data.id;
+                const startedAt = Date.now();
 
-            toast.success(`Exam simulation for ${examName} started!`);
+                const poll = async () => {
+                    if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+                        if (pollIntervalId != null) clearInterval(pollIntervalId);
+                        pollIntervalId = null;
+                        set({ pendingSessionId: null });
+                        toast.error('Test preparation is taking longer than usual. Please try again.');
+                        return;
+                    }
+                    try {
+                        const statusRes = await quizService.getTestCenterStatus(sessionId);
+                        const session = statusRes.data;
+                        const ready = session.status !== 'pending' && session.questions && session.questions.length > 0;
+                        if (ready) {
+                            if (pollIntervalId != null) clearInterval(pollIntervalId);
+                            pollIntervalId = null;
+                            set({
+                                activeQuiz: session,
+                                currentQuestion: 0,
+                                answers: {},
+                                results: null,
+                                timeStarted: Date.now(),
+                                pendingSessionId: null,
+                            });
+                            toast.success(`Exam simulation for ${examName} started!`);
+                        }
+                    } catch {
+                        // Transient error; next poll will retry
+                    }
+                };
+
+                await poll();
+                pollIntervalId = setInterval(poll, POLL_INTERVAL_MS);
+            } else {
+                set({
+                    activeQuiz: data,
+                    currentQuestion: 0,
+                    answers: {},
+                    results: null,
+                    timeStarted: Date.now(),
+                    isLoading: false,
+                });
+                toast.success(`Exam simulation for ${examName} started!`);
+            }
         } catch (error) {
-            set({ isLoading: false });
+            set({ isLoading: false, pendingSessionId: null });
             toast.error('Failed to start test center');
             throw error;
         }
@@ -189,12 +240,17 @@ export const useQuizStore = create<QuizState>((set, get) => ({
     // Clears only the current in-progress quiz so a new one can be started. Does NOT remove or clear
     // quiz history: completed quizzes remain stored on the backend and in quizHistory when fetched.
     resetQuiz: () => {
+        if (pollIntervalId != null) {
+            clearInterval(pollIntervalId);
+            pollIntervalId = null;
+        }
         set({
             activeQuiz: null,
             currentQuestion: 0,
             answers: {},
             results: null,
             timeStarted: null,
+            pendingSessionId: null,
         });
     },
 }));

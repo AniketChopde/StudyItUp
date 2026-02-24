@@ -23,6 +23,7 @@ class StudyPlan(Base):
     exam_type = Column(String(100), nullable=False)
     target_date = Column(Date, nullable=False)
     daily_hours = Column(Integer, nullable=False)
+    language = Column(String(50), default="English")
     status = Column(String(50), default="active")  # active, completed, paused
     current_knowledge = Column(JSON, default={})
     recommended_courses = Column(JSON, default=[])  # List of recommended courses
@@ -120,6 +121,7 @@ class StudyPlanCreate(BaseModel):
     exam_type: str = Field(..., description="Learning goal or topic (e.g. Machine Learning, LangChain, UPSC, GATE CS)")
     target_date: date = Field(..., description="Target completion date")
     daily_hours: int = Field(..., ge=1, le=24, description="Daily study hours")
+    language: str = Field("English", description="Preferred language (e.g. English, Marathi, Hindi)")
     current_knowledge: Dict[str, Any] = Field(default_factory=dict)
     fast_learn: bool = Field(default=False, description="Whether to prioritize core/foundational topics first")
 
@@ -130,6 +132,7 @@ class StudyPlanResponse(BaseModel):
     exam_type: str
     target_date: date
     daily_hours: int
+    language: str
     status: str
     current_knowledge: Dict[str, Any]
     recommended_courses: List[Dict[str, Any]] = []

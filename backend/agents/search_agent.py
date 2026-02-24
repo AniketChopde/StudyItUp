@@ -366,7 +366,7 @@ class SearchAgent:
             return []
 
 
-    async def _extract_pyqs_from_source(self, src: Dict[str, Any], topic: str, exam_type: str) -> List[Dict[str, Any]]:
+    async def _extract_pyqs_from_source(self, src: Dict[str, Any], topic: str, exam_type: str, language: str = "English") -> List[Dict[str, Any]]:
         """Helper to extract PYQs from a single search result."""
         page_text = await self._fetch_page_text(src["url"], max_chars=9000)
         if not page_text:
@@ -379,9 +379,9 @@ class SearchAgent:
 Return JSON: {"pyqs": [{"question": "...", "exam": "...", "year": "YYYY or null", "source_url": "...", "source_title": "..."}]}
 Guidelines:
 - Identify and extract relevant questions.
-- Prefer verified exam questions.
+- Extract the questions ideally in {language}.
 """
-        user_prompt = f"Topic: {topic}\nExam: {exam_type}\nData: {page_text}"
+        user_prompt = f"Topic: {topic}\nExam: {exam_type}\nLanguage: {language}\nData: {page_text}"
         
         try:
             resp = await azure_openai_service.generate_structured_output(system_prompt, user_prompt, temperature=self.temperature)
@@ -401,15 +401,19 @@ Guidelines:
         except Exception:
             return []
 
-    async def find_previous_year_questions(self, topic: str, exam_type: str) -> List[Dict[str, Any]]:
+    async def find_previous_year_questions(self, topic: str, exam_type: str, language: str = "English") -> List[Dict[str, Any]]:
         """Parallelized search for previous year questions."""
         try:
-            query = f"{exam_type} {topic} previous year questions pyq with solutions"
+            if language.lower() == "english":
+                query = f"{exam_type} {topic} previous year questions pyq with solutions"
+            else:
+                query = f"{exam_type} {topic} previous year questions pyq with solutions in {language}"
+                
             results = await search_service.search(query, max_results=5)
             if not results:
                 return []
 
-            tasks = [self._extract_pyqs_from_source(src, topic, exam_type) for src in results]
+            tasks = [self._extract_pyqs_from_source(src, topic, exam_type, language) for src in results]
             all_pyq_lists = await asyncio.gather(*tasks)
             
             flattened = [pyq for sublist in all_pyq_lists for pyq in sublist]

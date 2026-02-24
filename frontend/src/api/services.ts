@@ -94,8 +94,8 @@ export const quizService = {
     getHistory: () =>
         apiClient.get<QuizHistoryItem[]>('/quiz/history'),
 
-    startTestCenter: (examName: string) =>
-        apiClient.post<Quiz>('/quiz/test-center', { exam_name: examName }),
+    startTestCenter: (examName: string, planId?: string, language?: string) =>
+        apiClient.post<Quiz>('/quiz/test-center', { exam_name: examName, plan_id: planId, language: language || "English" }),
 
     getTestCenterStatus: (sessionId: string) =>
         apiClient.get<Quiz>(`/quiz/test-center/status/${sessionId}`),

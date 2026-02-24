@@ -29,6 +29,68 @@ async def create_study_plan(
 ):
     """Create a comprehensive study plan using multi-agent system."""
     try:
+        from sqlalchemy import func
+        
+        # 1. Global Cache Check: Look for an existing plan for this exact exam_type and language
+        cached_plan_result = await db.execute(
+            select(StudyPlan)
+            .where(
+                func.lower(StudyPlan.exam_type) == plan_data.exam_type.lower(),
+                func.lower(StudyPlan.language) == plan_data.language.lower()
+            )
+            .options(selectinload(StudyPlan.chapters))
+            .limit(1)
+        )
+        cached_plan = cached_plan_result.scalar_one_or_none()
+        
+        if cached_plan:
+            logger.info(f"♻️ REUSING existing Study Plan for: {plan_data.exam_type}")
+            
+            study_plan = StudyPlan(
+                user_id=current_user.user_id,
+                exam_type=plan_data.exam_type,
+                target_date=plan_data.target_date,
+                daily_hours=plan_data.daily_hours,
+                language=plan_data.language,
+                current_knowledge=plan_data.current_knowledge,
+                plan_metadata=cached_plan.plan_metadata,
+                recommended_courses=cached_plan.recommended_courses
+            )
+            db.add(study_plan)
+            await db.flush()
+            
+            ratio = plan_data.daily_hours / max(float(cached_plan.daily_hours or 1.0), 1.0)
+            
+            for chapter in cached_plan.chapters:
+                new_chapter = StudyPlanChapter(
+                    plan_id=study_plan.id,
+                    chapter_name=chapter.chapter_name,
+                    subject=chapter.subject,
+                    topics=chapter.topics,
+                    estimated_hours=max(1, int(float(chapter.estimated_hours or 1) * ratio)),
+                    order_index=chapter.order_index,
+                    status="pending",
+                    resources=chapter.resources
+                )
+                db.add(new_chapter)
+                
+            await db.commit()
+            
+            final_plan = await db.execute(
+                select(StudyPlan)
+                .where(StudyPlan.id == study_plan.id)
+                .options(selectinload(StudyPlan.chapters))
+            )
+            return {
+                "study_plan": final_plan.scalar_one(),
+                "ai_metadata": {
+                    "exam_info": cached_plan.plan_metadata.get("official_syllabus", {}),
+                    "plan_analysis": cached_plan.plan_metadata.get("goal_analysis", {}),
+                    "immediate_actions": []
+                }
+            }
+            
+        # 2. Generation (If no cache found)
         # Use orchestrator to create comprehensive plan (exam_type can be any learning goal: ML, LangChain, UPSC, etc.)
         result = await orchestrator.handle_exam_preparation(
             user_goal=f"Learn {plan_data.exam_type}",
@@ -36,7 +98,8 @@ async def create_study_plan(
             target_date=plan_data.target_date,
             daily_hours=plan_data.daily_hours,
             current_knowledge=plan_data.current_knowledge,
-            fast_learn=plan_data.fast_learn
+            fast_learn=plan_data.fast_learn,
+            language=plan_data.language
         )
         
         # Create study plan in database with full metadata
@@ -49,6 +112,7 @@ async def create_study_plan(
             exam_type=plan_data.exam_type,
             target_date=plan_data.target_date,
             daily_hours=plan_data.daily_hours,
+            language=plan_data.language,
             current_knowledge=plan_data.current_knowledge,
             plan_metadata=plan_metadata
         )

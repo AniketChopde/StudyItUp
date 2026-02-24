@@ -32,7 +32,8 @@ class AgentOrchestrator:
         daily_hours: int,
         user_goal: str = None,
         current_knowledge: Dict[str, Any] = None,
-        fast_learn: bool = False
+        fast_learn: bool = False,
+        language: str = "English"
     ) -> Dict[str, Any]:
         """
         Create a study plan for any learning goal (exam, skill, or subject).
@@ -55,7 +56,7 @@ class AgentOrchestrator:
             )
             
             # Step 3: Create study plan
-            logger.info("Step 3: Creating study plan...")
+            logger.info(f"Step 3: Creating study plan in {language}...")
             study_plan = await planning_agent.create_study_plan(
                 exam_type=exam_type,
                 target_date=target_date,
@@ -63,7 +64,8 @@ class AgentOrchestrator:
                 syllabus_data=None, # Explicitly None to use LLM knowledge only
                 current_knowledge=current_knowledge or {},
                 goal=user_goal,
-                fast_learn=fast_learn
+                fast_learn=fast_learn,
+                language=language
             )
             
             # Step 4: Generate immediate actions

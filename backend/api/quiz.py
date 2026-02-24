@@ -17,6 +17,7 @@ from models.quiz import (
 )
 from utils.auth import get_current_user, TokenData
 from agents.quiz_agent import quiz_agent
+from services.vector_store import vector_store_service
 from tasks.quiz_tasks import generate_test_center_questions_task
 
 router = APIRouter()
@@ -75,6 +76,39 @@ async def start_test_center(
 ):
     """Create a pending Test Center session and enqueue question generation. Returns immediately."""
     try:
+        from sqlalchemy import func
+        
+        # Global Cache Check: Look for an existing test center simulation for this exam_name
+        cached_test_result = await db.execute(
+            select(QuizSession)
+            .where(
+                func.lower(QuizSession.topic) == test_data.exam_name.lower(),
+                QuizSession.time_limit_minutes == TEST_CENTER_DURATION_MINUTES,
+                QuizSession.questions != [],
+                QuizSession.total_questions > 0
+            )
+            .limit(1)
+        )
+        cached_test = cached_test_result.scalar_one_or_none()
+
+        if cached_test and len(cached_test.questions) > 0:
+            logger.info(f"♻️ REUSING existing Test Center Simulation for: {test_data.exam_name}")
+            quiz_session = QuizSession(
+                user_id=current_user.user_id,
+                topic=cached_test.topic,
+                subject=cached_test.subject,
+                difficulty=cached_test.difficulty,
+                questions=cached_test.questions,
+                total_questions=cached_test.total_questions,
+                time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
+                status="in_progress",
+            )
+            db.add(quiz_session)
+            await db.commit()
+            await db.refresh(quiz_session)
+            return quiz_session
+
+        # Generation Pathway
         logger.info(f"Test Center requested for exam: {test_data.exam_name} (async)")
         quiz_session = QuizSession(
             user_id=current_user.user_id,
@@ -89,8 +123,8 @@ async def start_test_center(
         db.add(quiz_session)
         await db.commit()
         await db.refresh(quiz_session)
-        generate_test_center_questions_task.delay(str(quiz_session.id), test_data.exam_name)
-        logger.info(f"Test Center session {quiz_session.id} created (pending), task enqueued")
+        generate_test_center_questions_task.delay(str(quiz_session.id), test_data.exam_name, test_data.plan_id, test_data.language)
+        logger.info(f"Test Center session {quiz_session.id} created (pending), task enqueued in {test_data.language}")
         return quiz_session
     except Exception as e:
         logger.error(f"Error starting test center: {str(e)}")
@@ -157,20 +191,68 @@ async def generate_chapter_quiz(
                 detail="Chapter not found"
             )
         
-        # Get exam type from the study plan
+        # Get exam type and language from the study plan
         plan_result = await db.execute(
             select(StudyPlan).where(StudyPlan.id == chapter.plan_id)
         )
         plan = plan_result.scalar_one_or_none()
         exam_type = plan.exam_type if plan else "General"
+        plan_language = plan.language if (plan and hasattr(plan, "language")) else "English"
         
+        # 1. Global Cache Check
+        from sqlalchemy import func
+        cached_quiz_result = await db.execute(
+            select(QuizSession)
+            .where(
+                func.lower(QuizSession.topic) == chapter.chapter_name.lower(),
+                func.lower(QuizSession.subject) == exam_type.lower(),
+                QuizSession.questions != [],
+                QuizSession.total_questions > 0
+            )
+            .limit(1)
+        )
+        cached_quiz = cached_quiz_result.scalar_one_or_none()
+        
+        if cached_quiz and len(cached_quiz.questions) > 0:
+            logger.info(f"♻️ REUSING existing Chapter Quiz for: {chapter.chapter_name}")
+            quiz_session = QuizSession(
+                user_id=current_user.user_id,
+                topic=cached_quiz.topic,
+                subject=cached_quiz.subject,
+                difficulty=cached_quiz.difficulty,
+                questions=cached_quiz.questions,
+                total_questions=cached_quiz.total_questions,
+                status="in_progress" # Reset status for new user
+            )
+            db.add(quiz_session)
+            await db.commit()
+            await db.refresh(quiz_session)
+            return quiz_session
+
+        # 2. Generation Pathway
         topics = chapter.topics if isinstance(chapter.topics, list) else [chapter.topics]
         
+        # Pull context from vector store if available
+        pdf_context = ""
+        try:
+            search_results = await vector_store_service.search(
+                module_id=str(chapter.plan_id),
+                query=" ".join(topics),
+                top_k=5
+            )
+            if search_results:
+                pdf_context = "\n\n".join([doc.get("text", "") for doc in search_results])
+                logger.info(f"Retrieved {len(search_results)} chunks from PDF context for quiz generation.")
+        except Exception as e:
+            logger.warning(f"Failed to fetch PDF context for quiz generation: {str(e)}")
+            
         # ULTRA-OPTIMIZED: Generate questions for all topics in ONE BATCH
         all_questions = await quiz_agent.generate_chapter_questions(
             topics=topics,
             exam_type=exam_type,
-            total_count=15 # Standard chapter quiz size
+            total_count=15, # Standard chapter quiz size
+            pdf_context=pdf_context,
+            language=plan_language
         )
         
         # Create quiz session

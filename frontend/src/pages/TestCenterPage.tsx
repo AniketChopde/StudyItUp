@@ -1,4 +1,5 @@
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuizStore } from '../stores/quizStore';
 import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -31,7 +32,10 @@ export const TestCenterPage: React.FC = () => {
         isLoading,
     } = useQuizStore();
 
-    const [examName, setExamName] = React.useState('');
+    const [searchParams] = useSearchParams();
+    const [examName, setExamName] = React.useState(searchParams.get('examName') || '');
+    const planId = searchParams.get('planId') || undefined;
+    const [language, setLanguage] = React.useState('English');
     const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
 
@@ -76,7 +80,7 @@ export const TestCenterPage: React.FC = () => {
             toast.error('Please enter an exam name');
             return;
         }
-        await startTestCenter(examName);
+        await startTestCenter(examName, planId, language);
     };
 
     const handleAutoSubmit = async () => {
@@ -152,6 +156,17 @@ export const TestCenterPage: React.FC = () => {
                                 onChange={(e) => setExamName(e.target.value)}
                                 className="h-14 text-lg font-bold text-center rounded-xl border-2 focus:ring-4 transition-all"
                             />
+                            
+                            <p className="font-black text-[10px] uppercase tracking-[0.2em] text-primary mt-4">Preferred Language</p>
+                            <select
+                                className="w-full h-14 text-lg font-bold text-center rounded-xl border-2 border-input bg-background focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                value={language}
+                                onChange={(e) => setLanguage(e.target.value)}
+                            >
+                                <option value="English">English</option>
+                                <option value="Hindi">Hindi (हिंदी)</option>
+                                <option value="Marathi">Marathi (मराठी)</option>
+                            </select>
                         </div>
                         <Button
                             onClick={handleStartTest}

@@ -14,6 +14,7 @@ const createPlanSchema = z.object({
     target_date: z.string().min(1, 'Target completion date is required'),
     daily_hours: z.number().min(1).max(24),
     fast_learn: z.boolean().default(false),
+    language: z.string().default('English'),
 });
 
 type CreatePlanFormData = z.infer<typeof createPlanSchema>;
@@ -32,6 +33,7 @@ export const CreateStudyPlanPage: React.FC = () => {
         defaultValues: {
             daily_hours: 4,
             fast_learn: false,
+            language: 'English',
         }
     });
 
@@ -84,6 +86,20 @@ export const CreateStudyPlanPage: React.FC = () => {
                                 error={errors.exam_type?.message}
                                 {...register('exam_type')}
                             />
+
+                            <div className="space-y-1">
+                                <label className="text-sm font-medium leading-none">
+                                    Preferred Language
+                                </label>
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    {...register('language')}
+                                >
+                                    <option value="English">English</option>
+                                    <option value="Hindi">Hindi (हिंदी)</option>
+                                    <option value="Marathi">Marathi (मराठी)</option>
+                                </select>
+                            </div>
 
                             <Input
                                 label="Target completion date"

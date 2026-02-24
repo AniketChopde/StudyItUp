@@ -116,7 +116,8 @@ class PlanningAgent:
         syllabus_data: Any = None,
         current_knowledge: Dict[str, Any] = None,
         goal: str = None,
-        fast_learn: bool = False
+        fast_learn: bool = False,
+        language: str = "English"
     ) -> Dict[str, Any]:
         """
         Create a comprehensive study plan with full MLflow tracking.
@@ -167,10 +168,14 @@ class PlanningAgent:
                 - User level & Goal: {goal or "Master the topic"}
                 - Available time: {days_until_exam} days
                 - Mode: {'Fast Learn (Core-first)' if fast_learn else 'Standard'}
+                - Language: {language}
 
                 TASK:
                 Generate a module-wise learning path for {exam_type}. The goal may be an exam (e.g. GATE, UPSC), a skill (e.g. Machine Learning, LangChain), or any subject—structure the plan accordingly.
                 {fast_learn_instruction}
+
+                CRITICAL LANGUAGE INSTRUCTION:
+                You MUST generate the entire study plan, including ALL module names, topics, and descriptions, STRICTLY in {language}. If {language} is not English, ensure high-quality native terminology is used.
 
                 CRITICAL SEQUENCING RULES:
                 1. PEDAGOGICAL FLOW: You MUST order modules in a logical pedagogical sequence.

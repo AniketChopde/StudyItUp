@@ -32,7 +32,7 @@ interface QuizState {
     goToQuestion: (index: number) => void;
     fetchHistory: () => Promise<void>;
     resetQuiz: () => void;
-    startTestCenter: (examName: string) => Promise<void>;
+    startTestCenter: (examName: string, planId?: string, language?: string) => Promise<void>;
     generateChapterQuiz: (chapterId: string) => Promise<void>;
     loadQuizResult: (id: string) => Promise<void>;
 }
@@ -87,10 +87,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
             throw error;
         }
     },
-    startTestCenter: async (examName) => {
+    startTestCenter: async (examName, planId, language) => {
         try {
             set({ isLoading: true });
-            const response = await quizService.startTestCenter(examName);
+            const response = await quizService.startTestCenter(examName, planId, language);
             const data = response.data;
             const isPending = data.status === 'pending' && (!data.questions || data.questions.length === 0);
 

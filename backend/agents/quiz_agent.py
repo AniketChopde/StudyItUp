@@ -27,7 +27,8 @@ class QuizAgent:
         module_id: str = None,
         count: int = 5,
         difficulty: str = "mixed", # Changed default to mixed for better assessment
-        exam_type: str = None
+        exam_type: str = None,
+        language: str = "English"
     ) -> List[Dict[str, Any]]:
         """
         ROLE: Quiz Agent
@@ -98,6 +99,9 @@ class QuizAgent:
                 Generate {count} exam-level questions for the topic: {topic}.
                 Since no specific notes are provided, use your general expert knowledge.
                 
+                CRITICAL LANGUAGE INSTRUCTION:
+                All questions, options, and explanations MUST be generated strictly in {language}.
+                
                 QUESTION TYPES:
                 - MCQ
                 
@@ -136,6 +140,7 @@ class QuizAgent:
                 1. MATHEMATICAL ACCURACY: Verify all numerical values and calculations. Ensure the correct answer is available in the options.
                 2. REFERENCE DATA: Prioritize content from the "REFERENCE MATERIAL" section.
                 3. EVALUATION: Standard questions = 1 mark. Advanced/Previous Year questions = 4 marks.
+                4. LANGUAGE (CRITICAL): All questions, options, and explanations MUST be generated strictly in {language}.
                 
                 FORMATTING:
                 Return ONLY a JSON object:
@@ -519,6 +524,8 @@ PYQ QUESTION INPUTS (may include literal questions):
         count: int,
         exam_type: str,
         skip_pyq: bool = False,
+        pdf_context: str = "",
+        language: str = "English"
     ) -> List[Dict[str, Any]]:
         """
         Fast quiz generation for Test Center. One LLM call; set skip_pyq=True for under-10s path.
@@ -548,6 +555,7 @@ REQUIREMENTS:
 - All questions MUST have exactly 4 options
 - Options prefix: "A) ", "B) ", "C) ", "D) "
 -correct_answer: Single letter only ("A", "B", "C", or "D")
+- LANGUAGE (CRITICAL): Generate EVERYTHING (questions, options, explanations) in {language}.
 
 JSON FORMAT:
 {{
@@ -572,7 +580,23 @@ JSON FORMAT:
             user_prompt = f"""Topic: {topic}
 Exam: {exam_type}
 Count: {count} questions
+"""
 
+            if pdf_context:
+                user_prompt += f"""
+                
+STRICT VALIDATION & GENERATION INSTRUCTION:
+Below is 'PDF REFERENCE MATERIAL' uploaded by the user. 
+FIRST: Evaluate if this material is actually relevant to the topic ({topic}) or exam ({exam_type}).
+SECOND: If it IS totally irrelevant, IGNORE IT COMPLETELY and rely entirely on your own knowledge and the PYQs provided below.
+THIRD: If it IS relevant, prioritize generating questions directly from the provided text, while maintaining the required difficulty level.
+
+--- PDF REFERENCE MATERIAL ---
+{pdf_context}
+------------------------------
+"""
+                
+            user_prompt += f"""
 {pyq_section}
 
 Generate {count} high-quality exam questions."""
@@ -631,7 +655,9 @@ Generate {count} high-quality exam questions."""
         self,
         topics: List[str],
         exam_type: str,
-        total_count: int = 15
+        total_count: int = 15,
+        pdf_context: str = "",
+        language: str = "English"
     ) -> List[Dict[str, Any]]:
         """
         ULTRA-OPTIMIZED: Generate high-quality questions for multiple chapter topics.
@@ -663,6 +689,7 @@ Generate {count} high-quality exam questions."""
             - Mix difficulty: Medium to Hard.
             - Exactly 4 options per question, prefixed with "A) ", "B) ", "C) ", "D) ".
             - correct_answer: SINGLE LETTER ("A", "B", "C", or "D").
+            - LANGUAGE (CRITICAL): Generate EVERYTHING (questions, options, explanations) in {language}.
             
             OUTPUT JSON:
             {{
@@ -681,7 +708,23 @@ Generate {count} high-quality exam questions."""
             
             user_prompt = f"""Generate {total_count} questions covering: {topics}.
             Exam: {exam_type}
+            """
             
+            if pdf_context:
+                user_prompt += f"""
+                
+            STRICT VALIDATION & GENERATION INSTRUCTION:
+            Below is 'PDF REFERENCE MATERIAL' uploaded by the user. 
+            FIRST: Evaluate if this material is actually relevant to the topics ({', '.join(topics)}) or exam ({exam_type}).
+            SECOND: If it IS totally irrelevant (e.g. a biology book for a computer science exam), IGNORE IT COMPLETELY and rely entirely on your own knowledge and the PYQs provided below.
+            THIRD: If it IS relevant, prioritize generating questions directly from the provided text, while maintaining the required difficulty level.
+            
+            --- PDF REFERENCE MATERIAL ---
+            {pdf_context}
+            ------------------------------
+            """
+                
+            user_prompt += f"""
             PYQ EXAMPLES FOR STYLE REFERENCE:
             {pyq_context}
             """
@@ -708,6 +751,8 @@ Generate {count} high-quality exam questions."""
         except Exception as e:
             logger.error(f"Error in batch generation: {e}")
             # Fallback to simple generation if complex one fails
+            # Add pdf context backward compatibility if simple generation is called
+            # Note: generate_questions doesn't currently take pdf_context directly as a string, but it takes module_id.
             return await self.generate_questions(topic=" ".join(topics), count=total_count, exam_type=exam_type)
 
 # Global agent instance

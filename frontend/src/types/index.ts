@@ -67,6 +67,7 @@ export interface CreatePlanData {
     daily_hours: number;
     current_knowledge: Record<string, any>;
     fast_learn: boolean;
+    language?: string;
 }
 
 // Quiz Types

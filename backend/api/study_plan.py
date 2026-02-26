@@ -4,7 +4,7 @@ Study Plan API endpoints.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any
 from loguru import logger
@@ -19,6 +19,63 @@ from utils.auth import get_current_user, TokenData
 from agents.orchestrator import orchestrator
 
 router = APIRouter()
+
+
+async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: List[StudyPlan]):
+    """
+    Smart Sync: auto-complete chapters based on quiz scores and then auto-complete plans.
+    Demonstrates true mastery by analyzing quiz history.
+    """
+    # 1. Fetch user's max quiz scores
+    from models.quiz import QuizSession
+    quiz_result = await db.execute(
+        select(QuizSession.topic, func.max(QuizSession.score).label("max_score"))
+        .where(QuizSession.user_id == current_user_id, QuizSession.status == "completed")
+        .group_by(QuizSession.topic)
+    )
+    quiz_scores = {row.topic.lower(): row.max_score for row in quiz_result if row.max_score is not None}
+    
+    updated_any = False
+    from api.gamification import process_xp_award
+    
+    for plan in plans:
+        plan_updated = False
+        if plan.chapters:
+            for chapter in plan.chapters:
+                if chapter.status != "completed":
+                    # Check if chapter name or any of its topics match a high-score quiz
+                    score = quiz_scores.get(chapter.chapter_name.lower(), 0)
+                    if score < 70:
+                        # Try matching topics
+                        for topic in chapter.topics:
+                            topic_score = quiz_scores.get(topic.lower(), 0)
+                            if topic_score >= 70:
+                                score = topic_score
+                                break
+                    
+                    if score >= 70:
+                        logger.info(f"✨ Smart Sync: Marking chapter '{chapter.chapter_name}' as completed (Score: {score}%)")
+                        chapter.status = "completed"
+                        plan_updated = True
+                        updated_any = True
+                        # Award XP for the auto-completed chapter
+                        try:
+                            await process_xp_award(db, current_user_id, "chapter_complete")
+                        except Exception as e:
+                            logger.error(f"Failed to award XP during smart sync: {e}")
+        
+        # 2. Check if the entire plan is now done
+        if plan.status == "active":
+            if all(ch.status == "completed" for ch in plan.chapters):
+                logger.info(f"🏆 Smart Sync: Marking plan as completed: {plan.id}")
+                plan.status = "completed"
+                plan_updated = True
+                updated_any = True
+    
+    if updated_any:
+        await db.commit()
+    
+    return plans
 
 
 @router.post("/create", response_model=StudyPlanCreateResponse, status_code=status.HTTP_201_CREATED)
@@ -209,7 +266,9 @@ async def list_study_plans(
             .options(selectinload(StudyPlan.chapters))
             .order_by(StudyPlan.created_at.desc())
         )
-        return result.scalars().all()
+        plans = result.scalars().all()
+        await smart_sync_plans(db, current_user.user_id, plans)
+        return plans
     except Exception as e:
         logger.error(f"Error listing study plans: {str(e)}")
         raise HTTPException(
@@ -241,6 +300,9 @@ async def get_study_plan(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Study plan not found"
             )
+        
+        # Run smart sync for this single plan
+        await smart_sync_plans(db, current_user.user_id, [plan])
         
         return plan
     
@@ -385,6 +447,21 @@ async def update_chapter_status(
         chapter.status = new_status
         await db.commit()
         await db.refresh(chapter)
+        
+        # Check if all chapters in the plan are completed
+        if new_status == "completed":
+            plan_result = await db.execute(
+                select(StudyPlan)
+                .where(StudyPlan.id == chapter.plan_id)
+                .options(selectinload(StudyPlan.chapters))
+            )
+            plan = plan_result.scalar_one_or_none()
+            if plan:
+                all_done = all(ch.status == "completed" for ch in plan.chapters)
+                if all_done:
+                    logger.info(f"🏆 study plan fully completed: {plan.id}")
+                    plan.status = "completed"
+                    await db.commit()
         
         return chapter
     

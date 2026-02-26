@@ -140,9 +140,10 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
 
             toast.success(`Chapter marked as ${status}`);
 
-            // Refresh gamification profile if chapter completed
+            // Refresh gamification profile and plans if chapter completed
             if (status === 'completed') {
                 useGamificationStore.getState().fetchProfile();
+                await get().fetchPlans();
             }
         } catch (error) {
             toast.error('Failed to update chapter status');

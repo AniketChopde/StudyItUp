@@ -4,7 +4,7 @@ import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Loading } from '../components/ui/Loading';
-import { Plus, Calendar, Clock, BookOpen, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Clock, BookOpen, ChevronRight, Trash2, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const StudyPlansPage: React.FC = () => {
@@ -102,7 +102,7 @@ export const StudyPlansPage: React.FC = () => {
                             </CardHeader>
 
                             <CardContent>
-                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className={`grid grid-cols-2 gap-4 mb-6 transition-opacity ${plan.status === 'completed' ? 'opacity-70' : ''}`}>
                                     <div className="flex flex-col bg-muted/50 p-3 rounded-lg border border-border/50">
                                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
                                             <Clock className="h-3 w-3" />
@@ -120,8 +120,17 @@ export const StudyPlansPage: React.FC = () => {
                                 </div>
 
                                 <div className="flex items-center justify-between text-sm group-hover:translate-x-1 transition-transform">
-                                    <span className="text-primary font-medium">Continue Planning</span>
-                                    <ChevronRight className="h-4 w-4 text-primary" />
+                                    <span className={`${plan.status === 'completed' ? 'text-green-600' : 'text-primary'} font-bold flex items-center gap-2`}>
+                                        {plan.status === 'completed' ? (
+                                            <>
+                                                <CheckCircle className="h-4 w-4" />
+                                                Mastered
+                                            </>
+                                        ) : (
+                                            'Continue Planning'
+                                        )}
+                                    </span>
+                                    <ChevronRight className={`h-4 w-4 ${plan.status === 'completed' ? 'text-green-600' : 'text-primary'}`} />
                                 </div>
                             </CardContent>
                         </Card>

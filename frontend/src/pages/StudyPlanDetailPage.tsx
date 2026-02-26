@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
@@ -25,9 +25,11 @@ import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const StudyPlanDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { activePlan, isLoading, isTeaching, isSearchingCourses, getPlan, updateChapterStatus, teachChapter, getCourses } = useStudyPlanStore();
     const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+    const urlChapterId = searchParams.get('chapterId');
     const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'syllabus' | 'courses' | 'resources'>('overview');
     const [expandedMindmaps, setExpandedMindmaps] = useState<Record<string, boolean>>({});
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -46,10 +48,24 @@ export const StudyPlanDetailPage: React.FC = () => {
     }, [viewMode, activePlan, getCourses]);
 
     useEffect(() => {
-        if (activePlan?.chapters && activePlan.chapters.length > 0 && !selectedChapterId) {
-            setSelectedChapterId(activePlan.chapters[0].id.toString());
+        if (activePlan?.chapters && activePlan.chapters.length > 0) {
+            if (urlChapterId) {
+                setSelectedChapterId(urlChapterId);
+                // Also automatically switch to lesson view when deep-linking from analytics
+                if (viewMode === 'overview') {
+                    setViewMode('lesson');
+                    
+                    // Trigger teaching if content is missing
+                    const ch = activePlan.chapters.find(c => c.id.toString() === urlChapterId);
+                    if (ch && (!ch.content || !ch.content.topic_lessons) && !isTeaching) {
+                        teachChapter(urlChapterId);
+                    }
+                }
+            } else if (!selectedChapterId) {
+                setSelectedChapterId(activePlan.chapters[0].id.toString());
+            }
         }
-    }, [activePlan, selectedChapterId]);
+    }, [activePlan, urlChapterId, selectedChapterId, viewMode, isTeaching, teachChapter]);
 
     const selectedChapter = activePlan?.chapters.find(
         (c) => c.id.toString() === selectedChapterId

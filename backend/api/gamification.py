@@ -48,6 +48,33 @@ async def get_gamification_profile(
         await db.commit()
         await db.refresh(user_xp)
 
+    profile_badges = []
+    # Auto-award level badges if missing (retroactive check)
+    current_level = user_xp.level
+    level_milestones = [
+        (2, "level_2", "Level Explorer", "Reached Level 2", "🌱"),
+        (3, "level_3", "Knowledge Seeker", "Reached Level 3", "📜"),
+        (4, "level_4", "Consistent Learner", "Reached Level 4", "🔋"),
+        (5, "level_5", "Dedicated Scholar", "Reached Level 5", "🎖️")
+    ]
+    
+    awarded_any = False
+    for lv, key, name, desc, icon in level_milestones:
+        if current_level >= lv:
+            # Check if badge already exists in UserBadge
+            chk = await db.execute(
+                select(UserBadge)
+                .join(Badge, Badge.id == UserBadge.badge_id)
+                .where(UserBadge.user_id == user_id, Badge.badge_key == key)
+            )
+            if not chk.scalar_one_or_none():
+                # Award it
+                await _award_badge_if_earned(db, user_id, key, name, desc, icon, [])
+                awarded_any = True
+    
+    if awarded_any:
+        await db.commit()
+
     # Get earned badges
     badges_result = await db.execute(
         select(Badge, UserBadge.earned_at)
@@ -121,9 +148,16 @@ async def process_xp_award(db: AsyncSession, user_id: uuid.UUID, event: str, sco
     # Badge checking logic
     badges_awarded = []
     
-    if leveled_up and new_level == 5:
-        badge_key = "level_5"
-        await _award_badge_if_earned(db, user_id, badge_key, "Dedicated Scholar", "Reached Level 5", "🎖️", badges_awarded)
+    # Level Milestones
+    if leveled_up:
+        if new_level == 2:
+            await _award_badge_if_earned(db, user_id, "level_2", "Level Explorer", "Reached Level 2", "🌱", badges_awarded)
+        elif new_level == 3:
+            await _award_badge_if_earned(db, user_id, "level_3", "Knowledge Seeker", "Reached Level 3", "📜", badges_awarded)
+        elif new_level == 4:
+            await _award_badge_if_earned(db, user_id, "level_4", "Consistent Learner", "Reached Level 4", "🔋", badges_awarded)
+        elif new_level == 5:
+            await _award_badge_if_earned(db, user_id, "level_5", "Dedicated Scholar", "Reached Level 5", "🎖️", badges_awarded)
         
     if event == "quiz_complete" and score is not None and score == 100:
         badge_key = "perfect_score"

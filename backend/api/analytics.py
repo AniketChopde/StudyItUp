@@ -132,12 +132,17 @@ async def get_topic_analysis(
         if topic not in analysis:
             analysis[topic] = {
                 "topic": topic,
+                "subject": q.subject or "General",
                 "avg_score": 0.0,
                 "attempts": 0,
                 "total_time": 0.0,
                 "scores": []
             }
         
+        # Keep subject updated to the latest one seen (usually they are consistent)
+        if q.subject:
+            analysis[topic]["subject"] = q.subject
+
         analysis[topic]["attempts"] += 1
         if q.score is not None:
             analysis[topic]["scores"].append(q.score)
@@ -204,7 +209,32 @@ async def get_weak_strong_analysis(
     """
     # 1. Reuse topic analysis logic
     topic_data = await get_topic_analysis(current_user, db)
+    user_id = current_user.user_id
+
+    # 2. Get user's study plan chapters to link recommendations to specific lessons
+    plans_result = await db.execute(
+        select(StudyPlan)
+        .where(StudyPlan.user_id == user_id)
+        .options(selectinload(StudyPlan.chapters))
+    )
+    plans = plans_result.scalars().all()
     
+    # Topic -> (plan_id, chapter_id) mapping
+    topic_map = {}
+    subject_map = {} # Fallback to most recent plan for a subject
+    
+    for plan in plans:
+        # Subject mapping (keep the latest plan)
+        subject_map[plan.exam_type.lower()] = plan.id
+        
+        for ch in plan.chapters:
+            # We assume topic names in quizzes match topics in chapters (case-insensitive)
+            chapter_topics = [t.lower() for t in (ch.topics or [])]
+            for t in chapter_topics:
+                topic_map[t] = (plan.id, ch.id)
+            # Also check chapter name itself
+            topic_map[ch.chapter_name.lower()] = (plan.id, ch.id)
+
     weak = []
     strong = []
     recommendations = []
@@ -212,19 +242,48 @@ async def get_weak_strong_analysis(
     for item in topic_data:
         score = item["avg_score"]
         topic = item["topic"]
+        subject = item.get("subject", "General")
+        
+        # 1. Direct topic match to chapter
+        link_info = topic_map.get(topic.lower())
+        plan_id, chapter_id = link_info if link_info else (None, None)
+        
+        # 2. Fallback: If topic name itself matches a study plan (exam type)
+        if not plan_id:
+            plan_id = subject_map.get(topic.lower())
+            
+        # 3. Fallback: Partial match (e.g. "Machine learning" matches "Machine learning Preparation")
+        if not plan_id:
+            for p_name, p_id in subject_map.items():
+                if topic.lower() in p_name or p_name in topic.lower():
+                    plan_id = p_id
+                    break
+
+        # 4. Fallback: If subject plan exists
+        if not plan_id and subject:
+            plan_id = subject_map.get(subject.lower())
+            if not plan_id:
+                for p_name, p_id in subject_map.items():
+                    if subject.lower() in p_name or p_name in subject.lower():
+                        plan_id = p_id
+                        break
         
         if score < 60:
             weak.append(item)
             recommendations.append({
                 "topic": topic,
+                "subject": subject,
                 "type": "improvement",
                 "message": f"You're struggling with {topic} ({score}%). We recommend re-reading the chapter or asking for an explanation in Chat.",
-                "action_link": "/chat"
+                "action_link": "/chat",
+                "plan_id": str(plan_id) if plan_id else None,
+                "chapter_id": str(chapter_id) if chapter_id else None
             })
         elif score >= 80:
             strong.append(item)
             recommendations.append({
                 "topic": topic,
+                "subject": subject,
                 "type": "mastery",
                 "message": f"Excellent mastery of {topic}! You're ready for advanced mock tests.",
                 "action_link": "/quiz"

@@ -5,7 +5,7 @@ import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Loading } from '../components/ui/Loading';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { BookOpen, Brain, MessageSquare, TrendingUp, Clock, Target, Award, Flame } from 'lucide-react';
+import { BookOpen, Brain, MessageSquare, TrendingUp, Clock, Target, Award, Flame, CheckCircle } from 'lucide-react';
 import type { DashboardStats } from '../types';
 import { XPBar } from '../components/gamification/XPBar';
 import { BadgeGallery } from '../components/gamification/BadgeGallery';
@@ -49,7 +49,7 @@ export const DashboardPage: React.FC = () => {
         );
     }
 
-    const activePlan = plans.find((p) => p.status === 'active');
+    const activePlan = plans.find((p) => p.status === 'active') || plans.find((p) => p.status === 'completed');
 
     const statRows = [
         {
@@ -139,7 +139,10 @@ export const DashboardPage: React.FC = () => {
             {activePlan ? (
                 <Card>
                     <CardHeader>
-                        <CardTitle>Active Study Plan</CardTitle>
+                        <div className="flex justify-between items-center">
+                            <CardTitle>{activePlan.status === 'completed' ? 'Study Plan Mastered' : 'Active Study Plan'}</CardTitle>
+                            {activePlan.status === 'completed' && <CheckCircle className="h-5 w-5 text-green-500" />}
+                        </div>
                         <CardDescription>{activePlan.exam_type}</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -157,7 +160,9 @@ export const DashboardPage: React.FC = () => {
                                 <span className="font-medium">{activePlan.chapters?.length || 0}</span>
                             </div>
                             <Link to={`/study-plans/${activePlan.id}`}>
-                                <Button className="w-full mt-4">View Full Plan</Button>
+                                <Button className={`w-full mt-4 ${activePlan.status === 'completed' ? 'bg-green-600 hover:bg-green-700' : ''}`}>
+                                    {activePlan.status === 'completed' ? 'View Mastery Details' : 'View Full Plan'}
+                                </Button>
                             </Link>
                         </div>
                     </CardContent>

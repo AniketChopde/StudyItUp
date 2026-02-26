@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { analyticsService } from '../api/services';
@@ -8,28 +9,34 @@ import {
 } from 'recharts';
 import { 
     TrendingUp, Award, AlertTriangle, CheckCircle, 
-    BookOpen, Zap
+    BookOpen, Zap, Trophy, Medal, Star
 } from 'lucide-react';
 import { Loading } from '../components/ui/Loading';
+import { gamificationService } from '../api/services';
+import type { BadgeOut } from '../types';
 
 export const AnalyticsPage: React.FC = () => {
+    const navigate = useNavigate();
     const [topicAnalysis, setTopicAnalysis] = React.useState<any[]>([]);
     const [subjectAnalysis, setSubjectAnalysis] = React.useState<any[]>([]);
     const [weakStrong, setWeakStrong] = React.useState<any>(null);
+    const [gamificationProfile, setGamificationProfile] = React.useState<any>(null);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [activeTab, setActiveTab] = React.useState<'subjects' | 'topics' | 'weak-strong'>('subjects');
+    const [activeTab, setActiveTab] = React.useState<'subjects' | 'topics' | 'weak-strong' | 'badges'>('subjects');
 
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [topicsRes, subjectsRes, wsRes] = await Promise.all([
+            const [topicsRes, subjectsRes, wsRes, gamificationRes] = await Promise.all([
                 analyticsService.getTopicAnalysis(),
                 analyticsService.getSubjectAnalysis(),
-                analyticsService.getWeakStrongAnalysis()
+                analyticsService.getWeakStrongAnalysis(),
+                gamificationService.getProfile()
             ]);
             setTopicAnalysis(topicsRes.data || []);
             setSubjectAnalysis(subjectsRes.data || []);
             setWeakStrong(wsRes.data);
+            setGamificationProfile(gamificationRes.data);
         } catch (error) {
             console.error('Failed to fetch analytics:', error);
         } finally {
@@ -68,7 +75,7 @@ export const AnalyticsPage: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
-                {(['subjects', 'topics', 'weak-strong'] as const).map((tab) => (
+                {(['subjects', 'topics', 'weak-strong', 'badges'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -251,30 +258,167 @@ export const AnalyticsPage: React.FC = () => {
                             Smart Recommendations
                         </h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {weakStrong.recommendations.map((rec: any, idx: number) => (
-                                <Card key={idx} className="hover:shadow-md transition-shadow">
-                                    <CardContent className="p-6">
-                                        <div className="flex items-start gap-3">
-                                            <div className={`mt-1 p-2 rounded-lg ${
-                                                rec.type === 'improvement' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
-                                            }`}>
-                                                {rec.type === 'improvement' ? <BookOpen size={20} /> : <Award size={20} />}
+                            {weakStrong.recommendations.map((rec: any, idx: number) => {
+                                const handleChatAction = () => {
+                                    navigate(`/chat?topic=${encodeURIComponent(rec.topic)}&subject=${encodeURIComponent(rec.subject)}`);
+                                };
+
+                                 const handleRereadAction = () => {
+                                    if (rec.plan_id) {
+                                        const url = rec.chapter_id 
+                                            ? `/study-plans/${rec.plan_id}?chapterId=${rec.chapter_id}`
+                                            : `/study-plans/${rec.plan_id}`;
+                                        navigate(url);
+                                    } else {
+                                        navigate(`/study-plans`);
+                                    }
+                                };
+
+                                const handleQuizAction = () => {
+                                    navigate(`/quiz?topic=${encodeURIComponent(rec.topic)}&subject=${encodeURIComponent(rec.subject)}&autoStart=true`);
+                                };
+
+                                return (
+                                    <Card 
+                                        key={idx} 
+                                        className="hover:shadow-md transition-shadow group"
+                                    >
+                                        <CardContent className="p-6">
+                                            <div className="flex items-start gap-3">
+                                                <div className={`mt-1 p-2 rounded-lg ${
+                                                    rec.type === 'improvement' ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                                }`}>
+                                                    {rec.type === 'improvement' ? <BookOpen size={20} /> : <Award size={20} />}
+                                                </div>
+                                                <div className="space-y-2 flex-1">
+                                                    <p className="font-bold text-sm uppercase tracking-wider opacity-60">
+                                                        {rec.topic}
+                                                    </p>
+                                                    <p className="text-sm leading-relaxed mb-4">{rec.message}</p>
+                                                    
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {rec.type === 'improvement' ? (
+                                                            <>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="outline"
+                                                                    className="text-xs font-bold border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                                                                    onClick={handleRereadAction}
+                                                                >
+                                                                    {rec.chapter_id ? 'Re-read Chapter' : 'Go to Study Plan'}
+                                                                </Button>
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="ghost" 
+                                                                    className="text-indigo-600 px-2 h-9 hover:bg-transparent hover:text-indigo-700 group-hover:translate-x-1 transition-transform text-xs font-bold"
+                                                                    onClick={handleChatAction}
+                                                                >
+                                                                    Ask AI Tutor →
+                                                                </Button>
+                                                            </>
+                                                        ) : (
+                                                            <Button 
+                                                                size="sm" 
+                                                                variant="ghost" 
+                                                                className="text-indigo-600 px-0 hover:bg-transparent hover:text-indigo-700 group-hover:translate-x-1 transition-transform text-xs font-bold"
+                                                                onClick={handleQuizAction}
+                                                            >
+                                                                Start specialized test →
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <p className="font-bold text-sm uppercase tracking-wider opacity-60">
-                                                    {rec.topic}
-                                                </p>
-                                                <p className="text-sm leading-relaxed">{rec.message}</p>
-                                                <Button size="sm" variant="ghost" className="text-indigo-600 px-0 hover:bg-transparent hover:text-indigo-700">
-                                                    Start specialized {rec.type === 'improvement' ? 'tutorial' : 'test'} →
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                                        </CardContent>
+                                    </Card>
+                                );
+                            })}
                         </div>
                     </div>
+                </div>
+            )}
+            {activeTab === 'badges' && gamificationProfile && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none overflow-hidden relative group">
+                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                                <Trophy size={140} />
+                            </div>
+                            <CardContent className="p-6 relative z-10">
+                                <p className="text-white/80 font-medium text-sm mb-1 uppercase tracking-wider">Total Badges</p>
+                                <div className="flex items-baseline gap-2">
+                                    <h3 className="text-4xl font-bold">{gamificationProfile.badges.length}</h3>
+                                    <span className="text-white/60 text-sm font-medium">Achievements</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gradient-to-br from-amber-400 to-orange-500 text-white border-none overflow-hidden relative group">
+                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                                <Medal size={140} />
+                            </div>
+                            <CardContent className="p-6 relative z-10">
+                                <p className="text-white/80 font-medium text-sm mb-1 uppercase tracking-wider">Current Level</p>
+                                <div className="flex items-baseline gap-2">
+                                    <h3 className="text-4xl font-bold">{gamificationProfile.level}</h3>
+                                    <span className="text-white/60 text-sm font-medium">Scholar Status</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white border-none overflow-hidden relative group">
+                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                                <Star size={140} />
+                            </div>
+                            <CardContent className="p-6 relative z-10">
+                                <p className="text-white/80 font-medium text-sm mb-1 uppercase tracking-wider">Total XP</p>
+                                <div className="flex items-baseline gap-2">
+                                    <h3 className="text-4xl font-bold">{gamificationProfile.total_xp}</h3>
+                                    <span className="text-white/60 text-sm font-medium">Points</span>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Badge Gallery</CardTitle>
+                            <CardDescription>All the certifications and achievements you've earned.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {gamificationProfile.badges.length > 0 ? (
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    {gamificationProfile.badges.map((badge: BadgeOut, idx: number) => (
+                                        <div 
+                                            key={idx} 
+                                            className="flex flex-col items-center text-center p-4 rounded-2xl border border-indigo-50 bg-indigo-50/20 hover:bg-indigo-50/50 transition-all group hover:-translate-y-1"
+                                        >
+                                            <div className="text-4xl mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform">
+                                                {badge.icon || '🏆'}
+                                            </div>
+                                            <h4 className="font-bold text-sm text-indigo-900 mb-1">{badge.name}</h4>
+                                            <p className="text-xs text-muted-foreground line-clamp-2">
+                                                {badge.description}
+                                            </p>
+                                            {badge.earned_at && (
+                                                <p className="text-[10px] text-indigo-400 mt-2 font-medium">
+                                                    Earned {new Date(badge.earned_at).toLocaleDateString()}
+                                                </p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center">
+                                    <Trophy className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
+                                    <h3 className="font-medium text-lg">No Badges Yet</h3>
+                                    <p className="text-muted-foreground text-sm max-w-xs">
+                                        Keep studying and completing quizzes to earn your first achievements!
+                                    </p>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             )}
         </div>

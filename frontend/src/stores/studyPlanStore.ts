@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { studyPlanService } from '../api/services';
 import type { StudyPlan, CreatePlanData } from '../types';
 import toast from 'react-hot-toast';
+import { useGamificationStore } from './gamificationStore';
 
 interface StudyPlanState {
     plans: StudyPlan[];
@@ -138,6 +139,11 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
             });
 
             toast.success(`Chapter marked as ${status}`);
+
+            // Refresh gamification profile if chapter completed
+            if (status === 'completed') {
+                useGamificationStore.getState().fetchProfile();
+            }
         } catch (error) {
             toast.error('Failed to update chapter status');
             throw error;

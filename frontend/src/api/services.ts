@@ -17,6 +17,7 @@ import type {
     Mindmap,
     TopicMindmap,
     DashboardStats,
+    GamificationProfile,
 } from '../types';
 
 // Auth Service
@@ -141,4 +142,21 @@ export const analyticsService = {
 
     getGaps: () =>
         apiClient.get('/analytics/gaps'),
+
+    getTopicAnalysis: () =>
+        apiClient.get<any[]>('/analytics/topic-analysis'),
+
+    getSubjectAnalysis: () =>
+        apiClient.get<any[]>('/analytics/subject-analysis'),
+
+    getWeakStrongAnalysis: () =>
+        apiClient.get<any>('/analytics/weak-strong'),
+};
+
+export const gamificationService = {
+    getProfile: () =>
+        apiClient.get<GamificationProfile>('/gamification/profile'),
+
+    awardXp: (event: string, score?: number) =>
+        apiClient.post<{ awarded_xp: number; new_total_xp: number; level: number; leveled_up: boolean; badges_awarded: any[] }>('/gamification/award-xp', { event, score }),
 };

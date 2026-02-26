@@ -1,5 +1,6 @@
 """ 
 Main FastAPI application entry point.
+# Forced reload for Sarvam AI initialization
 """
 
 from fastapi import FastAPI, Request, status
@@ -9,10 +10,18 @@ from fastapi.exceptions import RequestValidationError
 from contextlib import asynccontextmanager
 from loguru import logger
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables at the very beginning
+load_dotenv()
+print(f"DEBUG: SARVAM_API_KEY found: {bool(os.environ.get('SARVAM_API_KEY'))}")
+if os.environ.get('SARVAM_API_KEY'):
+    print(f"DEBUG: Key starts with: {os.environ.get('SARVAM_API_KEY')[:6]}...")
 
 from config import settings
-from database.connection import init_db, close_db
-from api import auth, study_plan, content, quiz, chat, search, mindmap, analytics
+from loguru import logger
+import sys
 
 # Configure logging
 logger.remove()
@@ -27,6 +36,9 @@ logger.add(
     retention="10 days",
     level=settings.log_level
 )
+
+from database.connection import init_db, close_db
+from api import auth, study_plan, content, quiz, chat, search, mindmap, analytics, voice
 
 
 @asynccontextmanager
@@ -139,9 +151,11 @@ app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(search.router, prefix="/api/search", tags=["Search"])
 app.include_router(mindmap.router, prefix="/api/mindmap", tags=["Mindmap"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
-from api import admin, engagement
+app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
+from api import admin, engagement, gamification
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 app.include_router(engagement.router, prefix="/api/engagement", tags=["Engagement"])
+app.include_router(gamification.router, prefix="/api/gamification", tags=["Gamification"])
 
 
 if __name__ == "__main__":

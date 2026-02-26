@@ -14,6 +14,10 @@ import {
     Brain,
     BarChart,
 } from 'lucide-react';
+import { useGamificationStore } from '../../stores/gamificationStore';
+import { LevelBadge } from '../gamification/LevelBadge';
+import { XPToast } from '../gamification/XPToast';
+import { BadgeModal } from '../gamification/BadgeModal';
 
 const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -36,6 +40,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
+
+    const { fetchProfile } = useGamificationStore();
+
+    React.useEffect(() => {
+        if (user) {
+            fetchProfile();
+        }
+    }, [user, fetchProfile]);
 
     const handleLogout = () => {
         logout();
@@ -165,7 +177,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     >
                         <Menu className="h-5 w-5" />
                     </Button>
-                    <div className="flex-1" />
+                    <div className="flex-1 flex items-center gap-4">
+                         <LevelBadge />
+                    </div>
                     <div className="flex items-center gap-4">
                         <div className="text-sm">
                             <p className="font-medium">{user?.full_name || user?.email}</p>
@@ -182,6 +196,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     {children}
                 </main>
             </div>
+
+            {/* Global Gamification Overlays */}
+            <XPToast />
+            <BadgeModal />
         </div>
     );
 };

@@ -12,6 +12,7 @@ from database.connection import get_db
 from utils.auth import get_current_user, TokenData
 from services.vector_store import vector_store_service
 from models.study_plan import TopicMindmap
+from services.cache import cache_service
 
 router = APIRouter()
 
@@ -164,6 +165,13 @@ async def get_topic_mindmap(
                 
                 if not indexed:
                     logger.warning(f"RAG indexing failed for {topic_id}, falling back to LLM")
+                    
+                    # Persistent Cache Check for LLM generation
+                    cache_key = f"mindmap:{topic_name}:{exam_type}"
+                    cached_mindmap = await cache_service.db_get(db, "mindmap", cache_key)
+                    if cached_mindmap:
+                        return cached_mindmap
+
                     # Fallback to LLM-generated mindmap
                     from agents.content_agent import content_agent
                     mindmap_data = await content_agent.create_mindmap(topic_name)
@@ -176,11 +184,15 @@ async def get_topic_mindmap(
                             "exam": exam,
                             "chapter": chapter,
                             "topic": topic_name,
-                            "source": "llm_generated"
+                            "source": "llm_generated",
+                            "cache_hit": False
                         }
                     }
                     
-                    # Cache it
+                    # Store in Cache
+                    await cache_service.db_set(db, "mindmap", cache_key, mindmap)
+                    
+                    # Also store in TopicMindmap table (existing logic)
                     kb_hash = hashlib.sha256(topic_id.encode()).hexdigest()
                     new_row = TopicMindmap(
                         user_id=current_user.user_id,

@@ -321,6 +321,13 @@ async def submit_quiz(
         quiz_session.status = "completed"
         quiz_session.completed_at = datetime.utcnow()
         
+        # Gamification: Award XP for completing a quiz
+        from api.gamification import process_xp_award
+        try:
+            await process_xp_award(db, current_user.user_id, "quiz_complete", score_data["percentage"])
+        except Exception as e:
+            logger.error(f"Failed to award XP for quiz completion: {e}")
+        
         await db.commit()
         await db.refresh(quiz_session)
         

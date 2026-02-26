@@ -13,6 +13,7 @@ import { TestCenterPage } from './pages/TestCenterPage';
 import { CreateStudyPlanPage } from './pages/CreateStudyPlanPage';
 import { StudyPlansPage } from './pages/StudyPlansPage';
 import { StudyPlanDetailPage } from './pages/StudyPlanDetailPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
 import { Loading } from './components/ui/Loading';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
@@ -43,13 +44,7 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-// Placeholder pages for routes not yet implemented
-const AnalyticsPage = () => (
-  <div>
-    <h1 className="text-3xl font-bold mb-4">Analytics</h1>
-    <p className="text-muted-foreground">Analytics page coming soon...</p>
-  </div>
-);
+
 
 const ResourcesPage = () => (
   <div>

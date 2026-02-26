@@ -6,8 +6,11 @@ import { Loading } from '../components/ui/Loading';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { BookOpen, Brain, MessageSquare, TrendingUp, Clock, Target, Award, Flame } from 'lucide-react';
-import { analyticsService } from '../api/services';
 import type { DashboardStats } from '../types';
+import { XPBar } from '../components/gamification/XPBar';
+import { BadgeGallery } from '../components/gamification/BadgeGallery';
+import { analyticsService } from '../api/services';
+import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const DashboardPage: React.FC = () => {
     const { user } = useAuthStore();
@@ -90,18 +93,30 @@ export const DashboardPage: React.FC = () => {
     return (
         <div className="space-y-8">
             {/* Welcome Section */}
-            <div>
-                <h1 className="text-3xl font-bold">
-                    {!statsLoading && stats && (stats.study_streak_days > 0 || stats.hours_studied > 0 || stats.topics_completed > 0 || (stats.quiz_average_percent != null))
-                        ? `Welcome back, ${user?.full_name || 'Student'}! 👋`
-                        : `Welcome, ${user?.full_name || 'Student'}! 👋`}
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                    {!statsLoading && stats && (stats.study_streak_days > 0 || stats.hours_studied > 0 || stats.topics_completed > 0 || (stats.quiz_average_percent != null))
-                        ? "Here's your learning progress and what's next"
-                        : "Create a study plan, start learning in Chat, or take a quiz to see your stats here."}
-                </p>
+            <div className="flex items-start justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">
+                        {!statsLoading && stats && (stats.study_streak_days > 0 || stats.hours_studied > 0 || stats.topics_completed > 0 || (stats.quiz_average_percent != null))
+                            ? `Welcome back, ${user?.full_name || 'Student'}! 👋`
+                            : `Welcome, ${user?.full_name || 'Student'}! 👋`}
+                    </h1>
+                    <p className="text-muted-foreground mt-2">
+                        {!statsLoading && stats && (stats.study_streak_days > 0 || stats.hours_studied > 0 || stats.topics_completed > 0 || (stats.quiz_average_percent != null))
+                            ? "Here's your learning progress and what's next"
+                            : "Create a study plan, start learning in Chat, or take a quiz to see your stats here."}
+                    </p>
+                </div>
+                <ReadAloudButton 
+                    text={(!statsLoading && stats && (stats.study_streak_days > 0 || stats.hours_studied > 0 || stats.topics_completed > 0 || (stats.quiz_average_percent != null)))
+                        ? `Welcome back, ${user?.full_name || 'Student'}! Here's your learning progress and what's next.`
+                        : `Welcome, ${user?.full_name || 'Student'}! Create a study plan, start learning in Chat, or take a quiz to see your stats here.`
+                    } 
+                    className="mt-1"
+                />
             </div>
+
+            {/* XP and Level Progress */}
+            <XPBar />
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -181,6 +196,9 @@ export const DashboardPage: React.FC = () => {
                     ))}
                 </div>
             </div>
+
+            {/* Achievements Section */}
+            <BadgeGallery />
 
             {/* Today's Schedule / Next up */}
             <Card>

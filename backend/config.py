@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_file: str = "logs/app.log"
     
+    # Sarvam AI
+    sarvam_api_key: str = Field(default="", alias="SARVAM_API_KEY")
+    
     # Email Configuration
     mail_username: str = Field(default="", alias="SMTP_USER")
     mail_password: str = Field(default="", alias="SMTP_PASSWORD")

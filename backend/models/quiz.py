@@ -61,6 +61,7 @@ class SearchCache(Base):
     __tablename__ = "search_cache"
     
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
+    content_type = Column(String(50), default="search") # search, explanation, mindmap
     query_hash = Column(String(64), unique=True, nullable=False, index=True)
     query = Column(String(500), nullable=False)
     results = Column(JSON, nullable=False)

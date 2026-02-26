@@ -196,11 +196,15 @@ class PlanningAgent:
                       "module_name": "Logical Step Name",
                       "estimated_days": "days",
                       "difficulty": "Easy/Medium/Hard",
+                      "weightage_percent": 15.5,
                       "topics": ["topic1", "topic2"],
                       "pedagogical_reasoning": "Reasoning for sequence and weightage"
                     }}
                   ]
                 }}
+                
+                CRITICAL: The sum of 'weightage_percent' for all modules MUST be approximately 100.
+                Estimate these based on the importance of the module for the target examination or goal.
                 
                 OUTPUT INSTRUCTIONS:
                 - Output ONLY raw JSON.

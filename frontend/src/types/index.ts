@@ -48,6 +48,8 @@ export interface Chapter {
     estimated_hours: number;
     order_index: number;
     status: string;
+    weightage_percent: number;
+    weightage_source?: string;
     resources: Resource[];
     content?: ChapterContent;
 }
@@ -59,6 +61,7 @@ export interface ChapterContent {
     topic_lessons: Explanation[];
     exercises: any[];
     key_takeaways: string[];
+    cache_hit?: boolean;
 }
 
 export interface CreatePlanData {
@@ -322,4 +325,20 @@ export interface Engagement {
     value: number;
     comment?: string | null;
     created_at: string;
+}
+
+// Gamification Types
+export interface BadgeOut {
+    badge_key: string;
+    name: string;
+    description: string;
+    icon: string;
+    earned_at?: string;
+}
+
+export interface GamificationProfile {
+    total_xp: number;
+    level: number;
+    xp_to_next_level: number;
+    badges: BadgeOut[];
 }

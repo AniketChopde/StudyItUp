@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { formatTime } from '../lib/utils';
 import { EngagementButtons } from '../components/EngagementButtons';
+import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const QuizPage: React.FC = () => {
     const navigate = useNavigate();
@@ -315,9 +316,12 @@ export const QuizPage: React.FC = () => {
                                     <div className="flex-1 space-y-4">
                                         <div className="flex items-center justify-between">
                                             <p className="text-xs font-black uppercase tracking-widest opacity-40">Observation {index + 1}</p>
-                                            <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${result.is_correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                                {result.is_correct ? 'Accurate' : 'Misconception'}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <ReadAloudButton text={result.explanation} className="text-[10px]" />
+                                                <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase ${result.is_correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {result.is_correct ? 'Accurate' : 'Misconception'}
+                                                </span>
+                                            </div>
                                         </div>
                                         <p className="text-sm font-bold text-muted-foreground leading-relaxed">{result.explanation}</p>
                                         <div className="flex flex-col md:flex-row gap-4 pt-2">
@@ -378,7 +382,14 @@ export const QuizPage: React.FC = () => {
                         />
                     </div>
                     <CardContent className="p-10 md:p-14 space-y-10">
-                        {currentQ.question_text || currentQ.question || "Question text unavailable"}
+                        <div>
+                            <p className="text-xl font-bold leading-relaxed mb-3">
+                                {currentQ.question_text || currentQ.question || "Question text unavailable"}
+                            </p>
+                            <ReadAloudButton
+                                text={(currentQ.question_text || currentQ.question || '') + '. Options: ' + currentQ.options.join(', ')}
+                            />
+                        </div>
 
                         {/* PYQ Indicator */}
                         {currentQ.metadata?.is_pyq && (

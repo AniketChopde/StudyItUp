@@ -16,6 +16,7 @@ from agents.content_filter_agent import content_filter_agent
 from services.vector_store import vector_store_service
 from agents.safety_agent import safety_agent
 from utils.mlflow_utils import mlflow_service
+from sqlalchemy.ext.asyncio import AsyncSession
 
 class AgentOrchestrator:
     """Agent responsible for multi-agent coordination."""
@@ -245,8 +246,10 @@ class AgentOrchestrator:
         chapter_id: str,
         chapter_name: str,
         topics: List[str],
+        db: AsyncSession,
         exam_type: str = "General",
-        enable_rag: bool = False  # RAG is now optional for speed
+        enable_rag: bool = False, # RAG is now optional for speed
+        language: str = "English"
     ) -> Dict[str, Any]:
         """
         Optimized chapter teaching workflow - generates ONLY teaching content.
@@ -261,6 +264,14 @@ class AgentOrchestrator:
             # WITHOUT quiz generation and WITHOUT RAG (unless explicitly requested)
             async def generate_topic_explanation(topic: str):
                 """Generate explanation for a single topic."""
+                # Cache lookup
+                cache_key = f"{topic}|{exam_type}|{language}|rag:{enable_rag}"
+                from services.cache import cache_service
+                cached_data = await cache_service.db_get(db, "explanation", cache_key)
+                if cached_data and cached_data.get("main_explanation"):
+                    cached_data["cache_hit"] = True
+                    return cached_data
+
                 module_id = f"{chapter_id}_{topic.replace(' ', '_')}"
                 
                 # Optional: Do RAG only if enabled
@@ -289,14 +300,16 @@ class AgentOrchestrator:
                 
                 
                 # Return complete explanation with all fields
-                result = {
+                result = explanation
+                result.update({
                     "topic": topic,
                     "source_grounded": enable_rag,
                     "created_at": datetime.utcnow().isoformat()
-                }
+                })
                 
-                # Merge all explanation fields
-                result.update(explanation)
+                # Save to cache
+                result["cache_hit"] = False
+                await cache_service.db_set(db, "explanation", cache_key, result)
                 
                 return result
             

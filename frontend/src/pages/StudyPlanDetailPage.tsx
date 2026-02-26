@@ -11,7 +11,7 @@ import {
     ArrowLeft, GraduationCap, ChevronRight,
     PlayCircle,
     Download, ListChecks, Target as GoalIcon,
-    AlertTriangle, Lightbulb, Archive
+    AlertTriangle, Lightbulb, Archive, Zap
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mermaid } from '../components/ui/Mermaid';
@@ -21,6 +21,7 @@ import { downloadStudyPlanPdf } from '../lib/studyPlanPdf';
 import { EngagementButtons } from '../components/EngagementButtons';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { Star } from 'lucide-react';
+import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const StudyPlanDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -30,6 +31,7 @@ export const StudyPlanDetailPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'syllabus' | 'courses' | 'resources'>('overview');
     const [expandedMindmaps, setExpandedMindmaps] = useState<Record<string, boolean>>({});
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+    const [sortByWeightage, setSortByWeightage] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -114,6 +116,18 @@ export const StudyPlanDetailPage: React.FC = () => {
                                 <Clock className="h-4 w-4" />
                                 <span className="text-sm">{activePlan.daily_hours}h daily focus</span>
                             </div>
+                            {selectedChapter?.content?.cache_hit && (
+                                <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full border border-emerald-500/20">
+                                    <Zap className="h-4 w-4" />
+                                    <span className="text-xs font-bold">Content Cached</span>
+                                </div>
+                            )}
+                            {selectedChapter && selectedChapter.weightage_percent > 0 && (
+                                <div className="flex items-center gap-2 bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full border border-indigo-500/20">
+                                    <Zap className="h-4 w-4" />
+                                    <span className="text-xs font-bold">{selectedChapter.weightage_percent}% Exam Weightage</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -188,8 +202,20 @@ export const StudyPlanDetailPage: React.FC = () => {
                         </div>
                     </div>
 
+                    <div className="flex items-center justify-between px-2">
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Learning Path</h3>
+                        <button 
+                            onClick={() => setSortByWeightage(!sortByWeightage)}
+                            className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${sortByWeightage ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-muted text-muted-foreground border-border'}`}
+                        >
+                            {sortByWeightage ? 'Sorted by Weight' : 'Sort by Weight'}
+                        </button>
+                    </div>
+
                     <div className="space-y-3 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
-                        {activePlan.chapters.map((chapter, index) => (
+                        {[...activePlan.chapters]
+                            .sort((a, b) => sortByWeightage ? (b.weightage_percent - a.weightage_percent) : (a.order_index - b.order_index))
+                            .map((chapter, index) => (
                             <button
                                 key={chapter.id.toString()}
                                 onClick={() => {
@@ -211,10 +237,15 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-0.5">
                                             <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-tighter">
-                                                Week {index + 1}
+                                                {sortByWeightage ? `Impact #${index + 1}` : `Week ${index + 1}`}
                                             </span>
-                                            {selectedChapterId === chapter.id.toString() && (
-                                                <div className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                                            {chapter.weightage_percent > 0 && (
+                                                <div className="flex items-center gap-1 bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
+                                                    <Zap className="h-2.5 w-2.5" />
+                                                    <span className="text-[10px] font-black uppercase tracking-tighter">
+                                                        {chapter.weightage_percent}% Weight
+                                                    </span>
+                                                </div>
                                             )}
                                         </div>
                                         <h4 className={`font-bold text-sm truncate leading-tight ${selectedChapterId === chapter.id.toString() ? 'text-primary' : ''}`}>
@@ -478,10 +509,20 @@ export const StudyPlanDetailPage: React.FC = () => {
                                         <Card className="border-none shadow-2xl bg-card rounded-[2.5rem] overflow-hidden">
                                             <div className="p-8 md:p-12 space-y-12">
                                                 <div className="space-y-4">
-                                                    <h2 className="text-4xl font-black tracking-tight">{selectedChapter.chapter_name}</h2>
-                                                    <p className="text-lg text-muted-foreground font-medium leading-relaxed italic border-l-4 border-primary/20 pl-6">
-                                                        {selectedChapter.content.overview}
-                                                    </p>
+                                                    <div className="flex items-center justify-between">
+                                                        <h2 className="text-4xl font-black tracking-tight">{selectedChapter.chapter_name}</h2>
+                                                        {selectedChapter.weightage_percent > 0 && (
+                                                            <div className="flex items-center gap-2 bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full border border-indigo-500/20">
+                                                                <Zap className="h-4 w-4" />
+                                                                <span className="text-xs font-bold">{selectedChapter.weightage_percent}% Weight</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-start gap-4">
+                                                        <p className="flex-1 text-lg text-muted-foreground font-medium leading-relaxed italic border-l-4 border-primary/20 pl-6">
+                                                            {selectedChapter.content.overview}
+                                                        </p>
+                                                    </div>
                                                 </div>
 
                                                 <div className="space-y-16">
@@ -516,9 +557,15 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                             </div>
 
                                                             <div className="prose prose-slate dark:prose-invert max-w-none">
-                                                                <p className="text-lg leading-relaxed text-foreground font-medium opacity-90">{lesson.introduction}</p>
+                                                                <div className="flex items-start gap-4">
+                                                                    <p className="flex-1 text-lg leading-relaxed text-foreground font-medium opacity-90">{lesson.introduction}</p>
+                                                                    <ReadAloudButton text={lesson.introduction} className="mt-1" />
+                                                                </div>
                                                                 <div className="my-6 p-8 bg-muted/30 rounded-[2rem] border border-border/50">
-                                                                    <h4 className="text-[10px] font-black uppercase text-primary mb-4 tracking-widest">Grounded Explanation</h4>
+                                                                    <div className="flex items-center justify-between mb-4">
+                                                                        <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">Grounded Explanation</h4>
+                                                                        <ReadAloudButton text={lesson.main_explanation} className="text-[10px]" />
+                                                                    </div>
                                                                     <div className="text-base leading-loose whitespace-pre-wrap">{lesson.main_explanation}</div>
                                                                 </div>
                                                             </div>

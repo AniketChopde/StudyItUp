@@ -110,3 +110,128 @@ async def get_dashboard_stats(
     except Exception as e:
         logger.error(f"Error computing dashboard stats: {str(e)}", exc_info=True)
         raise
+
+@router.get("/topic-analysis")
+async def get_topic_analysis(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Analyze performance grouped by topic."""
+    user_id = current_user.user_id
+    result = await db.execute(
+        select(QuizSession).where(
+            QuizSession.user_id == user_id,
+            QuizSession.status == "completed"
+        )
+    )
+    quizzes = result.scalars().all()
+    
+    analysis = {}
+    for q in quizzes:
+        topic = q.topic
+        if topic not in analysis:
+            analysis[topic] = {
+                "topic": topic,
+                "avg_score": 0.0,
+                "attempts": 0,
+                "total_time": 0.0,
+                "scores": []
+            }
+        
+        analysis[topic]["attempts"] += 1
+        if q.score is not None:
+            analysis[topic]["scores"].append(q.score)
+        if q.time_taken_seconds:
+            analysis[topic]["total_time"] += q.time_taken_seconds
+            
+    # Finalize averages
+    output = []
+    for topic, data in analysis.items():
+        data["avg_score"] = round(sum(data["scores"]) / len(data["scores"]), 1) if data["scores"] else 0.0
+        data["avg_time_seconds"] = round(data["total_time"] / data["attempts"], 1)
+        del data["scores"]
+        del data["total_time"]
+        output.append(data)
+        
+    return sorted(output, key=lambda x: x["avg_score"], reverse=True)
+
+@router.get("/subject-analysis")
+async def get_subject_analysis(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Analyze performance grouped by subject/exam_type."""
+    user_id = current_user.user_id
+    result = await db.execute(
+        select(QuizSession).where(
+            QuizSession.user_id == user_id,
+            QuizSession.status == "completed"
+        )
+    )
+    quizzes = result.scalars().all()
+    
+    analysis = {}
+    for q in quizzes:
+        subject = q.subject or "Uncategorized"
+        if subject not in analysis:
+            analysis[subject] = {
+                "subject": subject,
+                "avg_score": 0.0,
+                "quiz_count": 0,
+                "scores": []
+            }
+        
+        analysis[subject]["quiz_count"] += 1
+        if q.score is not None:
+            analysis[subject]["scores"].append(q.score)
+            
+    output = []
+    for subj, data in analysis.items():
+        data["avg_score"] = round(sum(data["scores"]) / len(data["scores"]), 1) if data["scores"] else 0.0
+        del data["scores"]
+        output.append(data)
+        
+    return sorted(output, key=lambda x: x["avg_score"], reverse=True)
+
+@router.get("/weak-strong")
+async def get_weak_strong_analysis(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Categorize topics into Weak and Strong based on performance.
+    Returns recommendations for each.
+    """
+    # 1. Reuse topic analysis logic
+    topic_data = await get_topic_analysis(current_user, db)
+    
+    weak = []
+    strong = []
+    recommendations = []
+    
+    for item in topic_data:
+        score = item["avg_score"]
+        topic = item["topic"]
+        
+        if score < 60:
+            weak.append(item)
+            recommendations.append({
+                "topic": topic,
+                "type": "improvement",
+                "message": f"You're struggling with {topic} ({score}%). We recommend re-reading the chapter or asking for an explanation in Chat.",
+                "action_link": "/chat"
+            })
+        elif score >= 80:
+            strong.append(item)
+            recommendations.append({
+                "topic": topic,
+                "type": "mastery",
+                "message": f"Excellent mastery of {topic}! You're ready for advanced mock tests.",
+                "action_link": "/quiz"
+            })
+            
+    return {
+        "weak_topics": weak,
+        "strong_topics": strong,
+        "recommendations": recommendations
+    }

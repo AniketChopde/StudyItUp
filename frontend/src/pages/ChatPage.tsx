@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Loading } from '../components/ui/Loading';
 import { Send, Bot, User, ArrowLeft } from 'lucide-react';
+import { VoiceInputButton, ReadAloudButton } from '../components/voice/VoiceButton';
 import { formatDate } from '../lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -120,6 +121,11 @@ export const ChatPage: React.FC = () => {
                                 <div className={`prose ${message.role === 'user' ? 'prose-invert' : 'prose-zinc dark:prose-invert'} max-w-none prose-sm`}>
                                     <ReactMarkdown>{message.content}</ReactMarkdown>
                                 </div>
+                                {message.role === 'assistant' && (
+                                    <div className="mt-2">
+                                        <ReadAloudButton text={message.content} className="text-[10px]" />
+                                    </div>
+                                )}
                                 <p className="text-xs opacity-70 mt-2">
                                     {formatDate(message.timestamp)}
                                 </p>
@@ -175,6 +181,11 @@ export const ChatPage: React.FC = () => {
                             onKeyPress={handleKeyPress}
                             placeholder="Ask me anything..."
                             className="flex-1"
+                        />
+                        <VoiceInputButton
+                            onTranscript={(t) => setInput(prev => prev ? prev + ' ' + t : t)}
+                            label="Dictate"
+                            className="h-10 px-3"
                         />
                         <Button onClick={handleSend} disabled={!input.trim() || isTyping}>
                             <Send className="h-5 w-5" />

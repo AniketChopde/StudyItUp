@@ -7,6 +7,10 @@ import json
 from typing import Any, Optional, Dict, List
 from loguru import logger
 from datetime import datetime
+import hashlib
+from sqlalchemy import select
+from models.quiz import SearchCache
+from database.connection import AsyncSession
 
 from config import settings
 
@@ -218,6 +222,58 @@ class CacheService:
             True if successful
         """
         return await self.delete(f"session:{session_id}")
+
+    # Database-backed Caching (Persistent)
+    def _generate_db_hash(self, content_type: str, key_data: str) -> str:
+        """Generate SHA256 hash for DB cache."""
+        content = f"{content_type}:{key_data}"
+        return hashlib.sha256(content.encode()).hexdigest()
+
+    async def db_get(self, db: AsyncSession, content_type: str, key_data: str) -> Optional[Any]:
+        """Get results from DB cache."""
+        try:
+            query_hash = self._generate_db_hash(content_type, key_data)
+            result = await db.execute(
+                select(SearchCache).where(SearchCache.query_hash == query_hash)
+            )
+            cached = result.scalar_one_or_none()
+            if cached:
+                logger.info(f"📁 DB Cache HIT [{content_type}]: {key_data[:50]}...")
+                return cached.results
+            return None
+        except Exception as e:
+            logger.error(f"Error reading from DB cache: {e}")
+            return None
+
+    async def db_set(self, db: AsyncSession, content_type: str, key_data: str, results: Any) -> bool:
+        """Save results to DB cache."""
+        try:
+            query_hash = self._generate_db_hash(content_type, key_data)
+            
+            # Use upsert logic
+            existing_result = await db.execute(
+                select(SearchCache).where(SearchCache.query_hash == query_hash)
+            )
+            existing = existing_result.scalar_one_or_none()
+            
+            if existing:
+                existing.results = results
+                existing.cached_at = datetime.utcnow()
+                existing.content_type = content_type
+            else:
+                new_cache = SearchCache(
+                    query_hash=query_hash,
+                    query=key_data[:500],
+                    content_type=content_type,
+                    results=results
+                )
+                db.add(new_cache)
+            
+            await db.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error writing to DB cache: {e}")
+            return False
 
 
 # Global service instance

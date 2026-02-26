@@ -13,6 +13,7 @@ import {
 import { formatTime } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { EngagementButtons } from '../components/EngagementButtons';
+import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const TestCenterPage: React.FC = () => {
     const {
@@ -286,6 +287,7 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                                 </div>
                                 <div className="space-y-2 flex-1">
                                     <div className="flex items-center gap-2">
+                                        <ReadAloudButton text={result.explanation} className="text-[10px]" />
                                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${result.is_correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                                             {result.is_correct ? 'Verified' : 'Incorrect'}
                                         </span>
@@ -379,9 +381,14 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                     <div className="lg:col-span-9 space-y-6">
                         <Card className="border-none shadow-xl bg-card rounded-[2rem] overflow-hidden min-h-[400px] flex flex-col">
                             <CardContent className="p-6 md:p-10 flex-1 space-y-6">
-                                <p className="text-xl md:text-2xl font-bold leading-snug tracking-tight text-foreground/90">
-                                    {currentQ.question_text || currentQ.question}
-                                </p>
+                                <div className="space-y-4">
+                                    <p className="text-xl md:text-2xl font-bold leading-snug tracking-tight text-foreground/90">
+                                        {currentQ.question_text || currentQ.question}
+                                    </p>
+                                    <ReadAloudButton 
+                                        text={(currentQ.question_text || currentQ.question) + '. Options: ' + currentQ.options.join(', ')} 
+                                    />
+                                </div>
 
                                 <div className="space-y-3">
                                     {currentQ.options.map((option, index) => {

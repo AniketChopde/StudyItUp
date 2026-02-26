@@ -49,6 +49,8 @@ class StudyPlanChapter(Base):
     estimated_hours = Column(Integer, nullable=False)
     order_index = Column(Integer, nullable=False)
     status = Column(String(50), default="pending")  # pending, in_progress, completed
+    weightage_percent = Column(Float, default=0.0)
+    weightage_source = Column(String(100), default="ai_estimate")
     resources = Column(JSON, default=[])
     content = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -109,6 +111,8 @@ class ChapterResponse(BaseModel):
     estimated_hours: int
     order_index: int
     status: str
+    weightage_percent: float = 0.0
+    weightage_source: str = "ai_estimate"
     resources: List[Dict[str, Any]]
     content: Optional[Dict[str, Any]] = None
     

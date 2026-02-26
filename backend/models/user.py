@@ -36,6 +36,8 @@ class User(Base):
     quiz_sessions = relationship("QuizSession", back_populates="user", cascade="all, delete-orphan")
     user_progress = relationship("UserProgress", back_populates="user", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="user", cascade="all, delete-orphan")
+    user_xp = relationship("UserXP", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    user_badges = relationship("UserBadge", back_populates="user", cascade="all, delete-orphan")
 
 
 # Pydantic Schemas

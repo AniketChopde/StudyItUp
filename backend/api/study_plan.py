@@ -70,6 +70,8 @@ async def create_study_plan(
                     estimated_hours=max(1, int(float(chapter.estimated_hours or 1) * ratio)),
                     order_index=chapter.order_index,
                     status="pending",
+                    weightage_percent=chapter.weightage_percent,
+                    weightage_source=chapter.weightage_source,
                     resources=chapter.resources
                 )
                 db.add(new_chapter)
@@ -147,6 +149,8 @@ async def create_study_plan(
                 estimated_hours=int(float(module.get("estimated_days", 1)) * plan_data.daily_hours),
                 order_index=idx,
                 status="pending",
+                weightage_percent=float(module.get("weightage_percent", 0.0)),
+                weightage_source="ai_estimate",
                 resources=[] # Resources will be grounded via Research Agent during teaching
             )
             db.add(chapter)
@@ -369,6 +373,14 @@ async def update_chapter_status(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Chapter not found"
             )
+            
+        # Gamification: Award XP for completing a chapter
+        if new_status == "completed" and chapter.status != "completed":
+            from api.gamification import process_xp_award
+            try:
+                await process_xp_award(db, current_user.user_id, "chapter_complete")
+            except Exception as e:
+                logger.error(f"Failed to award XP for chapter completion: {e}")
         
         chapter.status = new_status
         await db.commit()
@@ -406,16 +418,20 @@ async def teach_chapter(
                 detail="Chapter not found"
             )
         
-        # If content already exists, return it
+        # If content already exists and is valid (check for main_explanation), return it
         if chapter.content and chapter.content.get("topic_lessons"):
-            return chapter.content
+            lessons = chapter.content.get("topic_lessons", [])
+            if lessons and lessons[0].get("main_explanation"):
+                return chapter.content
             
         # Generate learning content using orchestrator
         teaching_content = await orchestrator.handle_chapter_teaching(
             chapter_id=str(chapter.id),
             chapter_name=chapter.chapter_name,
             topics=chapter.topics if isinstance(chapter.topics, list) else [chapter.topics],
-            exam_type=chapter.study_plan.exam_type
+            db=db,
+            exam_type=chapter.study_plan.exam_type,
+            language=chapter.study_plan.language
         )
         
         # Save content to database

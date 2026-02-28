@@ -327,7 +327,6 @@ export interface Engagement {
     created_at: string;
 }
 
-// Gamification Types
 export interface BadgeOut {
     badge_key: string;
     name: string;
@@ -336,9 +335,65 @@ export interface BadgeOut {
     earned_at?: string;
 }
 
+export interface StreakOut {
+    current_streak: number;
+    longest_streak: number;
+    streak_multiplier: number;
+    streak_shields: number;
+    last_activity_date: string;
+}
+
+export interface QuestOut {
+    id: string;
+    title: string;
+    requirement_type: string;
+    target_count: number;
+    current_count: number;
+    xp_reward: number;
+    is_completed: boolean;
+    expires_at: string;
+}
+
+export interface RPGStats {
+    logic: number;
+    memory: number;
+    grind: number;
+}
+
+export interface PowerUpOut {
+    item_key: string;
+    name: string;
+    description: string;
+    cost: number;
+    icon: string;
+    quantity: number;
+}
+
+export interface GuildOut {
+    id: string;
+    name: string;
+    description: string;
+    level: number;
+    total_xp: number;
+    member_count: number;
+}
+
 export interface GamificationProfile {
     total_xp: number;
     level: number;
+    coins: number;
     xp_to_next_level: number;
     badges: BadgeOut[];
+    streak?: StreakOut;
+    active_quests: QuestOut[];
+    inventory: PowerUpOut[];
+    stats: RPGStats;
+    guild?: GuildOut;
+}
+
+export interface LeaderboardEntry {
+    username: string;
+    level: number;
+    total_xp: number;
+    badges_count: number;
 }

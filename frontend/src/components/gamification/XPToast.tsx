@@ -31,13 +31,13 @@ export const XPToast: React.FC = () => {
                     exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
                     className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[100]"
                 >
-                    <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-6 py-3 rounded-2xl shadow-2xl flex items-center gap-3 border-2 border-white/20">
-                        <div className="bg-white/20 p-2 rounded-xl">
-                            <Zap className="h-6 w-6 fill-white" />
+                    <div className="bg-gradient-to-r from-amber-500 to-orange-600 text-white px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2.5 border border-white/20">
+                        <div className="bg-white/20 p-1.5 rounded-lg">
+                            <Zap className="h-4 w-4 fill-white" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black uppercase tracking-widest opacity-80">Experience Gained</span>
-                            <span className="text-xl font-black">+{xpGain} XP</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest opacity-80">Experience Gained</span>
+                            <span className="text-lg font-black">+{xpGain} XP</span>
                         </div>
                     </div>
                 </motion.div>

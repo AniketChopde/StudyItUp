@@ -36,10 +36,12 @@ export const StudyPlanDetailPage: React.FC = () => {
     const [sortByWeightage, setSortByWeightage] = useState(false);
 
     useEffect(() => {
-        if (id) {
+        if (id && id !== 'undefined') {
             getPlan(id);
+        } else if (id === 'undefined') {
+            navigate('/study-plans');
         }
-    }, [id, getPlan]);
+    }, [id, getPlan, navigate]);
 
     useEffect(() => {
         if (viewMode === 'courses' && activePlan && (!activePlan.recommended_courses || activePlan.recommended_courses.length === 0)) {

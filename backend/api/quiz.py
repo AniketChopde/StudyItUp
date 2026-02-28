@@ -34,9 +34,11 @@ async def generate_quiz(
         # Generate questions using quiz agent
         questions = await quiz_agent.generate_questions(
             topic=quiz_data.topic,
+            module_id=quiz_data.plan_id,
             count=quiz_data.question_count,
             difficulty=quiz_data.difficulty,
-            exam_type=quiz_data.exam_type
+            exam_type=quiz_data.exam_type,
+            language=quiz_data.language
         )
         
         # Create quiz session

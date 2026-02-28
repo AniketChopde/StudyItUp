@@ -80,13 +80,14 @@ export const mindmapService = {
 
 // Quiz Service
 export const quizService = {
-    generate: (topic: string, subject: string, questionCount: number = 10, difficulty: string = 'medium', examType?: string | null) =>
+    generate: (topic: string, subject: string, questionCount: number = 10, difficulty: string = 'medium', examType?: string | null, planId?: string | null) =>
         apiClient.post<Quiz>('/quiz/generate', {
             topic,
             subject,
             question_count: questionCount,
             difficulty,
             exam_type: examType || undefined,
+            plan_id: planId || undefined,
         }),
 
     submit: (submission: QuizSubmission) =>

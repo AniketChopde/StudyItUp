@@ -53,6 +53,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -64,7 +65,34 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  @keyframes shake {
+    0% {
+      transform: translateX(0);
+    }
+
+    25% {
+      transform: translateX(-10px);
+    }
+
+    50% {
+      transform: translateX(10px);
+    }
+
+    75% {
+      transform: translateX(-10px);
+    }
+
+    100% {
+      transform: translateX(0);
+    }
+  }
+
+  .animate-shake {
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
   }
 }

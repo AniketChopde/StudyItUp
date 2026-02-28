@@ -20,6 +20,11 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
 import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import AdminPage from './pages/AdminPage';
+import GamificationHub from './pages/GamificationHub';
+import BossBattleQuiz from './pages/BossBattleQuiz';
+import DungeonDelver from './pages/DungeonDelver';
+import WisdomTrials from './pages/WisdomTrials';
+import WorldMapDashboard from './pages/WorldMapDashboard';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -222,6 +227,56 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <AnalyticsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/gamification"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <GamificationHub />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/boss-battle"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <BossBattleQuiz />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dungeon-delver"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <DungeonDelver />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/wisdom-trials"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <WisdomTrials />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/world-map"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <WorldMapDashboard />
               </Layout>
             </ProtectedRoute>
           }

@@ -25,7 +25,7 @@ interface QuizState {
     quizSource: QuizSource;
 
     // Actions
-    generateQuiz: (topic: string, subject: string, count?: number, difficulty?: string, examType?: string | null) => Promise<void>;
+    generateQuiz: (topic: string, subject: string, count?: number, difficulty?: string, examType?: string | null, planId?: string | null) => Promise<void>;
     submitAnswer: (questionId: string, answer: string) => void;
     submitQuiz: () => Promise<void>;
     nextQuestion: () => void;
@@ -155,10 +155,10 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         }
     },
 
-    generateQuiz: async (topic, subject, count = 10, difficulty = 'medium', examType = null) => {
+    generateQuiz: async (topic, subject, count = 10, difficulty = 'medium', examType = null, planId = null) => {
         try {
             set({ isLoading: true });
-            const response = await quizService.generate(topic, subject, count, difficulty, examType);
+            const response = await quizService.generate(topic, subject, count, difficulty, examType, planId);
 
             set({
                 activeQuiz: response.data,

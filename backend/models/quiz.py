@@ -88,6 +88,7 @@ class QuizGenerate(BaseModel):
     question_count: int = Field(10, ge=1, le=50, description="Number of questions")
     difficulty: str = Field("medium", description="Difficulty level: easy, medium, hard, mixed")
     exam_type: str | None = Field(None, description="Target exam type (e.g., JEE Main, GATE) for PYQs")
+    plan_id: str | None = Field(None, description="Optional associated study plan ID to pull context from")
     language: str = Field("English", description="Target language (e.g., Hindi, Marathi)")
 
 class TestCenterGenerate(BaseModel):

@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/genaikitfeb_2026/NexusLearn/backend/mlruns/859736454602013110/2fa7706d6e13412f99b3646cd1b06680/artifacts
+end_time: 1772179051737
+entry_point_name: ''
+experiment_id: '859736454602013110'
+lifecycle_stage: active
+run_id: 2fa7706d6e13412f99b3646cd1b06680
+run_name: 'study_plan_generation_Langgraph '
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1772179032942
+status: 3
+tags: []
+user_id: males

@@ -1,44 +1,60 @@
 import sqlite3
-from sqlalchemy import create_engine, inspect
-from models import Base  # adjust import to your Base location
+import os
+import sys
 
-DATABASE_URL = "sqlite:///./study_planner.db"
+# Add backend to path
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(BASE_DIR)
 
-engine = create_engine(DATABASE_URL)
-inspector = inspect(engine)
+# Import Base
+from database.connection_sqlite import Base
+
+# Import all models so they register
+import models.study_plan
+import models.user
+import models.quiz
+import models.engagement
+import models.gamification
 
 
-def get_existing_columns(conn, table_name):
-    cursor = conn.execute(f"PRAGMA table_info({table_name})")
+DB_PATH = os.path.join(BASE_DIR, "study_planner.db")
+
+
+def get_existing_columns(cursor, table_name):
+    cursor.execute(f"PRAGMA table_info({table_name})")
     return {row[1] for row in cursor.fetchall()}
 
 
+def table_exists(cursor, table_name):
+    cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?;",
+        (table_name,),
+    )
+    return cursor.fetchone() is not None
+
+
 def sync_schema():
-    conn = sqlite3.connect("study_planner.db")
+    print("🔄 Starting schema sync...")
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     for table in Base.metadata.sorted_tables:
         table_name = table.name
 
-        # Create table if not exists
-        if not inspector.has_table(table_name):
-            print(f"Creating table: {table_name}")
-            table.create(engine)
+        if not table_exists(cursor, table_name):
+            print(f"🆕 Creating table: {table_name}")
+            create_sql = str(table.compile(dialect=sqlite3))
+            table.create(bind=None)
             continue
 
-        existing_columns = get_existing_columns(conn, table_name)
+        existing_columns = get_existing_columns(cursor, table_name)
 
         for column in table.columns:
             if column.name not in existing_columns:
-                col_type = column.type.compile(engine.dialect)
-                default = ""
-
-                if column.default is not None:
-                    default = f" DEFAULT {column.default.arg}"
-
-                print(f"Adding column '{column.name}' to '{table_name}'")
+                col_type = column.type.compile(dialect=Base.metadata.bind)
+                print(f"➕ Adding column '{column.name}' to '{table_name}'")
                 cursor.execute(
-                    f"ALTER TABLE {table_name} ADD COLUMN {column.name} {col_type}{default}"
+                    f"ALTER TABLE {table_name} ADD COLUMN {column.name} {column.type}"
                 )
 
     conn.commit()

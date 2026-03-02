@@ -15,7 +15,7 @@ DATABASE_URL = "sqlite+aiosqlite:///./study_planner.db"
 # Create async engine
 engine = create_async_engine(
     DATABASE_URL,
-    echo=settings.DEBUG,
+    echo=settings.debug,
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
 )

@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Sparkles, Shield, Trophy, Zap, Star } from 'lucide-react';
 import { useGamificationStore } from '../../stores/gamificationStore';
 
@@ -150,7 +150,7 @@ const AvatarEvolution: React.FC = () => {
 
       {/* Evolution Roadmap Preview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        {EVOLUTION_TIERS.map((tier, idx) => {
+        {EVOLUTION_TIERS.map((tier) => {
           const isUnlocked = level >= tier.minLevel;
           const isCurrent = currentTier.name === tier.name;
           

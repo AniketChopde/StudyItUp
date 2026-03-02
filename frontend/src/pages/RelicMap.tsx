@@ -6,7 +6,6 @@ import {
   CheckCircle2, 
   BookOpen,
   Zap,
-  ArrowLeft,
   Compass,
   Map as MapIcon,
   Crown

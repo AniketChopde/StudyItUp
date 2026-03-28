@@ -7,6 +7,7 @@ from openai import AsyncAzureOpenAI
 from typing import List, Dict, Any, Optional
 from loguru import logger
 import tiktoken
+from langfuse import observe, Langfuse
 
 from config import settings
 
@@ -14,107 +15,100 @@ from config import settings
 class AzureOpenAIService:
     """Service for interacting with Azure OpenAI."""
     
+    # Map Azure deployment names to standard models for Langfuse cost tracking
+    MODEL_MAPPING = {
+        "gpt-5.2-chat": "gpt-4o",
+        "gpt-4o": "gpt-4o",
+        "gpt-4": "gpt-4",
+        "gpt-35-turbo": "gpt-3.5-turbo",
+        "text-embedding-3-small": "text-embedding-3-small"
+    }
+    
     def __init__(self):
         """Initialize Azure OpenAI clients (separate for chat and embeddings)."""
-        # Chat/LLM client
+        # Chat/LLM client with standard AsyncAzureOpenAI (intercepted by MLflow)
         self.client = AsyncAzureOpenAI(
             azure_endpoint=settings.azure_openai_endpoint,
             api_key=settings.azure_openai_key,
             api_version=settings.azure_openai_api_version,
+            max_retries=3  # Add resilience for transient endpoint errors
         )
         self.deployment = settings.azure_openai_deployment
         
-        # Embedding client (may use different endpoint/key)
+        # Embedding client with standard AsyncAzureOpenAI (intercepted by MLflow)
         self.embedding_client = AsyncAzureOpenAI(
             azure_endpoint=settings.azure_openai_embedding_endpoint,
             api_key=settings.azure_openai_embedding_key,
             api_version=settings.azure_openai_api_version,
+            max_retries=3
         )
         self.embedding_deployment = settings.azure_openai_embedding_deployment
         
         self.encoding = tiktoken.encoding_for_model("gpt-4")
+
+        # Initialize Langfuse client for manual observations if needed
+        self.langfuse = Langfuse()
     
     async def chat_completion(
         self,
         messages: List[Dict[str, str]],
-        temperature: float = 0.7,
-        max_tokens: int = 2000,
+        temperature: float = 1,
+        max_completion_tokens: int = 2000,
         response_format: Optional[Dict[str, str]] = None,
         return_full_response: bool = False
     ) -> Any:
-        """
-        Generate chat completion.
-        """
+        """Generate chat completion using Azure OpenAI with cost mapping."""
         try:
             kwargs = {
                 "model": self.deployment,
                 "messages": messages,
                 "temperature": temperature,
             }
-            
             if response_format:
                 kwargs["response_format"] = response_format
             
-            logger.debug(f"Attempting Azure OpenAI chat completion at {settings.azure_openai_endpoint}")
+            logger.debug(f"Attempting Azure OpenAI chat completion for {self.deployment}")
             
-            # Try with max_completion_tokens first (GPT-5.x models)
-            try:
-                kwargs["max_completion_tokens"] = max_tokens
-                response = await self.client.chat.completions.create(**kwargs)
-            except (TypeError, Exception) as e:
-                error_msg = str(e)
-                
-                # Check if it's a parameter compatibility issue
-                if "max_completion_tokens" in error_msg and ("not supported" in error_msg or "unexpected keyword" in error_msg):
-                    # Library doesn't support max_completion_tokens, try max_tokens
-                    logger.debug("max_completion_tokens not supported, trying max_tokens")
-                    kwargs.pop("max_completion_tokens", None)
-                    kwargs["max_tokens"] = max_tokens
-                    try:
-                        response = await self.client.chat.completions.create(**kwargs)
-                    except Exception as e2:
-                        error_msg2 = str(e2)
-                        # Check for temperature restrictions
-                        if "temperature" in error_msg2 and ("not support" in error_msg2 or "only the default" in error_msg2.lower()):
-                            logger.warning(f"Temperature {kwargs.get('temperature')} not supported, using default temperature=1")
-                            kwargs["temperature"] = 1
-                            response = await self.client.chat.completions.create(**kwargs)
-                        # If max_tokens also fails, try without limit
-                        elif "max_tokens" in error_msg2 and "not supported" in error_msg2:
-                            logger.warning("Neither max parameter supported, trying without token limit")
-                            kwargs.pop("max_tokens", None)
-                            try:
-                                response = await self.client.chat.completions.create(**kwargs)
-                            except Exception as e3:
-                                # Check temperature again after removing max_tokens
-                                if "temperature" in str(e3) and "not support" in str(e3):
-                                    logger.warning("Using default temperature=1")
-                                    kwargs["temperature"] = 1
-                                    response = await self.client.chat.completions.create(**kwargs)
-                                else:
-                                    raise
-                        else:
-                            raise
-                elif "max_tokens" in error_msg and "not supported" in error_msg and "max_completion_tokens" in error_msg:
-                    # API says use max_completion_tokens instead of max_tokens
-                    logger.debug("max_tokens not supported by API, already tried max_completion_tokens")
-                    raise
-                elif "temperature" in error_msg and ("not support" in error_msg or "only the default" in error_msg.lower()):
-                    kwargs["temperature"] = 1
+            # Determine base model for Langfuse cost calculation
+            langfuse_model = self.MODEL_MAPPING.get(self.deployment, "gpt-4o")
+            
+            # Use manual generation observation to ensure cost mapping works for Azure
+            # The Langfuse OpenAI wrapper often struggles with Azure deployment names for cost.
+            with self.langfuse.start_as_current_observation(
+                name="Azure OpenAI Chat",
+                as_type="generation",
+                model=langfuse_model,
+                input=messages,
+                metadata={"deployment": self.deployment}
+            ) as generation:
+                # Try with max_completion_tokens first (modern GPT models)
+                try:
+                    kwargs["max_completion_tokens"] = max_completion_tokens
                     response = await self.client.chat.completions.create(**kwargs)
-                else:
-                    raise
-            
-            content = response.choices[0].message.content
-            
-            # Log usage concisely
-            if hasattr(response, 'usage'):
-                logger.debug(f"LLM Usage: {response.usage.total_tokens} tokens")
+                except Exception as e:
+                    error_msg = str(e)
+                    # Fallback to max_completion_tokens if max_completion_tokens is not supported
+                    if "max_completion_tokens" in error_msg or "unexpected keyword" in error_msg.lower():
+                        logger.debug("Falling back to max_completion_tokens")
+                        kwargs.pop("max_completion_tokens", None)
+                        kwargs["max_completion_tokens"] = max_completion_tokens
+                        response = await self.client.chat.completions.create(**kwargs)
+                    else:
+                        raise e
+                
+                # Update the generation with result and usage
+                generation.update(
+                    output=response.choices[0].message.content,
+                    usage_details={
+                        "input": response.usage.prompt_tokens,
+                        "output": response.usage.completion_tokens,
+                        "total": response.usage.total_tokens
+                    }
+                )
             
             if return_full_response:
                 return response
-                
-            return content
+            return response.choices[0].message.content
         
         except Exception as e:
             error_msg = str(e)
@@ -128,61 +122,73 @@ class AzureOpenAIService:
             logger.error(f"Error in chat completion: {error_msg}")
             raise
     
+    @observe()
     async def generate_embedding(self, text: str) -> List[float]:
-        """
-        Generate embedding for text.
-        
-        Args:
-            text: Input text
-        
-        Returns:
-            Embedding vector
-        """
+        """Generate embedding for text with cost mapping."""
         try:
-            try:
-                # Ensure input is a string and sanitize
-                if isinstance(text, list):
-                    text = text[0] if text else ""
-                
-                # Replace newlines which can negatively affect performance/validity of embeddings
-                text = text.replace("\n", " ")
-                
+            # Ensure input is a string and sanitize
+            if isinstance(text, list):
+                text = text[0] if text else ""
+            
+            # Replace newlines
+            text = text.replace("\n", " ")
+            
+            langfuse_model = self.MODEL_MAPPING.get(self.embedding_deployment, "text-embedding-3-small")
+            
+            with self.langfuse.start_as_current_observation(
+                name="Azure OpenAI Embedding",
+                as_type="generation",
+                model=langfuse_model,
+                input=text,
+                metadata={"deployment": self.embedding_deployment}
+            ) as generation:
                 response = await self.embedding_client.embeddings.create(
                     model=self.embedding_deployment,
-                    input=[text] # Pass as list
+                    input=[text]
+                )
+                
+                generation.update(
+                    usage_details={
+                        "input": response.usage.prompt_tokens,
+                        "total": response.usage.total_tokens
+                    }
                 )
                 return response.data[0].embedding
-            except Exception as e:
-                # If specific deployment fails, try fallback to standard ada-002
-                if "DeploymentNotFound" in str(e) or "404" in str(e):
-                    logger.warning(f"Primary embedding deployment '{self.embedding_deployment}' failed. Trying fallback 'text-embedding-ada-002'...")
-                    response = await self.embedding_client.embeddings.create(
-                        model="text-embedding-ada-002",
-                        input=text
-                    )
-                    return response.data[0].embedding
-                raise
 
         except Exception as e:
             logger.error(f"Error generating embedding: {str(e)}")
             raise
-    
+
     async def generate_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        """
-        Generate embeddings for a batch of texts in one API call.
-        """
+        """Generate embeddings for a batch of texts with cost mapping."""
         try:
-            # Sanitize texts: replace newlines
+            # Sanitize texts
             sanitized_texts = [t.replace("\n", " ") for t in texts]
             
-            response = await self.embedding_client.embeddings.create(
-                model=self.embedding_deployment,
-                input=sanitized_texts
-            )
-            return [data.embedding for data in response.data]
+            langfuse_model = self.MODEL_MAPPING.get(self.embedding_deployment, "text-embedding-3-small")
+            
+            with self.langfuse.start_as_current_observation(
+                name="Azure OpenAI Batch Embedding",
+                as_type="generation",
+                model=langfuse_model,
+                input=f"Batch of {len(texts)} texts",
+                metadata={"deployment": self.embedding_deployment}
+            ) as generation:
+                response = await self.embedding_client.embeddings.create(
+                    model=self.embedding_deployment,
+                    input=sanitized_texts
+                )
+                
+                generation.update(
+                    usage_details={
+                        "input": response.usage.prompt_tokens,
+                        "total": response.usage.total_tokens
+                    }
+                )
+                return [data.embedding for data in response.data]
         except Exception as e:
             logger.error(f"Error generating batch embeddings: {str(e)}")
-            # Fallback to individual if batch fails (e.g. context length exceeded)
+            # Fallback to individual
             results = []
             for text in texts:
                 emb = await self.generate_embedding(text)
@@ -193,7 +199,7 @@ class AzureOpenAIService:
         self,
         system_prompt: str,
         user_prompt: str,
-        temperature: float = 0.5
+        temperature: float = 1
     ) -> str:
         """
         Generate structured JSON output.
@@ -214,7 +220,7 @@ class AzureOpenAIService:
         return await self.chat_completion(
             messages=messages,
             temperature=temperature,
-            max_tokens=2500, # Structure can be large
+            max_completion_tokens=2500, # Structure can be large
             response_format={"type": "json_object"}
         )
     
@@ -233,8 +239,8 @@ class AzureOpenAIService:
     async def stream_completion(
         self,
         messages: List[Dict[str, str]],
-        temperature: float = 0.7,
-        max_tokens: int = 2000
+        temperature: float = 1,
+        max_completion_tokens: int = 2000
     ):
         """
         Stream chat completion.
@@ -242,7 +248,7 @@ class AzureOpenAIService:
         Args:
             messages: List of message dictionaries
             temperature: Sampling temperature
-            max_tokens: Maximum tokens
+            max_completion_tokens: Maximum tokens
         
         Yields:
             Chunks of generated text
@@ -257,17 +263,17 @@ class AzureOpenAIService:
             
             # Try with max_completion_tokens first (GPT-5.x models)
             try:
-                kwargs["max_completion_tokens"] = max_tokens
+                kwargs["max_completion_tokens"] = max_completion_tokens
                 stream = await self.client.chat.completions.create(**kwargs)
             except (TypeError, Exception) as e:
                 error_msg = str(e)
                 
                 # Check if it's a parameter compatibility issue
                 if "max_completion_tokens" in error_msg and ("not supported" in error_msg or "unexpected keyword" in error_msg):
-                    # Library doesn't support max_completion_tokens, try max_tokens
-                    logger.debug("max_completion_tokens not supported in streaming, trying max_tokens")
+                    # Library doesn't support max_completion_tokens, try max_completion_tokens
+                    logger.debug("max_completion_tokens not supported in streaming, trying max_completion_tokens")
                     kwargs.pop("max_completion_tokens", None)
-                    kwargs["max_tokens"] = max_tokens
+                    kwargs["max_completion_tokens"] = max_completion_tokens
                     try:
                         stream = await self.client.chat.completions.create(**kwargs)
                     except Exception as e2:
@@ -277,10 +283,10 @@ class AzureOpenAIService:
                             logger.warning(f"Temperature {kwargs.get('temperature')} not supported in streaming, using temperature=1")
                             kwargs["temperature"] = 1
                             stream = await self.client.chat.completions.create(**kwargs)
-                        # If max_tokens also fails, try without limit
-                        elif "max_tokens" in error_msg2 and "not supported" in error_msg2:
+                        # If max_completion_tokens also fails, try without limit
+                        elif "max_completion_tokens" in error_msg2 and "not supported" in error_msg2:
                             logger.warning("Neither max parameter supported in streaming, trying without token limit")
-                            kwargs.pop("max_tokens", None)
+                            kwargs.pop("max_completion_tokens", None)
                             try:
                                 stream = await self.client.chat.completions.create(**kwargs)
                             except Exception as e3:
@@ -292,9 +298,9 @@ class AzureOpenAIService:
                                     raise
                         else:
                             raise
-                elif "max_tokens" in error_msg and "not supported" in error_msg and "max_completion_tokens" in error_msg:
+                elif "max_completion_tokens" in error_msg and "not supported" in error_msg and "max_completion_tokens" in error_msg:
                     # API says use max_completion_tokens instead
-                    logger.debug("max_tokens not supported by API in streaming, already tried max_completion_tokens")
+                    logger.debug("max_completion_tokens not supported by API in streaming, already tried max_completion_tokens")
                     raise
                 # Check for temperature restrictions
                 elif "temperature" in error_msg and ("not support" in error_msg or "only the default" in error_msg.lower()):

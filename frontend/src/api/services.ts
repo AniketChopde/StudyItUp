@@ -70,6 +70,9 @@ export const contentService = {
 
     createMindmap: (subject: string) =>
         apiClient.post<Mindmap>('/content/mindmap', { subject }),
+
+    visualize: (topic: string, context?: string) =>
+        apiClient.post('/content/visualize', { topic, context }),
 };
 
 // Topic Mindmap Service

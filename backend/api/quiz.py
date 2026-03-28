@@ -2,7 +2,7 @@
 Quiz API endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -18,12 +18,14 @@ from models.quiz import (
 from utils.auth import get_current_user, TokenData
 from agents.quiz_agent import quiz_agent
 from services.vector_store import vector_store_service
-from tasks.quiz_tasks import generate_test_center_questions_task
+from tasks.quiz_tasks import generate_test_center_questions_task, _generate_and_update_session
+from langfuse import observe, get_client, propagate_attributes
 
 router = APIRouter()
 
 
-@router.post("/generate", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/generate", response_model=QuizResponse)
+@observe()
 async def generate_quiz(
     quiz_data: QuizGenerate,
     current_user: TokenData = Depends(get_current_user),
@@ -31,32 +33,33 @@ async def generate_quiz(
 ):
     """Generate a new quiz."""
     try:
-        # Generate questions using quiz agent
-        questions = await quiz_agent.generate_questions(
-            topic=quiz_data.topic,
-            module_id=quiz_data.plan_id,
-            count=quiz_data.question_count,
-            difficulty=quiz_data.difficulty,
-            exam_type=quiz_data.exam_type,
-            language=quiz_data.language
-        )
-        
-        # Create quiz session
-        quiz_session = QuizSession(
-            user_id=current_user.user_id,
-            topic=quiz_data.topic,
-            subject=quiz_data.subject,
-            difficulty=quiz_data.difficulty,
-            questions=questions,
-            total_questions=len(questions)
-        )
-        
-        db.add(quiz_session)
-        await db.commit()
-        await db.refresh(quiz_session)
-        
-        logger.info(f"Quiz generated for user: {current_user.email}")
-        return quiz_session
+        with propagate_attributes(user_id=str(current_user.user_id)):
+            # Generate questions using quiz agent
+            questions = await quiz_agent.generate_questions(
+                topic=quiz_data.topic,
+                module_id=quiz_data.plan_id,
+                count=quiz_data.question_count,
+                difficulty=quiz_data.difficulty,
+                exam_type=quiz_data.exam_type,
+                language=quiz_data.language
+            )
+            
+            # Create quiz session
+            quiz_session = QuizSession(
+                user_id=current_user.user_id,
+                topic=quiz_data.topic,
+                subject=quiz_data.subject,
+                difficulty=quiz_data.difficulty,
+                questions=questions,
+                total_questions=len(questions)
+            )
+            
+            db.add(quiz_session)
+            await db.commit()
+            await db.refresh(quiz_session)
+            
+            logger.info(f"Quiz generated for user: {current_user.email}")
+            return quiz_session
     
     except Exception as e:
         logger.error(f"Error generating quiz: {str(e)}")
@@ -71,8 +74,10 @@ TEST_CENTER_DURATION_MINUTES = 60
 
 
 @router.post("/test-center", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
+@observe()
 async def start_test_center(
     test_data: TestCenterGenerate,
+    background_tasks: BackgroundTasks,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -80,54 +85,70 @@ async def start_test_center(
     try:
         from sqlalchemy import func
         
-        # Global Cache Check: Look for an existing test center simulation for this exam_name
-        cached_test_result = await db.execute(
-            select(QuizSession)
-            .where(
-                func.lower(QuizSession.topic) == test_data.exam_name.lower(),
-                QuizSession.time_limit_minutes == TEST_CENTER_DURATION_MINUTES,
-                QuizSession.questions != [],
-                QuizSession.total_questions > 0
+        with propagate_attributes(user_id=str(current_user.user_id)):
+            # Global Cache Check: Look for an existing test center simulation for this exam_name
+            cached_test_result = await db.execute(
+                select(QuizSession)
+                .where(
+                    func.lower(QuizSession.topic) == test_data.exam_name.lower(),
+                    QuizSession.time_limit_minutes == TEST_CENTER_DURATION_MINUTES,
+                    QuizSession.questions != [],
+                    QuizSession.total_questions > 0
+                )
+                .limit(1)
             )
-            .limit(1)
-        )
-        cached_test = cached_test_result.scalar_one_or_none()
+            cached_test = cached_test_result.scalar_one_or_none()
 
-        if cached_test and len(cached_test.questions) > 0:
-            logger.info(f"♻️ REUSING existing Test Center Simulation for: {test_data.exam_name}")
+            if cached_test and len(cached_test.questions) > 0:
+                logger.info(f"♻️ REUSING existing Test Center Simulation for: {test_data.exam_name}")
+                quiz_session = QuizSession(
+                    user_id=current_user.user_id,
+                    topic=cached_test.topic,
+                    subject=cached_test.subject,
+                    difficulty=cached_test.difficulty,
+                    questions=cached_test.questions,
+                    total_questions=cached_test.total_questions,
+                    time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
+                    status="in_progress",
+                )
+                db.add(quiz_session)
+                await db.commit()
+                await db.refresh(quiz_session)
+                return quiz_session
+
+            # Generation Pathway
+            logger.info(f"Test Center requested for exam: {test_data.exam_name} (async)")
             quiz_session = QuizSession(
                 user_id=current_user.user_id,
-                topic=cached_test.topic,
-                subject=cached_test.subject,
-                difficulty=cached_test.difficulty,
-                questions=cached_test.questions,
-                total_questions=cached_test.total_questions,
+                topic=test_data.exam_name,
+                subject="General",
+                difficulty="hard",
+                questions=[],
+                total_questions=0,
                 time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
-                status="in_progress",
+                status="pending",
             )
             db.add(quiz_session)
             await db.commit()
             await db.refresh(quiz_session)
-            return quiz_session
+            
+            try:
+                # Primary: Celery (Best for scale)
+                generate_test_center_questions_task.delay(str(quiz_session.id), test_data.exam_name, test_data.plan_id, test_data.language)
+                logger.info(f"🚀 Test Center task enqueued via CELERY for session {quiz_session.id}")
+            except Exception as celery_err:
+                # Fallback: FastAPI BackgroundTasks (Resilient if Redis is down)
+                logger.warning(f"⚠️ Celery/Redis failed, using BackgroundTasks fallback: {celery_err}")
+                background_tasks.add_task(
+                    _generate_and_update_session, 
+                    str(quiz_session.id), 
+                    test_data.exam_name, 
+                    test_data.plan_id, 
+                    test_data.language
+                )
+                logger.info(f"🕒 Test Center task enqueued via BackgroundTasks for session {quiz_session.id}")
 
-        # Generation Pathway
-        logger.info(f"Test Center requested for exam: {test_data.exam_name} (async)")
-        quiz_session = QuizSession(
-            user_id=current_user.user_id,
-            topic=test_data.exam_name,
-            subject="General",
-            difficulty="hard",
-            questions=[],
-            total_questions=0,
-            time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
-            status="pending",
-        )
-        db.add(quiz_session)
-        await db.commit()
-        await db.refresh(quiz_session)
-        generate_test_center_questions_task.delay(str(quiz_session.id), test_data.exam_name, test_data.plan_id, test_data.language)
-        logger.info(f"Test Center session {quiz_session.id} created (pending), task enqueued in {test_data.language}")
-        return quiz_session
+            return quiz_session
     except Exception as e:
         logger.error(f"Error starting test center: {str(e)}")
         raise HTTPException(
@@ -159,6 +180,7 @@ async def get_test_center_status(
 
 
 @router.post("/chapter/{chapter_id}/generate", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
+@observe()
 async def generate_chapter_quiz(
     chapter_id: uuid.UUID,
     current_user: TokenData = Depends(get_current_user),
@@ -171,108 +193,109 @@ async def generate_chapter_quiz(
     Performance: Separated from teaching to avoid 5-minute delays
     """
     try:
-        from models.study_plan import StudyPlanChapter,StudyPlan
-        from agents.search_agent import search_agent
-        
-        logger.info(f"🎯 Generating quiz for chapter {chapter_id} (with PYQ search)")
-        
-        # Get chapter details
-        result = await db.execute(
-            select(StudyPlanChapter)
-            .join(StudyPlan)
-            .where(
-                StudyPlanChapter.id == chapter_id,
-                StudyPlan.user_id == current_user.user_id
+        with propagate_attributes(user_id=str(current_user.user_id)):
+            from models.study_plan import StudyPlanChapter,StudyPlan
+            from agents.search_agent import search_agent
+            
+            logger.info(f"🎯 Generating quiz for chapter {chapter_id} (with PYQ search)")
+            
+            # Get chapter details
+            result = await db.execute(
+                select(StudyPlanChapter)
+                .join(StudyPlan)
+                .where(
+                    StudyPlanChapter.id == chapter_id,
+                    StudyPlan.user_id == current_user.user_id
+                )
             )
-        )
-        chapter = result.scalar_one_or_none()
-        
-        if not chapter:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Chapter not found"
+            chapter = result.scalar_one_or_none()
+            
+            if not chapter:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Chapter not found"
+                )
+            
+            # Get exam type and language from the study plan
+            plan_result = await db.execute(
+                select(StudyPlan).where(StudyPlan.id == chapter.plan_id)
             )
-        
-        # Get exam type and language from the study plan
-        plan_result = await db.execute(
-            select(StudyPlan).where(StudyPlan.id == chapter.plan_id)
-        )
-        plan = plan_result.scalar_one_or_none()
-        exam_type = plan.exam_type if plan else "General"
-        plan_language = plan.language if (plan and hasattr(plan, "language")) else "English"
-        
-        # 1. Global Cache Check
-        from sqlalchemy import func
-        cached_quiz_result = await db.execute(
-            select(QuizSession)
-            .where(
-                func.lower(QuizSession.topic) == chapter.chapter_name.lower(),
-                func.lower(QuizSession.subject) == exam_type.lower(),
-                QuizSession.questions != [],
-                QuizSession.total_questions > 0
+            plan = plan_result.scalar_one_or_none()
+            exam_type = plan.exam_type if plan else "General"
+            plan_language = plan.language if (plan and hasattr(plan, "language")) else "English"
+            
+            # 1. Global Cache Check
+            from sqlalchemy import func
+            cached_quiz_result = await db.execute(
+                select(QuizSession)
+                .where(
+                    func.lower(QuizSession.topic) == chapter.chapter_name.lower(),
+                    func.lower(QuizSession.subject) == exam_type.lower(),
+                    QuizSession.questions != [],
+                    QuizSession.total_questions > 0
+                )
+                .limit(1)
             )
-            .limit(1)
-        )
-        cached_quiz = cached_quiz_result.scalar_one_or_none()
-        
-        if cached_quiz and len(cached_quiz.questions) > 0:
-            logger.info(f"♻️ REUSING existing Chapter Quiz for: {chapter.chapter_name}")
+            cached_quiz = cached_quiz_result.scalar_one_or_none()
+            
+            if cached_quiz and len(cached_quiz.questions) > 0:
+                logger.info(f"♻️ REUSING existing Chapter Quiz for: {chapter.chapter_name}")
+                quiz_session = QuizSession(
+                    user_id=current_user.user_id,
+                    topic=cached_quiz.topic,
+                    subject=cached_quiz.subject,
+                    difficulty=cached_quiz.difficulty,
+                    questions=cached_quiz.questions,
+                    total_questions=cached_quiz.total_questions,
+                    status="in_progress" # Reset status for new user
+                )
+                db.add(quiz_session)
+                await db.commit()
+                await db.refresh(quiz_session)
+                return quiz_session
+
+            # 2. Generation Pathway
+            topics = chapter.topics if isinstance(chapter.topics, list) else [chapter.topics]
+            
+            # Pull context from vector store if available
+            pdf_context = ""
+            try:
+                search_results = await vector_store_service.search(
+                    module_id=str(chapter.plan_id),
+                    query=" ".join(topics),
+                    top_k=5
+                )
+                if search_results:
+                    pdf_context = "\n\n".join([doc.get("text", "") for doc in search_results])
+                    logger.info(f"Retrieved {len(search_results)} chunks from PDF context for quiz generation.")
+            except Exception as e:
+                logger.warning(f"Failed to fetch PDF context for quiz generation: {str(e)}")
+                
+            # ULTRA-OPTIMIZED: Generate questions for all topics in ONE BATCH
+            all_questions = await quiz_agent.generate_chapter_questions(
+                topics=topics,
+                exam_type=exam_type,
+                total_count=15, # Standard chapter quiz size
+                pdf_context=pdf_context,
+                language=plan_language
+            )
+            
+            # Create quiz session
             quiz_session = QuizSession(
                 user_id=current_user.user_id,
-                topic=cached_quiz.topic,
-                subject=cached_quiz.subject,
-                difficulty=cached_quiz.difficulty,
-                questions=cached_quiz.questions,
-                total_questions=cached_quiz.total_questions,
-                status="in_progress" # Reset status for new user
+                topic=chapter.chapter_name,
+                subject=exam_type,
+                difficulty="medium",
+                questions=all_questions,
+                total_questions=len(all_questions)
             )
+            
             db.add(quiz_session)
             await db.commit()
             await db.refresh(quiz_session)
-            return quiz_session
-
-        # 2. Generation Pathway
-        topics = chapter.topics if isinstance(chapter.topics, list) else [chapter.topics]
-        
-        # Pull context from vector store if available
-        pdf_context = ""
-        try:
-            search_results = await vector_store_service.search(
-                module_id=str(chapter.plan_id),
-                query=" ".join(topics),
-                top_k=5
-            )
-            if search_results:
-                pdf_context = "\n\n".join([doc.get("text", "") for doc in search_results])
-                logger.info(f"Retrieved {len(search_results)} chunks from PDF context for quiz generation.")
-        except Exception as e:
-            logger.warning(f"Failed to fetch PDF context for quiz generation: {str(e)}")
             
-        # ULTRA-OPTIMIZED: Generate questions for all topics in ONE BATCH
-        all_questions = await quiz_agent.generate_chapter_questions(
-            topics=topics,
-            exam_type=exam_type,
-            total_count=15, # Standard chapter quiz size
-            pdf_context=pdf_context,
-            language=plan_language
-        )
-        
-        # Create quiz session
-        quiz_session = QuizSession(
-            user_id=current_user.user_id,
-            topic=chapter.chapter_name,
-            subject=exam_type,
-            difficulty="medium",
-            questions=all_questions,
-            total_questions=len(all_questions)
-        )
-        
-        db.add(quiz_session)
-        await db.commit()
-        await db.refresh(quiz_session)
-        
-        logger.info(f"✅ Chapter quiz generated: {len(all_questions)} questions")
-        return quiz_session
+            logger.info(f"✅ Chapter quiz generated: {len(all_questions)} questions")
+            return quiz_session
     
     except HTTPException:
         raise
@@ -285,6 +308,7 @@ async def generate_chapter_quiz(
 
 
 @router.post("/submit", response_model=QuizResultResponse)
+@observe()
 async def submit_quiz(
     submission: QuizSubmit,
     current_user: TokenData = Depends(get_current_user),
@@ -330,6 +354,24 @@ async def submit_quiz(
         except Exception as e:
             logger.error(f"Failed to award XP for quiz completion: {e}")
         
+        # MLflow: Record the score for analytics
+        try:
+            from utils.mlflow_utils import mlflow_service
+            mlflow_service.log_quiz_score(
+                user_id=str(current_user.user_id),
+                quiz_id=str(submission.quiz_id),
+                topic=quiz_session.topic,
+                score=score_data["percentage"] / 100.0
+            )
+            # Also log the full evaluation table
+            mlflow_service.log_evaluation_table(
+                user_id=str(current_user.user_id),
+                topic=quiz_session.topic,
+                results=score_data["detailed_results"]
+            )
+        except Exception as mf_err:
+            logger.warning(f"Failed to send score to MLflow: {mf_err}")
+
         await db.commit()
         await db.refresh(quiz_session)
         

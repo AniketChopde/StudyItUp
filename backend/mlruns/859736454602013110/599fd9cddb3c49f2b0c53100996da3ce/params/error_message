@@ -1,0 +1,1 @@
+AzureOpenAIService.chat_completion() got an unexpected keyword argument 'max_completion_tokens'

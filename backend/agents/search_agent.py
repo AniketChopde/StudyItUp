@@ -20,7 +20,7 @@ class SearchAgent:
     def __init__(self):
         """Initialize Search Agent."""
         self.agent_name = "Research Agent"
-        self.temperature = 0.3
+        self.temperature = 1
         self.allowed_domains = [
             "ncert.nic.in",
             "cbseacademic.nic.in",
@@ -207,7 +207,7 @@ class SearchAgent:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": search_text}
                 ],
-                temperature=0.3
+                temperature=1
             )
             
             resources = parse_json_markdown(response)
@@ -261,7 +261,7 @@ class SearchAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.3
+                temperature=1
             )
             
             updates = parse_json_markdown(response)
@@ -322,7 +322,7 @@ class SearchAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.3
+                temperature=1
             )
             
             analysis = parse_json_markdown(response)
@@ -436,7 +436,7 @@ Guidelines:
 Return JSON: {"questions": [{"question": "...", "options": ["A)...", "B)...", ...], "answer": "A", "explanation": "..."}]}"""
         
         try:
-            response = await azure_openai_service.generate_structured_output(system_prompt, f"Topic: {topic}\nData: {page_text}", temperature=0.3)
+            response = await azure_openai_service.generate_structured_output(system_prompt, f"Topic: {topic}\nData: {page_text}", temperature=1)
             parsed = parse_json_markdown(response)
             qs = parsed.get("questions", [])
             for q in qs:

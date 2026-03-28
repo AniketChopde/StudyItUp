@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/genaikitfeb_2026/NexusLearn/backend/mlruns/859736454602013110/c937a4b3e2dd41c99454bf6e43cdd23e/artifacts
+end_time: 1774606630408
+entry_point_name: ''
+experiment_id: '859736454602013110'
+lifecycle_stage: active
+run_id: c937a4b3e2dd41c99454bf6e43cdd23e
+run_name: goal_analysis_analyze_user_goal
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1774606628646
+status: 4
+tags: []
+user_id: Malesh

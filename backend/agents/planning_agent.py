@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from loguru import logger
 import json
 import mlflow
+from langfuse import observe
 
 from services.azure_openai import azure_openai_service
 from utils.helpers import parse_json_markdown
@@ -18,9 +19,22 @@ class PlanningAgent:
     def __init__(self):
         """Initialize Planning Agent."""
         self.agent_name = "Planning Agent"
-        self.temperature = 0.7
+        self.version = "1.5.0"
+        self.temperature = 1
+        
+        # Register core prompts
+        mlflow_service.register_prompt(
+            name="study_plan_generation_v1",
+            prompt_template="""ROLE: Planning Agent
+            TASK: Create a comprehensive study plan for the user's goal."""
+        )
+        
+        # Set this as the active agent model for MLflow 3.x 'Agent versions' tab
+        mlflow_service.set_active_agent(self.agent_name)
     
+    @observe()
     @mlflow_service.track_latency("goal_analysis")
+    @mlflow.trace(name="Analyze User Goal")
     async def analyze_user_goal(
         self,
         goal: str,
@@ -31,18 +45,10 @@ class PlanningAgent:
     ) -> Dict[str, Any]:
         """
         Analyze user's goal and create initial assessment.
-        
-        Args:
-            goal: User's study goal
-            exam_type: Type of exam
-            target_date: Target exam date
-            daily_hours: Daily study hours available
-            current_knowledge: User's current knowledge level
-        
-        Returns:
-            Analysis with recommendations
         """
         try:
+            # Set agent version for tracking
+            mlflow_service.set_agent_version(self.agent_name, self.version)
             # Ensure target_date is a datetime/date object
             if target_date is None:
                 target_date_obj = (datetime.now() + timedelta(days=30)).date()
@@ -108,6 +114,8 @@ class PlanningAgent:
             logger.error(f"Error in analyze_user_goal: {str(e)}")
             raise
     
+    @observe()
+    @mlflow.trace(name="Create Study Plan")
     async def create_study_plan(
         self,
         exam_type: str,
@@ -227,8 +235,8 @@ class PlanningAgent:
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt}
                     ],
-                    max_tokens=2000,
-                    temperature=0.3
+                    max_completion_tokens=2000,
+                    temperature=1
                 )
 
                 study_plan = parse_json_markdown(response)
@@ -286,7 +294,7 @@ class PlanningAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.5
+                temperature=1
             )
             
             breakdown = parse_json_markdown(response)
@@ -319,7 +327,7 @@ class PlanningAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.3
+                temperature=1
             )
             
             result = parse_json_markdown(response)

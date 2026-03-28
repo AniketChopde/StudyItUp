@@ -12,7 +12,7 @@ class CourseRecommendationAgent:
     
     def __init__(self):
         self.agent_name = "Course Recommendation Agent"
-        self.temperature = 0.7
+        self.temperature = 1
     
     async def recommend_courses(
         self,
@@ -55,7 +55,7 @@ class CourseRecommendationAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.7
+                temperature=1
             )
             
             queries = parse_json_markdown(response).get("queries", [])

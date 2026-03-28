@@ -4,17 +4,22 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Loading } from '../components/ui/Loading';
-import { Send, Bot, User, ArrowLeft } from 'lucide-react';
+import { Send, Bot, User, ArrowLeft, Box } from 'lucide-react';
 import { VoiceInputButton, ReadAloudButton } from '../components/voice/VoiceButton';
 import { formatDate } from '../lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+
+// Lazy-load 3D — non-breaking, chat works completely fine without it
+const TopicVisualizer3D = React.lazy(() => import('../components/3d/TopicVisualizer3D'));
 
 export const ChatPage: React.FC = () => {
     const { messages, isTyping, sendMessage, createSession, activeSession, setChatContext } = useChatStore();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [input, setInput] = React.useState('');
+    const [show3D, setShow3D] = React.useState(false);
+    const [visualizeTopic, setVisualizeTopic] = React.useState('');
     const planId = searchParams.get('planId');
     const messagesEndRef = React.useRef<HTMLDivElement>(null);
 
@@ -65,6 +70,7 @@ export const ChatPage: React.FC = () => {
         'Give me examples',
         'Create a quiz',
         'Show mindmap',
+        'Visualize in 3D',
     ];
 
     return (
@@ -153,6 +159,28 @@ export const ChatPage: React.FC = () => {
                     <div ref={messagesEndRef} />
                 </div>
 
+                {/* Inline 3D Visualizer (lazy, non-breaking) */}
+                {show3D && visualizeTopic && (
+                    <div className="px-6 pb-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-2">
+                                <Box size={14} className="text-indigo-500" />
+                                3D Visualization: {visualizeTopic}
+                            </h4>
+                            <button onClick={() => setShow3D(false)} className="text-xs font-bold text-muted-foreground hover:text-primary">
+                                Close
+                            </button>
+                        </div>
+                        <React.Suspense fallback={
+                            <div className="h-[300px] flex items-center justify-center bg-muted/20 rounded-2xl border border-border/50">
+                                <Loading size="md" text="Loading 3D..." />
+                            </div>
+                        }>
+                            <TopicVisualizer3D topic={visualizeTopic} compact />
+                        </React.Suspense>
+                    </div>
+                )}
+
                 {/* Quick Prompts */}
                 {messages.length === 0 && (
                     <div className="px-6 pb-4">
@@ -163,8 +191,17 @@ export const ChatPage: React.FC = () => {
                                     key={prompt}
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setInput(prompt)}
+                                    onClick={() => {
+                                        if (prompt === 'Visualize in 3D') {
+                                            const topic = searchParams.get('topic') || 'Atom Structure';
+                                            setVisualizeTopic(topic);
+                                            setShow3D(true);
+                                        } else {
+                                            setInput(prompt);
+                                        }
+                                    }}
                                 >
+                                    {prompt === 'Visualize in 3D' && <Box size={14} className="mr-1 text-indigo-500" />}
                                     {prompt}
                                 </Button>
                             ))}

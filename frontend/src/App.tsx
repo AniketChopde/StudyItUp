@@ -26,6 +26,9 @@ import DungeonDelver from './pages/DungeonDelver';
 import WisdomTrials from './pages/WisdomTrials';
 import WorldMapDashboard from './pages/WorldMapDashboard';
 
+// Lazy-load 3D Visualize page — keeps main bundle size unchanged
+const VisualizePage = React.lazy(() => import('./pages/VisualizePage'));
+
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -297,6 +300,18 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <SettingsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/visualize"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading visualizer..." /></div>}>
+                  <VisualizePage />
+                </React.Suspense>
               </Layout>
             </ProtectedRoute>
           }

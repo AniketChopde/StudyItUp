@@ -173,3 +173,15 @@ class ChatResponse(BaseModel):
     
     class Config:
         from_attributes = True
+class ChatSessionResponse(BaseModel):
+    """Schema for chat session response."""
+    id: uuid.UUID
+    user_id: uuid.UUID
+    title: Optional[str] = None
+    messages: List[Dict[str, Any]] = []
+    context: Dict[str, Any] = {}
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True

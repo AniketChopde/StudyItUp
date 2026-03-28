@@ -1,0 +1,14 @@
+artifact_uri: file:///E:/genaikitfeb_2026/NexusLearn/backend/mlruns/859736454602013110/b743ff3365f748fda47eae9aec430159/artifacts
+end_time: 1774606630454
+entry_point_name: ''
+experiment_id: '859736454602013110'
+lifecycle_stage: active
+run_id: b743ff3365f748fda47eae9aec430159
+run_name: exam_prep_workflow_handle_exam_preparation
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1774606628571
+status: 4
+tags: []
+user_id: Malesh

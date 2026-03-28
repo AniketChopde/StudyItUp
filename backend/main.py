@@ -12,9 +12,18 @@ from loguru import logger
 import sys
 import os
 from dotenv import load_dotenv
-
 # Load environment variables at the very beginning
 load_dotenv()
+
+# Initialize observability (MLflow/Langfuse) BEFORE any other imports to patch modules like openai
+import mlflow
+import mlflow.openai
+from utils.mlflow_utils import mlflow_service
+# Force early initialization to ensure monkey-patching happens before services are imported
+mlflow_service.initialize()
+
+from services.langfuse_service import langfuse_service
+
 print(f"DEBUG: SARVAM_API_KEY found: {bool(os.environ.get('SARVAM_API_KEY'))}")
 if os.environ.get('SARVAM_API_KEY'):
     print(f"DEBUG: Key starts with: {os.environ.get('SARVAM_API_KEY')[:6]}...")

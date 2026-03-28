@@ -2,7 +2,7 @@
 Enhanced DuckDuckGo search service with aggressive rate limiting and mock fallbacks.
 """
 
-from duckduckgo_search import AsyncDDGS
+from duckduckgo_search import DDGS
 from typing import List, Dict, Any, Optional
 from loguru import logger
 import asyncio
@@ -194,7 +194,7 @@ class DuckDuckGoSearchService:
     
     def __init__(self):
         """Initialize DuckDuckGo search client."""
-        self.ddgs = AsyncDDGS()
+        self.ddgs = DDGS()
         # Ultra conservative rate limiting: 30-40 seconds between requests
         self.rate_limit_delay = 30.0
         self.last_request_time = None
@@ -295,8 +295,8 @@ class DuckDuckGoSearchService:
                     logger.info(f"🔍 DuckDuckGo search (attempt {attempt+1}/{max_retries+1}): {query}")
                     
                     results = []
-                    async with AsyncDDGS() as ddgs:
-                        async for result in ddgs.text(query, max_results=max_results):
+                    with DDGS() as ddgs:
+                        for result in ddgs.text(query, max_results=max_results):
                             results.append({
                                 "title": result.get("title", ""),
                                 "snippet": result.get("body", ""),

@@ -16,7 +16,7 @@ class GapAnalysisAgent:
     def __init__(self):
         """Initialize Gap Analysis Agent."""
         self.agent_name = "Gap Analysis Agent"
-        self.temperature = 0.3
+        self.temperature = 1
     
     async def analyze_performance(
         self,
@@ -249,7 +249,7 @@ class GapAnalysisAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.4
+                temperature=1
             )
             
             recommendations = json.loads(response)
@@ -308,7 +308,7 @@ class GapAnalysisAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.5
+                temperature=1
             )
             
             guidance = json.loads(response)

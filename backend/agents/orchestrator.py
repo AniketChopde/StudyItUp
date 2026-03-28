@@ -3,6 +3,7 @@ Orchestrator Agent for coordinating complex workflows across specialized agents.
 """
 
 import asyncio
+import mlflow
 from typing import List, Dict, Any
 from loguru import logger
 from datetime import datetime, timedelta
@@ -13,6 +14,7 @@ from agents.content_agent import content_agent
 from agents.quiz_agent import quiz_agent
 from agents.gap_analysis_agent import gap_analysis_agent
 from agents.content_filter_agent import content_filter_agent
+from services.azure_openai import azure_openai_service
 from services.vector_store import vector_store_service
 from agents.safety_agent import safety_agent
 from utils.mlflow_utils import mlflow_service
@@ -24,8 +26,25 @@ class AgentOrchestrator:
     def __init__(self):
         """Initialize Orchestrator."""
         self.agent_name = "Orchestrator Agent"
+        self.version = "1.2.0"
+        
+        # Register core prompts in MLflow for visibility
+        mlflow_service.register_prompt(
+            name="orchestrator_chat_v1",
+            prompt_template="""You are a helpful, professional educational assistant for NexusLearn.
+            
+            Use the provided RELEVANT KNOWLEDGE BASE CONTENT (if any) to ground your answers.
+            If context is provided, prioritize it. If not, use your internal knowledge.
+            
+            Keep responses concise, educational, and encouraging.
+            Use Markdown for formatting and Mermaid for diagrams if helpful."""
+        )
+        
+        # Set this as the active agent model for MLflow 3.x 'Agent versions' tab
+        mlflow_service.set_active_agent(self.agent_name)
     
     @mlflow_service.track_latency("exam_prep_workflow")
+    @mlflow.trace(name="Handle Exam Preparation")
     async def handle_exam_preparation(
         self,
         exam_type: str,
@@ -128,6 +147,7 @@ class AgentOrchestrator:
             logger.error(f"Error during auto-indexing for topic '{topic}': {e}")
             return False
 
+    @mlflow.trace(name="Handle Topic Learning")
     async def handle_topic_learning(
         self,
         module_id: str,
@@ -331,7 +351,60 @@ class AgentOrchestrator:
             logger.error(f"❌ Error in handle_chapter_teaching: {str(e)}")
             raise
 
-
+    @mlflow_service.track_latency("chat_handler")
+    @mlflow.trace(name="Handle Chat")
+    async def handle_chat(
+        self,
+        user_message: str,
+        history: List[Dict[str, Any]],
+        rag_context: str = "",
+        user_context: Dict[str, Any] = None
+    ) -> str:
+        """
+        Unified chat handler coordinating RAG and model memory.
+        """
+        try:
+            # Set agent version on the active run for tracking
+            mlflow_service.set_agent_version(self.agent_name, self.version)
+            
+            logger.info(f"Orchestrator handling chat: {user_message[:50]}...")
+            
+            system_prompt = """You are a helpful, professional educational assistant for NexusLearn.
+            
+            Use the provided RELEVANT KNOWLEDGE BASE CONTENT (if any) to ground your answers.
+            If context is provided, prioritize it. If not, use your internal knowledge.
+            
+            Keep responses concise, educational, and encouraging.
+            Use Markdown for formatting and Mermaid for diagrams if helpful.
+            """
+            
+            # Record prompt use in MLflow
+            mlflow_service.register_prompt("orchestrator_chat_v1", system_prompt)
+            
+            # Format history for OpenAI
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # Add history
+            for msg in history[-10:]: # Last 10 messages for context
+                messages.append({
+                    "role": msg.get("role", "user"),
+                    "content": msg.get("content", "")
+                })
+            
+            # Add RAG context and current question
+            user_content = f"{rag_context}\n\nUSER QUESTION: {user_message}"
+            messages.append({"role": "user", "content": user_content})
+            
+            response = await azure_openai_service.chat_completion(
+                messages=messages,
+                temperature=1.0
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error in Orchestrator handle_chat: {str(e)}")
+            return "I apologize, but I encountered an error while processing your request. Please try again or ask a different question."
 
 # Global orchestrator instance
 orchestrator = AgentOrchestrator()

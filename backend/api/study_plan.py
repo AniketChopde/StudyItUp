@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any
 from loguru import logger
 import uuid
+from langfuse import observe, propagate_attributes
 
 from database.connection import get_db
 from models.study_plan import (
@@ -21,7 +22,7 @@ from agents.orchestrator import orchestrator
 router = APIRouter()
 
 
-async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: List[StudyPlan]):
+async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: List[Any]):
     """
     Smart Sync: auto-complete chapters based on quiz scores and then auto-complete plans.
     Demonstrates true mastery by analyzing quiz history.
@@ -79,6 +80,7 @@ async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: 
 
 
 @router.post("/create", response_model=StudyPlanCreateResponse, status_code=status.HTTP_201_CREATED)
+@observe()
 async def create_study_plan(
     plan_data: StudyPlanCreate,
     current_user: TokenData = Depends(get_current_user),
@@ -86,22 +88,86 @@ async def create_study_plan(
 ):
     """Create a comprehensive study plan using multi-agent system."""
     try:
-        from sqlalchemy import func
-        
-        # 1. Global Cache Check: Look for an existing plan for this exact exam_type and language
-        cached_plan_result = await db.execute(
-            select(StudyPlan)
-            .where(
-                func.lower(StudyPlan.exam_type) == plan_data.exam_type.lower(),
-                func.lower(StudyPlan.language) == plan_data.language.lower()
+        with propagate_attributes(user_id=str(current_user.user_id)):
+            from sqlalchemy import func
+            
+            # 1. Global Cache Check: Look for an existing plan for this exact exam_type and language
+            cached_plan_result = await db.execute(
+                select(StudyPlan)
+                .where(
+                    func.lower(StudyPlan.exam_type) == plan_data.exam_type.lower(),
+                    func.lower(StudyPlan.language) == plan_data.language.lower()
+                )
+                .options(selectinload(StudyPlan.chapters))
+                .limit(1)
             )
-            .options(selectinload(StudyPlan.chapters))
-            .limit(1)
-        )
-        cached_plan = cached_plan_result.scalar_one_or_none()
-        
-        if cached_plan:
-            logger.info(f"♻️ REUSING existing Study Plan for: {plan_data.exam_type}")
+            cached_plan = cached_plan_result.scalar_one_or_none()
+
+            if cached_plan:
+                logger.info(f"♻️ REUSING existing Study Plan for: {plan_data.exam_type} ({plan_data.language})")
+                
+                study_plan = StudyPlan(
+                    user_id=current_user.user_id,
+                    exam_type=plan_data.exam_type,
+                    target_date=plan_data.target_date,
+                    daily_hours=plan_data.daily_hours,
+                    language=plan_data.language,
+                    current_knowledge=plan_data.current_knowledge,
+                    plan_metadata=cached_plan.plan_metadata,
+                    recommended_courses=cached_plan.recommended_courses
+                )
+                db.add(study_plan)
+                await db.flush()
+                
+                ratio = plan_data.daily_hours / max(float(cached_plan.daily_hours or 1.0), 1.0)
+                
+                for chapter in cached_plan.chapters:
+                    new_chapter = StudyPlanChapter(
+                        plan_id=study_plan.id,
+                        chapter_name=chapter.chapter_name,
+                        subject=chapter.subject,
+                        topics=chapter.topics,
+                        estimated_hours=max(1, int(float(chapter.estimated_hours or 1) * ratio)),
+                        order_index=chapter.order_index,
+                        status="pending",
+                        weightage_percent=chapter.weightage_percent,
+                        weightage_source=chapter.weightage_source,
+                        resources=chapter.resources
+                    )
+                    db.add(new_chapter)
+                    
+                await db.commit()
+                
+                final_plan = await db.execute(
+                    select(StudyPlan)
+                    .where(StudyPlan.id == study_plan.id)
+                    .options(selectinload(StudyPlan.chapters))
+                )
+                return {
+                    "study_plan": final_plan.scalar_one(),
+                    "ai_metadata": {
+                        "exam_info": cached_plan.plan_metadata.get("official_syllabus", {}),
+                        "plan_analysis": cached_plan.plan_metadata.get("goal_analysis", {}),
+                        "immediate_actions": []
+                    }
+                }
+                
+            # 2. Generation (If no cache found)
+            # Use orchestrator to create comprehensive plan (exam_type can be any learning goal: ML, LangChain, UPSC, etc.)
+            result = await orchestrator.handle_exam_preparation(
+                user_goal=f"Learn {plan_data.exam_type}",
+                exam_type=plan_data.exam_type,
+                target_date=plan_data.target_date,
+                daily_hours=plan_data.daily_hours,
+                current_knowledge=plan_data.current_knowledge,
+                fast_learn=plan_data.fast_learn,
+                language=plan_data.language
+            )
+            
+            # Create study plan in database with full metadata
+            plan_metadata = result.get("study_plan", {})
+            plan_metadata["official_syllabus"] = result.get("exam_info", {})
+            plan_metadata["goal_analysis"] = result.get("goal_analysis", {})
             
             study_plan = StudyPlan(
                 user_id=current_user.user_id,
@@ -110,143 +176,122 @@ async def create_study_plan(
                 daily_hours=plan_data.daily_hours,
                 language=plan_data.language,
                 current_knowledge=plan_data.current_knowledge,
-                plan_metadata=cached_plan.plan_metadata,
-                recommended_courses=cached_plan.recommended_courses
+                plan_metadata=plan_metadata
             )
+            
             db.add(study_plan)
-            await db.flush()
+            await db.flush()  # Get the ID without committing yet
             
-            ratio = plan_data.daily_hours / max(float(cached_plan.daily_hours or 1.0), 1.0)
+            # Extract chapters from modules
+            plan_data_ai = result.get("study_plan", {})
+            modules = plan_data_ai.get("modules", [])
             
-            for chapter in cached_plan.chapters:
-                new_chapter = StudyPlanChapter(
+            # Safety fallback if AI failed completely
+            if not modules:
+                logger.warning(f"No modules found in AI response for {plan_data.exam_type}. Using fallback.")
+                modules = [{
+                    "module_name": "Fundamentals & Assessment",
+                    "estimated_days": "7",
+                    "difficulty": "Medium",
+                    "topics": ["Exam Pattern Overview", "Current Knowledge Assessment"]
+                }]
+
+            for idx, module in enumerate(modules):
+                module_name = module.get("module_name", f"Module {idx+1}")
+                topics = module.get("topics", [])
+                
+                # Since we now use Research Agent on-demand, we don't pre-fetch all resources here
+                chapter = StudyPlanChapter(
                     plan_id=study_plan.id,
-                    chapter_name=chapter.chapter_name,
-                    subject=chapter.subject,
-                    topics=chapter.topics,
-                    estimated_hours=max(1, int(float(chapter.estimated_hours or 1) * ratio)),
-                    order_index=chapter.order_index,
+                    chapter_name=module_name,
+                    subject=plan_data.exam_type,
+                    topics=topics,
+                    estimated_hours=int(float(module.get("estimated_days", 1)) * plan_data.daily_hours),
+                    order_index=idx,
                     status="pending",
-                    weightage_percent=chapter.weightage_percent,
-                    weightage_source=chapter.weightage_source,
-                    resources=chapter.resources
+                    weightage_percent=float(module.get("weightage_percent", 0.0)),
+                    weightage_source="ai_estimate",
+                    resources=[] # Resources will be grounded via Research Agent during teaching
                 )
-                db.add(new_chapter)
+                db.add(chapter)
                 
             await db.commit()
+            await db.refresh(study_plan)
             
+            # Trigger background course recommendation
+            try:
+                from agents.course_recommendation_agent import course_recommendation_agent
+                recommendations = await course_recommendation_agent.recommend_courses(
+                    exam_type=plan_data.exam_type,
+                    current_knowledge=plan_data.current_knowledge
+                )
+                study_plan.recommended_courses = recommendations
+                await db.commit()
+            except Exception as e:
+                logger.error(f"Error generating course recommendations: {str(e)}")
+                # Don't fail the request, just log it
+            
+            # Re-fetch with chapters for the response
             final_plan = await db.execute(
                 select(StudyPlan)
                 .where(StudyPlan.id == study_plan.id)
                 .options(selectinload(StudyPlan.chapters))
             )
+            plan_obj = final_plan.scalar_one()
+
             return {
-                "study_plan": final_plan.scalar_one(),
+                "study_plan": plan_obj,
                 "ai_metadata": {
-                    "exam_info": cached_plan.plan_metadata.get("official_syllabus", {}),
-                    "plan_analysis": cached_plan.plan_metadata.get("goal_analysis", {}),
-                    "immediate_actions": []
+                    "exam_info": result.get("exam_info"),
+                    "plan_analysis": result.get("goal_analysis"),
+                    "immediate_actions": result.get("immediate_actions")
                 }
             }
             
-        # 2. Generation (If no cache found)
-        # Use orchestrator to create comprehensive plan (exam_type can be any learning goal: ML, LangChain, UPSC, etc.)
-        result = await orchestrator.handle_exam_preparation(
-            user_goal=f"Learn {plan_data.exam_type}",
-            exam_type=plan_data.exam_type,
-            target_date=plan_data.target_date,
-            daily_hours=plan_data.daily_hours,
-            current_knowledge=plan_data.current_knowledge,
-            fast_learn=plan_data.fast_learn,
-            language=plan_data.language
-        )
-        
-        # Create study plan in database with full metadata
-        plan_metadata = result.get("study_plan", {})
-        plan_metadata["official_syllabus"] = result.get("exam_info", {})
-        plan_metadata["goal_analysis"] = result.get("goal_analysis", {})
-        
-        study_plan = StudyPlan(
-            user_id=current_user.user_id,
-            exam_type=plan_data.exam_type,
-            target_date=plan_data.target_date,
-            daily_hours=plan_data.daily_hours,
-            language=plan_data.language,
-            current_knowledge=plan_data.current_knowledge,
-            plan_metadata=plan_metadata
-        )
-        
-        db.add(study_plan)
-        await db.flush()  # Get the ID without committing yet
-        
-        # Extract chapters from modules
-        plan_data_ai = result.get("study_plan", {})
-        modules = plan_data_ai.get("modules", [])
-        
-        # Safety fallback if AI failed completely
-        if not modules:
-            logger.warning(f"No modules found in AI response for {plan_data.exam_type}. Using fallback.")
-            modules = [{
-                "module_name": "Fundamentals & Assessment",
-                "estimated_days": "7",
-                "difficulty": "Medium",
-                "topics": ["Exam Pattern Overview", "Current Knowledge Assessment"]
-            }]
-
-        for idx, module in enumerate(modules):
-            module_name = module.get("module_name", f"Module {idx+1}")
-            topics = module.get("topics", [])
-            
-            # Since we now use Research Agent on-demand, we don't pre-fetch all resources here
-            chapter = StudyPlanChapter(
-                plan_id=study_plan.id,
-                chapter_name=module_name,
-                subject=plan_data.exam_type,
-                topics=topics,
-                estimated_hours=int(float(module.get("estimated_days", 1)) * plan_data.daily_hours),
-                order_index=idx,
-                status="pending",
-                weightage_percent=float(module.get("weightage_percent", 0.0)),
-                weightage_source="ai_estimate",
-                resources=[] # Resources will be grounded via Research Agent during teaching
-            )
-            db.add(chapter)
-            
-        await db.commit()
-        await db.refresh(study_plan)
-        
-        # Trigger background course recommendation
-        try:
-            from agents.course_recommendation_agent import course_recommendation_agent
-            recommendations = await course_recommendation_agent.recommend_courses(
-                exam_type=plan_data.exam_type,
-                current_knowledge=plan_data.current_knowledge
-            )
-            study_plan.recommended_courses = recommendations
-            await db.commit()
-        except Exception as e:
-            logger.error(f"Error generating course recommendations: {str(e)}")
-            # Don't fail the request, just log it
-        
-        # Re-fetch with chapters for the response
-        final_plan = await db.execute(
-            select(StudyPlan)
-            .where(StudyPlan.id == study_plan.id)
-            .options(selectinload(StudyPlan.chapters))
-        )
-        plan_obj = final_plan.scalar_one()
-
-        return {
-            "study_plan": plan_obj,
-            "ai_metadata": {
-                "exam_info": result.get("exam_info"),
-                "plan_analysis": result.get("goal_analysis"),
-                "immediate_actions": result.get("immediate_actions")
-            }
-        }
-    
     except Exception as e:
         logger.error(f"Error creating study plan: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+
+@router.put("/{plan_id}", response_model=StudyPlanResponse)
+@observe()
+async def update_study_plan(
+    plan_id: uuid.UUID,
+    plan_data: Dict[str, Any],
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update study plan status or metadata."""
+    try:
+        with propagate_attributes(user_id=str(current_user.user_id)):
+            result = await db.execute(
+                select(StudyPlan).where(
+                    StudyPlan.id == plan_id,
+                    StudyPlan.user_id == current_user.user_id
+                ).options(selectinload(StudyPlan.chapters))
+            )
+            plan = result.scalar_one_or_none()
+            
+            if not plan:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Study plan not found"
+                )
+            
+            for key, value in plan_data.items():
+                if hasattr(plan, key):
+                    setattr(plan, key, value)
+            
+            await db.commit()
+            await db.refresh(plan)
+            return plan
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating study plan: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
@@ -469,6 +514,10 @@ async def update_chapter_status(
         raise
     except Exception as e:
         logger.error(f"Error updating chapter status: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update chapter status"
+        )
 @router.post("/chapter/{chapter_id}/teach")
 async def teach_chapter(
     chapter_id: uuid.UUID,

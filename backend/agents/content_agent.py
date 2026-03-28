@@ -4,7 +4,9 @@ Content Agent for generating detailed explanations and learning materials.
 
 from typing import List, Dict, Any
 from loguru import logger
+import mlflow
 from utils.helpers import parse_json_markdown
+from langfuse import observe
 
 from services.azure_openai import azure_openai_service
 from services.vector_store import vector_store_service
@@ -16,8 +18,10 @@ class ContentAgent:
     def __init__(self):
         """Initialize Content Agent."""
         self.agent_name = "Teaching Agent"
-        self.temperature = 0.2
+        self.temperature = 1
     
+    @observe()
+    @mlflow.trace(name="Explain Concept (RAG)")
     async def explain_concept(
         self,
         module_id: str,
@@ -98,6 +102,8 @@ class ContentAgent:
             raise
 
     
+    @observe()
+    @mlflow.trace(name="Explain Concept (Fast)")
     async def explain_concept_fast(
         self,
         topic: str,
@@ -183,7 +189,7 @@ class ContentAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.3  # Lower for more focused explanations
+                temperature=1  # Lower for more focused explanations
             )
             
             explanation = parse_json_markdown(response)
@@ -230,7 +236,7 @@ class ContentAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.7
+                temperature=1
             )
             
             result = parse_json_markdown(response)
@@ -278,7 +284,7 @@ class ContentAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.6
+                temperature=1
             )
             
             exercises = parse_json_markdown(response)
@@ -332,7 +338,7 @@ class ContentAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.5
+                temperature=1
             )
             
             breakdown = parse_json_markdown(response)
@@ -383,7 +389,7 @@ class ContentAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.4
+                temperature=1
             )
             
             mindmap = parse_json_markdown(response)

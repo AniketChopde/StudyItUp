@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
+
+// Lazy-load 3D visualizer — app works fine even if this fails to load
+const TopicVisualizer3D = lazy(() => import('../components/3d/TopicVisualizer3D'));
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Loading } from '../components/ui/Loading';
@@ -32,6 +35,7 @@ export const StudyPlanDetailPage: React.FC = () => {
     const urlChapterId = searchParams.get('chapterId');
     const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'syllabus' | 'courses' | 'resources'>('overview');
     const [expandedMindmaps, setExpandedMindmaps] = useState<Record<string, boolean>>({});
+    const [expanded3D, setExpanded3D] = useState<Record<string, boolean>>({});
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [sortByWeightage, setSortByWeightage] = useState(false);
 
@@ -614,6 +618,45 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                     )}
                                                                 </div>
                                                             )}
+
+                                                            {/* 3D Visualization (lazy-loaded, non-breaking) */}
+                                                            <div className="pt-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                                                                        3D Visualization
+                                                                        <span className="text-[8px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded uppercase">AI-Powered</span>
+                                                                    </h4>
+                                                                    <Button
+                                                                        variant="outline"
+                                                                        size="sm"
+                                                                        className="rounded-full"
+                                                                        onClick={() => {
+                                                                            const key = String(lesson.topic || i);
+                                                                            setExpanded3D((prev) => ({
+                                                                                ...prev,
+                                                                                [key]: !prev[key],
+                                                                            }));
+                                                                        }}
+                                                                    >
+                                                                        {expanded3D[String(lesson.topic || i)] ? 'Close 3D' : 'Visualize in 3D'}
+                                                                    </Button>
+                                                                </div>
+
+                                                                {expanded3D[String(lesson.topic || i)] && (
+                                                                    <div className="mt-4">
+                                                                        <Suspense fallback={
+                                                                            <div className="h-[350px] flex items-center justify-center bg-muted/20 rounded-[2rem] border border-border/50">
+                                                                                <div className="text-center">
+                                                                                    <div className="h-10 w-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-3" />
+                                                                                    <p className="text-xs font-bold text-muted-foreground">Loading 3D engine...</p>
+                                                                                </div>
+                                                                            </div>
+                                                                        }>
+                                                                            <TopicVisualizer3D topic={String(lesson.topic || '')} compact />
+                                                                        </Suspense>
+                                                                    </div>
+                                                                )}
+                                                            </div>
 
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                 {lesson.key_points?.map((point: string, k: number) => (

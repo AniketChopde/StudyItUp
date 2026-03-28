@@ -1,14 +1,18 @@
-from typing import Dict, Any, List
 from loguru import logger
+from utils.mlflow_utils import mlflow_service
 
 class SafetyAgent:
     """Agent responsible for checking context grounding and relevance (Grounding Guard ROLE)."""
     
     def __init__(self):
         self.agent_name = "Grounding Guard"
+        self.version = "1.0.1"
         self.context_threshold = 200
         self.min_chunks = 2
         self.min_similarity_score = 0.15
+        
+        # Set this as the active agent model for MLflow 3.x 'Agent versions' tab
+        mlflow_service.set_active_agent(self.agent_name)
 
     async def check_grounding(self, context: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -56,5 +60,15 @@ class SafetyAgent:
             "message": "Grounding check passed.",
             "action": "ALLOW"
         }
+
+    async def check_query(self, query: str) -> tuple[bool, str]:
+        """
+        Check if the user query is safe and relevant.
+        Returns: (is_safe, feedback_message)
+        """
+        # Basic implementation: allow all educational queries
+        # In a real scenario, this would use LLM or specialized moderation API
+        logger.info(f"Safety Check (Query): {query[:50]}...")
+        return True, "Safe"
 
 safety_agent = SafetyAgent()

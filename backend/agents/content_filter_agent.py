@@ -125,7 +125,7 @@ class ContentFilterAgent:
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.3
+                temperature=1
             )
             
             data = parse_json_markdown(response)

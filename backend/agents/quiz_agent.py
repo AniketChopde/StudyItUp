@@ -5,13 +5,16 @@ Quiz Agent for generating and evaluating quizzes.
 from typing import List, Dict, Any
 from loguru import logger
 import json
+import mlflow
 import re
 from utils.helpers import parse_json_markdown, sanitize_jailbreak
 import uuid
+from langfuse import observe
 
 from services.azure_openai import azure_openai_service
 from services.vector_store import vector_store_service
 from agents.search_agent import search_agent
+from utils.mlflow_utils import mlflow_service
 
 class QuizAgent:
     """Agent responsible for quiz generation from verified sources (Quiz Agent ROLE)."""
@@ -19,8 +22,21 @@ class QuizAgent:
     def __init__(self):
         """Initialize Quiz Agent."""
         self.agent_name = "Quiz Agent"
-        self.temperature = 0.4
+        self.version = "2.1.0"
+        self.temperature = 1
+        
+        # Register core prompts
+        mlflow_service.register_prompt(
+            name="quiz_generation_v1",
+            prompt_template="""ROLE: Quiz Agent
+            TASK: Generate exam-level questions ONLY from retrieved module notes."""
+        )
+        
+        # Set this as the active agent model for MLflow 3.x 'Agent versions' tab
+        mlflow_service.set_active_agent(self.agent_name)
     
+    @observe()
+    @mlflow.trace(name="Generate Quiz Questions")
     async def generate_questions(
         self,
         topic: str,
@@ -35,6 +51,8 @@ class QuizAgent:
         TASK: Generate exam-level questions ONLY from retrieved module notes.
         """
         try:
+            # Set agent version for tracking
+            mlflow_service.set_agent_version(self.agent_name, self.version)
             # 1. Retrieve context
             context = []
             if module_id:
@@ -505,7 +523,7 @@ PYQ QUESTION INPUTS (may include literal questions):
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.7
+                temperature=1
             )
             
             result = parse_json_markdown(response)
@@ -518,6 +536,8 @@ PYQ QUESTION INPUTS (may include literal questions):
             logger.error(f"Error in generate_adaptive_questions: {str(e)}")
             raise
     
+    @observe()
+    @mlflow.trace(name="Test Center Generation")
     async def generate_test_center_questions(
         self,
         topic: str,
@@ -605,7 +625,7 @@ Generate {count} high-quality exam questions."""
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.5  # Balanced creativity
+                temperature=1  # Balanced creativity
             )
             
             result = parse_json_markdown(response)
@@ -651,6 +671,8 @@ Generate {count} high-quality exam questions."""
 
 
 
+    @observe()
+    @mlflow.trace(name="Chapter Quiz Generation")
     async def generate_chapter_questions(
         self,
         topics: List[str],
@@ -733,7 +755,7 @@ Generate {count} high-quality exam questions."""
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=0.4
+                temperature=1
             )
             
             result = parse_json_markdown(response)

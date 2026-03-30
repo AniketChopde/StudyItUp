@@ -12,8 +12,8 @@ import { Input } from '../components/ui/Input';
 import { Loading } from '../components/ui/Loading';
 import { Sparkles, Search, Atom, Orbit, Waves, Zap, History, X } from 'lucide-react';
 
-// Lazy-load the 3D component — if Three.js bundle fails, the page still renders
-const TopicVisualizer3D = lazy(() => import('../components/3d/TopicVisualizer3D'));
+// Lazy-load the Motion Video component
+const MotionVideoPlayer = lazy(() => import('../components/video/MotionVideoPlayer'));
 
 const SUGGESTED_TOPICS = [
   { label: 'Atom Structure', icon: Atom, color: 'text-blue-500' },
@@ -55,14 +55,14 @@ export const VisualizePage: React.FC = () => {
         <div className="relative z-10 space-y-4 max-w-2xl">
           <div className="flex items-center gap-2">
             <span className="bg-indigo-500/20 text-indigo-600 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">
-              3D Visualizer
+              AI Motion Graphics
             </span>
           </div>
           <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-            Visualize Any Topic in 3D
+            AI-Generated Animation Videos
           </h1>
           <p className="text-muted-foreground font-medium">
-            Type any study topic and our AI will generate an interactive 3D animated scene to help you understand it visually.
+            Type any study topic and our AI will generate a professional narrated animation video to help you understand the concept.
           </p>
         </div>
       </div>
@@ -152,15 +152,20 @@ export const VisualizePage: React.FC = () => {
             </Button>
           </div>
 
-          <Suspense
-            fallback={
-              <div className="h-[500px] flex items-center justify-center bg-muted/20 rounded-[2rem] border border-border/50">
-                <Loading size="lg" text="Loading 3D engine..." />
-              </div>
-            }
-          >
-            <TopicVisualizer3D topic={activeTopic} />
-          </Suspense>
+          <div className="w-full max-w-5xl mx-auto h-[520px] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(88,196,221,0.06)] border border-white/5 bg-[#0f0f23]">
+            <Suspense
+              fallback={
+                <div className="w-full h-full flex items-center justify-center bg-[#0f0f23]">
+                  <Loading size="lg" text="Generating Animation..." />
+                </div>
+              }
+            >
+            <MotionVideoPlayer 
+               topic={activeTopic} 
+               onClose={() => setActiveTopic(null)} 
+            />
+            </Suspense>
+          </div>
         </div>
       )}
     </div>

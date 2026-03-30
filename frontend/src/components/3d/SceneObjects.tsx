@@ -76,7 +76,10 @@ const Tooltip: React.FC<TooltipProps> = ({ text, visible }) =>
   ) : null;
 
 /* ───── Single scene object ───── */
-export const SceneObjectMesh: React.FC<{ obj: SceneObject }> = ({ obj }) => {
+export const SceneObjectMesh: React.FC<{ 
+  obj: SceneObject; 
+  isFocused?: boolean; 
+}> = ({ obj, isFocused }) => {
   const ref = useRef<THREE.Mesh>(null!);
   const [hovered, setHovered] = useState(false);
   useAnimation(ref, obj.animation, obj.animationSpeed, obj.position);
@@ -86,9 +89,9 @@ export const SceneObjectMesh: React.FC<{ obj: SceneObject }> = ({ obj }) => {
     transparent: obj.opacity < 1,
     opacity: obj.opacity,
   };
-  if (obj.emissive) {
-    materialProps.emissive = obj.color;
-    materialProps.emissiveIntensity = 0.4;
+  if (obj.emissive || isFocused) {
+    materialProps.emissive = isFocused ? '#ffffff' : obj.color;
+    materialProps.emissiveIntensity = isFocused ? 0.8 : 0.4;
   }
 
   const geometry = (() => {
@@ -161,12 +164,13 @@ export const ConnectionLine: React.FC<{
 
   const points = [vec3(from.position), vec3(to.position)];
   const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+  const line = useMemo(() => new THREE.Line(lineGeometry, new THREE.LineBasicMaterial({
+    color: conn.color || '#64748b',
+    transparent: true,
+    opacity: 0.5
+  })), [lineGeometry, conn.color]);
 
-  return (
-    <line geometry={lineGeometry}>
-      <lineBasicMaterial color={conn.color || '#64748b'} linewidth={2} transparent opacity={0.5} />
-    </line>
-  );
+  return <primitive object={line} />;
 };
 
 /* ───── Floating annotation ───── */

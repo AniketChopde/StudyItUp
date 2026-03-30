@@ -7,12 +7,16 @@
  */
 
 import React, { Suspense, useState, useEffect, useMemo, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
+import * as THREE from 'three';
 import { SceneObjectMesh, ConnectionLine, AnnotationLabel } from './SceneObjects';
 import { findPreset } from './scenePresets';
 import type { SceneData, SceneObject } from './scenePresets';
-import { Maximize2, Minimize2, RotateCcw, Info, AlertTriangle } from 'lucide-react';
+import { Maximize2, Minimize2, RotateCcw, Info, AlertTriangle, Sparkles } from 'lucide-react';
+import { NarrativeOverlay } from './NarrativeOverlay';
+import { MotionGraphicsCard } from '../video/MotionGraphicsCard';
+import apiClient from '../../api/client';
 
 /* ─── Error Boundary ───────────────────────────────────────────────── */
 class Visualizer3DErrorBoundary extends React.Component<
@@ -40,12 +44,38 @@ class Visualizer3DErrorBoundary extends React.Component<
 }
 
 /* ─── Inner Canvas Scene ───────────────────────────────────────────── */
-const Scene3D: React.FC<{ data: SceneData }> = ({ data }) => {
+const Scene3D: React.FC<{ 
+  data: SceneData; 
+  focusObjectId?: string | null;
+  cameraPosition?: [number, number, number] | null;
+  cameraPreset?: string | null;
+}> = ({ data, focusObjectId, cameraPosition, cameraPreset }) => {
+  const { camera } = useThree();
   const objectsMap = useMemo(() => {
     const map: Record<string, SceneObject> = {};
     data.objects.forEach((o) => { map[o.id] = o; });
     return map;
   }, [data]);
+
+  // Camera Animation & Director
+  useFrame((state) => {
+    if (cameraPosition) {
+      const target = new THREE.Vector3(...cameraPosition);
+      camera.position.lerp(target, 0.05);
+    } else if (cameraPreset) {
+      // Cinematic Presets
+      const target = new THREE.Vector3();
+      switch (cameraPreset) {
+        case 'wide-shot': target.set(0, 10, 20); break;
+        case 'close-up': target.set(0, 1, 4); break;
+        case 'orbit-pan': target.set(Math.sin(state.clock.elapsedTime * 0.2) * 15, 5, Math.cos(state.clock.elapsedTime * 0.2) * 15); break;
+        case 'birds-eye': target.set(0, 25, 5); break;
+        default: target.set(0, 5, 10);
+      }
+      camera.position.lerp(target, 0.03);
+      camera.lookAt(0, 0, 0);
+    }
+  });
 
   return (
     <>
@@ -56,7 +86,11 @@ const Scene3D: React.FC<{ data: SceneData }> = ({ data }) => {
       <Stars radius={100} depth={50} count={1500} factor={3} saturation={0.2} fade speed={0.5} />
 
       {data.objects.map((obj) => (
-        <SceneObjectMesh key={obj.id} obj={obj} />
+        <SceneObjectMesh 
+          key={obj.id} 
+          obj={obj} 
+          isFocused={obj.id === focusObjectId}
+        />
       ))}
 
       {data.connections?.map((conn, i) => (
@@ -115,6 +149,13 @@ const TopicVisualizer3D: React.FC<TopicVisualizer3DProps> = ({
   const [showInfo, setShowInfo] = useState(false);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
+  // --- Narrative State ---
+  const [narrativeActive, setNarrativeActive] = useState(false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
   const fetchScene = useCallback(async () => {
     if (externalSceneData) { setScene(externalSceneData); setLoading(false); return; }
 
@@ -122,9 +163,8 @@ const TopicVisualizer3D: React.FC<TopicVisualizer3DProps> = ({
     setError(null);
 
     try {
-      // Dynamic import so API client is NOT loaded at module level
-      const { default: apiClient } = await import('../../api/client');
-      const res = await apiClient.post('/content/visualize', { topic });
+      // Use the global apiClient
+      const res = await apiClient.get(`/content/visualize?topic=${encodeURIComponent(topic)}&plan_id=auto`);
       setScene(res.data as SceneData);
     } catch (err: any) {
       console.warn('[TopicVisualizer3D] API failed, trying presets:', err?.message);
@@ -160,6 +200,79 @@ const TopicVisualizer3D: React.FC<TopicVisualizer3DProps> = ({
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
+  // --- Narration Logic ---
+  const playStep = useCallback(async (index: number) => {
+    if (!scene?.narrative_steps?.[index]) return;
+    const step = scene.narrative_steps[index];
+
+    setIsPlaying(false);
+    setAudioProgress(0);
+
+    try {
+      // 1. Get Audio from Sarvam AI
+      const res = await apiClient.post('/voice/tts', { text: step.text });
+      const audioData = res.data.audio_base64;
+      
+      // 2. Play Audio
+      if (audioRef.current) {
+        audioRef.current.src = `data:audio/wav;base64,${audioData}`;
+        audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } catch (err) {
+      console.error('Audio synthesis failed:', err);
+      // Auto-advance if audio fails? Or just show text
+      setIsPlaying(true); 
+    }
+  }, [scene]);
+
+  const handleStartNarrative = () => {
+    if (!scene?.narrative_steps?.length) return;
+    setNarrativeActive(true);
+    setCurrentStepIndex(0);
+    playStep(0);
+  };
+
+  const handleTogglePlay = () => {
+    if (audioRef.current) {
+      if (isPlaying) audioRef.current.pause();
+      else audioRef.current.play();
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleNextStep = () => {
+    if (currentStepIndex < (scene?.narrative_steps?.length || 0) - 1) {
+      const next = currentStepIndex + 1;
+      setCurrentStepIndex(next);
+      playStep(next);
+    } else {
+      setNarrativeActive(false);
+    }
+  };
+
+  // Sync audio progress
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => {
+      const prog = (audio.currentTime / audio.duration) * 100;
+      setAudioProgress(prog);
+    };
+
+    const onEnded = () => {
+      handleNextStep();
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('ended', onEnded);
+    return () => {
+      audio.removeEventListener('timeupdate', onTimeUpdate);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, [currentStepIndex, scene]);
+
   /* ─── render ─── */
   const height = compact ? 'h-[350px]' : 'h-[500px]';
 
@@ -173,6 +286,16 @@ const TopicVisualizer3D: React.FC<TopicVisualizer3DProps> = ({
             <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">3D Visualization</span>
           </div>
           <div className="flex items-center gap-1">
+            {scene && scene.narrative_steps && scene.narrative_steps.length > 0 && !narrativeActive && (
+              <button
+                onClick={handleStartNarrative}
+                className="h-8 px-3 flex items-center gap-1.5 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white transition-all shadow-lg shadow-indigo-500/20 mr-1"
+                title="Play AI Explanation"
+              >
+                <Sparkles size={12} fill="currentColor" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">Start Narrative</span>
+              </button>
+            )}
             {scene && (
               <button
                 onClick={() => setShowInfo(!showInfo)}
@@ -213,6 +336,29 @@ const TopicVisualizer3D: React.FC<TopicVisualizer3DProps> = ({
           </div>
         )}
 
+        {/* Motion Graphics Layer */}
+        <MotionGraphicsCard
+          type={scene?.narrative_steps?.[currentStepIndex]?.motion_graphic || 'none'}
+          title={scene?.narrative_steps?.[currentStepIndex]?.caption || ''}
+          description={scene?.narrative_steps?.[currentStepIndex]?.text || ''}
+          visible={narrativeActive}
+        />
+
+        {/* Narrative Overlay */}
+        <NarrativeOverlay
+          currentStep={scene?.narrative_steps?.[currentStepIndex] || null}
+          isPlaying={isPlaying}
+          onTogglePlay={handleTogglePlay}
+          onSkip={handleNextStep}
+          onClose={() => setNarrativeActive(false)}
+          progress={audioProgress}
+          totalSteps={scene?.narrative_steps?.length || 0}
+          currentIndex={currentStepIndex}
+        />
+
+        {/* Hidden Audio Element */}
+        <audio ref={audioRef} className="hidden" />
+
         {/* Canvas or loading/error states */}
         {loading ? (
           <LoadingSkeleton />
@@ -234,7 +380,12 @@ const TopicVisualizer3D: React.FC<TopicVisualizer3DProps> = ({
               style={{ background: 'transparent' }}
               gl={{ antialias: true, alpha: true }}
             >
-              <Scene3D data={scene} />
+              <Scene3D 
+                data={scene} 
+                focusObjectId={narrativeActive ? scene.narrative_steps?.[currentStepIndex]?.focus_object_id : null}
+                cameraPosition={narrativeActive ? scene.narrative_steps?.[currentStepIndex]?.camera_position : null}
+                cameraPreset={narrativeActive ? scene.narrative_steps?.[currentStepIndex]?.camera_preset : null}
+              />
             </Canvas>
           </Suspense>
         ) : null}

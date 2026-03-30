@@ -29,6 +29,17 @@ export interface SceneAnnotation {
   position: [number, number, number];
 }
 
+export interface NarrativeStep {
+  step: number;
+  text: string;
+  caption: string;
+  focus_object_id: string;
+  camera_position?: [number, number, number];
+  camera_preset?: 'wide-shot' | 'close-up' | 'orbit-pan' | 'birds-eye';
+  motion_graphic?: 'title-card' | 'definition-box' | 'diagram-overlay' | 'none';
+  transition_type?: 'fade' | 'jump' | 'zoom';
+}
+
 export interface SceneData {
   scene_type: string;
   title: string;
@@ -37,6 +48,7 @@ export interface SceneData {
   connections: SceneConnection[];
   annotations: SceneAnnotation[];
   camera: { position: [number, number, number]; fov: number };
+  narrative_steps?: NarrativeStep[];
 }
 
 // ─── Atom Structure ─────────────────────────────────────────────────

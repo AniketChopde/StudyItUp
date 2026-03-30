@@ -2,7 +2,7 @@
 API endpoints for content management and upload.
 """
 
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends, Query
 from typing import Dict, Any, Optional
 from loguru import logger
 
@@ -133,27 +133,31 @@ async def upload_content(
 @observe()
 async def visualize_topic(
     topic: str,
-    plan_id: str,
+    plan_id: Optional[str] = Query(None),
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Generate a 3D visualization prompt/data for a topic.
+    Generate a 2D Motion Graphics animation script for a topic.
     """
     try:
         with propagate_attributes(user_id=str(current_user.user_id)):
             from agents.orchestrator import orchestrator
             
-            # Get study plan context
-            result = await db.execute(select(StudyPlan).filter(StudyPlan.id == plan_id, StudyPlan.user_id == current_user.user_id))
-            plan = result.scalars().first()
+            exam_type = "General"
+            if plan_id:
+                # Get study plan context
+                result = await db.execute(select(StudyPlan).filter(StudyPlan.id == plan_id, StudyPlan.user_id == current_user.user_id))
+                plan = result.scalars().first()
+                if plan:
+                    exam_type = plan.exam_type
             
-            # Generate visualization data via orchestrator/visual agent
-            viz_data = await orchestrator.generate_visualization(topic, plan.exam_type if plan else "General")
+            # Generate visualization data via orchestrator
+            viz_data = await orchestrator.generate_visualization(topic, exam_type)
             
             return viz_data
     except Exception as e:
-        logger.error(f"Error generating visualization: {str(e)}")
+        logger.error(f"Error generating animation visualization: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)

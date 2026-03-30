@@ -16,6 +16,7 @@ from agents.gap_analysis_agent import gap_analysis_agent
 from agents.content_filter_agent import content_filter_agent
 from services.azure_openai import azure_openai_service
 from services.vector_store import vector_store_service
+from services.image_service import image_service
 from agents.safety_agent import safety_agent
 from utils.mlflow_utils import mlflow_service
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -405,6 +406,143 @@ class AgentOrchestrator:
         except Exception as e:
             logger.error(f"Error in Orchestrator handle_chat: {str(e)}")
             return "I apologize, but I encountered an error while processing your request. Please try again or ask a different question."
+
+    @mlflow.trace(name="Generate Motion Graphics Script")
+    async def generate_visualization(
+        self,
+        topic: str,
+        exam_type: str = "General"
+    ) -> Dict[str, Any]:
+        """
+        Generates 2D Motion Graphics script for educational animation.
+        """
+        try:
+            logger.info(f"Generating 2D Motion Graphics script for: {topic}")
+            
+            system_prompt = f"""You are a Manim Animation Director (inspired by 3Blue1Brown).
+            Your goal is to script a premium dark-background educational animation that explains "{topic}" for {exam_type} level.
+            
+            IMPORTANT: This is NOT a whiteboard style. It is a sleek, dark-background (like 3Blue1Brown) animation.
+            
+            STRICT JSON FORMAT:
+            {{
+              "theme": "manim",
+              "title": "string",
+              "description": "string",
+              "total_duration": number,
+              "stages": [
+                {{
+                  "step": number,
+                  "duration": number,
+                  "narration": "Full educational explanation for TTS",
+                  "caption": "Short subtitle text shown on screen",
+                  "background_color": "#1a1a4e",
+                  "elements": [
+                    {{
+                      "id": "unique-string",
+                      "type": "text | code | math | box | circle | arrow | highlight-box | icon | connector",
+                      "label": "string",
+                      "position": [x, y],
+                      "size": [w, h],
+                      "color": "#58C4DD",
+                      "animation": "fade | typewriter | draw-line | glow-in | write | pop | slide-in",
+                      "delay": 0,
+                      "font_size": "sm | md | lg | xl | 2xl | 3xl",
+                      "font_weight": "normal | bold | black",
+                      "code_content": "for code type: actual code string",
+                      "language": "python",
+                      "math_expression": "for math type: LaTeX string like E = mc^2",
+                      "from_id": "for connector type: source element id",
+                      "to_id": "for connector type: target element id",
+                      "arrow_style": "solid | dashed | dotted",
+                      "highlight_color": "#58C4DD",
+                      "icon_name": "atom|brain|globe|zap|lightbulb|cpu|binary|workflow"
+                    }}
+                  ]
+                }}
+              ]
+            }}
+            
+            MANIM DIRECTOR RULES:
+            1. USE THE DARK AESTHETIC: All colors should be vibrant against dark background.
+            2. MANIM COLOR PALETTE:
+               - Blue: #58C4DD (primary, explanations)
+               - Yellow: #FFFF00 (highlights, important)
+               - Green: #83C167 (success, code strings)
+               - Red: #FC6255 (warnings, emphasis)
+               - Purple: #9A72AC (accents)
+               - White: #FFFFFF (main text)
+               - Orange: #FF862F (numbers, data)
+            3. ELEMENT TYPES TO USE:
+               - 'text' with 'typewriter' animation for titles and key phrases
+               - 'code' for showing algorithms, formulas in code form
+               - 'math' with LaTeX for equations (e.g., "E = mc^2", "\\\\frac{{a}}{{b}}")
+               - 'box' for concept containers with neon borders
+               - 'arrow' for showing direction/flow
+               - 'connector' with from_id/to_id for linking related elements
+               - 'highlight-box' for emphasizing key points with pulsing glow
+               - 'icon' for visual metaphors
+            4. SIZES - VERY IMPORTANT: Keep elements COMPACT to fit the screen.
+               - Text titles: size [60, 8] max
+               - Text labels: size [40, 6] max
+               - Boxes: size [45, 15] max. NEVER wider than 50.
+               - Icons: size [12, 15] max
+               - Code blocks: size [55, 35] max
+               - Math: size [40, 10] max
+               - Arrows: size [20, 4]
+            5. POSITIONING: Use the FULL canvas. Spread elements across the space.
+               - Title text: [50, 12] (top center)
+               - Main content: [50, 45] (center)
+               - Supporting elements: [25, 50] and [75, 50] (left and right)
+               - Bottom items: [50, 80]
+               - AVOID stacking everything at [50, 50]
+            6. ANIMATION DELAYS: Stagger elements using 'delay' (0, 0.3, 0.6, 0.9...) for sequential reveal.
+            7. AVOID IMAGES: Prefer geometric shapes, text, and code over photographs.
+            8. EACH STAGE: Must have 3-6 elements that build on each other visually.
+            9. STAGE PROGRESSION: Each new stage should feel like a new "scene" in the animation.
+            """
+            
+            user_prompt = f"Topic: {topic}\nLevel: {exam_type}\n\nCreate a complete Manim-style animation script with 4-6 stages."
+            
+            response = await azure_openai_service.generate_structured_output(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=1
+            )
+            
+            from utils.helpers import parse_json_markdown
+            motion_data = parse_json_markdown(response)
+            
+            if not motion_data or "stages" not in motion_data:
+                 logger.warning(f"Failed to generate motion script for {topic}, returning minimal struct.")
+                 return {
+                     "theme": "manim",
+                     "title": topic,
+                     "description": "Could not generate motion script.",
+                     "stages": []
+                 }
+            
+            # Post-Process: Generate Images for 'image' type elements (rare in Manim style)
+            logger.info(f"Post-processing {len(motion_data.get('stages', []))} stages...")
+            for stage in motion_data.get("stages", []):
+                for element in stage.get("elements", []):
+                    if element.get("type") == "image" and element.get("visual_prompt"):
+                        try:
+                            img_url = await image_service.generate_illustration(
+                                prompt=element["visual_prompt"],
+                                topic=topic
+                            )
+                            element["image_url"] = img_url
+                        except Exception as e:
+                            logger.error(f"Failed to generate image for element {element.get('id')}: {e}")
+                            element["type"] = "icon"
+            
+            logger.info(f"Successfully generated Manim-style motion script for {topic} with {len(motion_data.get('stages', []))} stages.")
+            return motion_data
+            
+        except Exception as e:
+            logger.error(f"Error in generate_visualization: {str(e)}")
+            raise
 
 # Global orchestrator instance
 orchestrator = AgentOrchestrator()

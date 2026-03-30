@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     azure_openai_deployment: str = Field(default="gpt-4o", alias="AZURE_OPENAI_DEPLOYMENT_NAME")
     azure_openai_api_version: str = Field(default="2024-05-01-preview", alias="AZURE_OPENAI_API_VERSION")
     
+    # Azure OpenAI DALL-E Configuration
+    azure_openai_dalle_deployment: str = Field(default="dall-e-3", alias="AZURE_OPENAI_DALLE_DEPLOYMENT_NAME")
+    
     # Azure OpenAI Embedding Configuration (can be different resource)
     azure_openai_embedding_endpoint: str = Field(..., alias="AZURE_OPENAI_EMBEDDING_ENDPOINT")
     azure_openai_embedding_key: str = Field(..., alias="AZURE_OPENAI_EMBEDDING_API_KEY")

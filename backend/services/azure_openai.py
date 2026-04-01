@@ -228,7 +228,7 @@ class AzureOpenAIService:
         return await self.chat_completion(
             messages=messages,
             temperature=temperature,
-            max_completion_tokens=2500, # Structure can be large
+            max_completion_tokens=4000, # Increased for complex SVG/Json structures
             response_format={"type": "json_object"}
         )
     

@@ -417,92 +417,146 @@ class AgentOrchestrator:
         Generates 2D Motion Graphics script for educational animation.
         """
         try:
-            logger.info(f"Generating 2D Motion Graphics script for: {topic}")
+            logger.info(f"Generating Illustration Animation script for: {topic}")
             
-            system_prompt = f"""You are a Manim Animation Director (inspired by 3Blue1Brown).
-            Your goal is to script a premium dark-background educational animation that explains "{topic}" for {exam_type} level.
+            system_prompt = f"""You are TOP educational animation director. Create a rich animated explainer for "{topic}" ({exam_type} level).
+
+CRITICAL: Each stage MUST have a COMPLETELY DIFFERENT visual layout. Never repeat the same arrangement.
+
+=== ELEMENT TYPES ===
+- "text": Title/caption text. Fields: label, font_size (sm/md/lg/xl/2xl/3xl), font_weight, animation (typewriter/fade)
+- "box": Concept card with big icon. Fields: label, sublabel, icon_name, color
+- "circle": Bubble node for key terms. Fields: label, color  
+- "connector": Arrow between elements. Fields: label, from_id, to_id, arrow_style (solid/dashed), color
+- "stick_figure": Teacher character. Fields: label, pose (standing/thinking/pointing/teaching), color
+
+=== ICON_NAME OPTIONS ===
+brain, lightbulb, cpu, globe, zap, atom, book, star, rocket, check, target, trend, users, chat, flask, wifi, cloud, lock, search, chart, pie, award, help, refresh, db, server, layers, code, git, workflow, molecule, leaf, eye, heart, arrow, binary, pulse, battery, circuit
+
+=== 5 DIFFERENT LAYOUT TEMPLATES — use a DIFFERENT one per stage ===
+
+LAYOUT A — "Hero Center" (Introduction)
+- Title [50,8] size [75,9]  
+- Big centered box card [50,40] size [38,30] — main concept with icon
+- 2 circle bubbles [22,72] and [78,72] size [16,12] — key terms
+- Caption [50,88] size [65,6]
+
+LAYOUT B — "Side by Side Compare" (Comparison)  
+- Title [50,8] size [75,9]
+- Left box card [28,42] size [32,30] — concept A with icon
+- Right box card [72,42] size [32,30] — concept B with icon
+- Connector between them with label (e.g. "vs")
+- Caption [50,82] size [65,6]
+
+LAYOUT C — "3-Column Grid" (Types/Categories)
+- Title [50,8] size [75,9]
+- Box card 1 [20,42] size [24,30] — type 1
+- Box card 2 [50,42] size [24,30] — type 2  
+- Box card 3 [80,42] size [24,30] — type 3
+- Caption [50,82] size [65,6]
+
+LAYOUT D — "Flow Diagram" (Process/Steps)
+- Title [50,8] size [75,9]
+- Step 1 box [18,40] size [24,25]
+- Connector arrow → with label
+- Step 2 box [50,40] size [24,25]
+- Connector arrow → with label
+- Step 3 box [82,40] size [24,25]
+- Caption [50,75] size [60,6]
+
+LAYOUT E — "Hub & Spoke" (Summary/Recap)
+- Title [50,8] size [75,9]
+- Central large box card [50,42] size [35,30] — main takeaway with icon
+- 4 circles around it [20,25] [80,25] [22,68] [78,68] size [16,12]
+- Connectors from center to each circle with 1-word labels
+- Caption [50,88] size [65,6]
+
+=== OUTPUT FORMAT ===
+Output ONLY valid JSON. No markdown fences.
+
+{{
+  "theme": "whiteboard",
+  "title": "{topic}",
+  "stages": [
+    {{
+      "step": 1,
+      "layout": "hero_center",
+      "narration": "2-3 engaging sentences explaining this concept like a friendly teacher. Use analogies.",
+      "duration": 14,
+      "elements": [
+        {{
+          "id": "s1-title",
+          "type": "text",
+          "label": "What Is [Topic]?",
+          "position": [50, 8],
+          "size": [75, 9],
+          "color": "#1E293B",
+          "font_size": "3xl",
+          "font_weight": "bold",
+          "animation": "typewriter",
+          "delay": 0
+        }},
+        {{
+          "id": "s1-hero",
+          "type": "box",
+          "label": "Main concept name",
+          "sublabel": "Short description",
+          "icon_name": "brain",
+          "color": "#6366F1",
+          "position": [50, 40],
+          "size": [38, 30],
+          "delay": 0.8
+        }},
+        {{
+          "id": "s1-bubble1",
+          "type": "circle",
+          "label": "Key Term 1",
+          "position": [22, 72],
+          "size": [16, 12],
+          "color": "#10B981",
+          "delay": 2.0
+        }},
+        {{
+          "id": "s1-bubble2",
+          "type": "circle",
+          "label": "Key Term 2",
+          "position": [78, 72],
+          "size": [16, 12],
+          "color": "#F97316",
+          "delay": 2.6
+        }},
+        {{
+          "id": "s1-caption",
+          "type": "text",
+          "label": "One-line summary caption",
+          "position": [50, 88],
+          "size": [65, 6],
+          "color": "#64748B",
+          "font_size": "sm",
+          "animation": "fade",
+          "delay": 3.2
+        }}
+      ]
+    }}
+  ]
+}}
+
+=== RULES ===
+1. UNIQUE LAYOUTS: Each stage MUST use a different layout (A through E). NEVER repeat.
+2. EVERY box/icon card MUST have: label, sublabel, icon_name, color. Choose relevant icon_name from the list above.
+3. RICH NARRATIONS: 2-3 sentences that teach, using analogies and examples.
+4. COLOR VARIETY: Use different colors per card: "#6366F1", "#10B981", "#F97316", "#A855F7", "#EF4444", "#0891B2"
+5. STAGGER DELAYS: 0, 0.8, 1.6, 2.4, 3.2, 3.8 — every element has different delay.
+6. SAFE POSITIONS: x: 8-92, y: 5-88. NEVER position elements below y=88.
+7. 5 STAGES exactly. Each teaches a different aspect of the topic.
+8. Connectors MUST have short labels (1-2 words).
+9. Caption text MUST be at y=82-88, NEVER overlap with cards above.
+
+Generate COMPLETE 5-stage JSON for "{topic}".
+"""
             
-            IMPORTANT: This is NOT a whiteboard style. It is a sleek, dark-background (like 3Blue1Brown) animation.
-            
-            STRICT JSON FORMAT:
-            {{
-              "theme": "manim",
-              "title": "string",
-              "description": "string",
-              "total_duration": number,
-              "stages": [
-                {{
-                  "step": number,
-                  "duration": number,
-                  "narration": "Full educational explanation for TTS",
-                  "caption": "Short subtitle text shown on screen",
-                  "background_color": "#1a1a4e",
-                  "elements": [
-                    {{
-                      "id": "unique-string",
-                      "type": "text | code | math | box | circle | arrow | highlight-box | icon | connector",
-                      "label": "string",
-                      "position": [x, y],
-                      "size": [w, h],
-                      "color": "#58C4DD",
-                      "animation": "fade | typewriter | draw-line | glow-in | write | pop | slide-in",
-                      "delay": 0,
-                      "font_size": "sm | md | lg | xl | 2xl | 3xl",
-                      "font_weight": "normal | bold | black",
-                      "code_content": "for code type: actual code string",
-                      "language": "python",
-                      "math_expression": "for math type: LaTeX string like E = mc^2",
-                      "from_id": "for connector type: source element id",
-                      "to_id": "for connector type: target element id",
-                      "arrow_style": "solid | dashed | dotted",
-                      "highlight_color": "#58C4DD",
-                      "icon_name": "atom|brain|globe|zap|lightbulb|cpu|binary|workflow"
-                    }}
-                  ]
-                }}
-              ]
-            }}
-            
-            MANIM DIRECTOR RULES:
-            1. USE THE DARK AESTHETIC: All colors should be vibrant against dark background.
-            2. MANIM COLOR PALETTE:
-               - Blue: #58C4DD (primary, explanations)
-               - Yellow: #FFFF00 (highlights, important)
-               - Green: #83C167 (success, code strings)
-               - Red: #FC6255 (warnings, emphasis)
-               - Purple: #9A72AC (accents)
-               - White: #FFFFFF (main text)
-               - Orange: #FF862F (numbers, data)
-            3. ELEMENT TYPES TO USE:
-               - 'text' with 'typewriter' animation for titles and key phrases
-               - 'code' for showing algorithms, formulas in code form
-               - 'math' with LaTeX for equations (e.g., "E = mc^2", "\\\\frac{{a}}{{b}}")
-               - 'box' for concept containers with neon borders
-               - 'arrow' for showing direction/flow
-               - 'connector' with from_id/to_id for linking related elements
-               - 'highlight-box' for emphasizing key points with pulsing glow
-               - 'icon' for visual metaphors
-            4. SIZES - VERY IMPORTANT: Keep elements COMPACT to fit the screen.
-               - Text titles: size [60, 8] max
-               - Text labels: size [40, 6] max
-               - Boxes: size [45, 15] max. NEVER wider than 50.
-               - Icons: size [12, 15] max
-               - Code blocks: size [55, 35] max
-               - Math: size [40, 10] max
-               - Arrows: size [20, 4]
-            5. POSITIONING: Use the FULL canvas. Spread elements across the space.
-               - Title text: [50, 12] (top center)
-               - Main content: [50, 45] (center)
-               - Supporting elements: [25, 50] and [75, 50] (left and right)
-               - Bottom items: [50, 80]
-               - AVOID stacking everything at [50, 50]
-            6. ANIMATION DELAYS: Stagger elements using 'delay' (0, 0.3, 0.6, 0.9...) for sequential reveal.
-            7. AVOID IMAGES: Prefer geometric shapes, text, and code over photographs.
-            8. EACH STAGE: Must have 3-6 elements that build on each other visually.
-            9. STAGE PROGRESSION: Each new stage should feel like a new "scene" in the animation.
-            """
-            
-            user_prompt = f"Topic: {topic}\nLevel: {exam_type}\n\nCreate a complete Manim-style animation script with 4-6 stages."
+            user_prompt = f"Topic: {topic}\nLevel: {exam_type}\n\nOutput ONLY raw JSON, no markdown."
+
             
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
@@ -513,31 +567,82 @@ class AgentOrchestrator:
             from utils.helpers import parse_json_markdown
             motion_data = parse_json_markdown(response)
             
-            if not motion_data or "stages" not in motion_data:
-                 logger.warning(f"Failed to generate motion script for {topic}, returning minimal struct.")
+            if not motion_data or "stages" not in motion_data or len(motion_data.get("stages", [])) == 0:
+                 logger.warning(f"Failed to generate motion script for {topic}, returning fallback stage.")
                  return {
-                     "theme": "manim",
+                     "theme": "whiteboard",
                      "title": topic,
-                     "description": "Could not generate motion script.",
-                     "stages": []
+                     "stages": [
+                         {
+                             "step": 1,
+                             "narration": f"Let me prepare the whiteboard explanation for {topic}. One moment please!",
+                             "duration": 10,
+                             "elements": [
+                                 {
+                                     "id": "loading-title",
+                                     "type": "text",
+                                     "label": topic,
+                                     "position": [50, 40],
+                                     "size": [70, 12],
+                                     "color": "#1A1A2E",
+                                     "font_size": "3xl",
+                                     "font_weight": "bold",
+                                     "animation": "typewriter",
+                                     "delay": 0
+                                 },
+                                 {
+                                     "id": "loading-fig",
+                                     "type": "stick_figure",
+                                     "label": "Teacher",
+                                     "pose": "thinking",
+                                     "position": [50, 68],
+                                     "size": [16, 30],
+                                     "color": "#1565C0",
+                                     "animation": "fade",
+                                     "delay": 0.5
+                                 }
+                             ]
+                         }
+                     ]
                  }
             
-            # Post-Process: Generate Images for 'image' type elements (rare in Manim style)
+            # Post-Process: Sanitize all elements
             logger.info(f"Post-processing {len(motion_data.get('stages', []))} stages...")
             for stage in motion_data.get("stages", []):
                 for element in stage.get("elements", []):
-                    if element.get("type") == "image" and element.get("visual_prompt"):
-                        try:
-                            img_url = await image_service.generate_illustration(
-                                prompt=element["visual_prompt"],
-                                topic=topic
-                            )
-                            element["image_url"] = img_url
-                        except Exception as e:
-                            logger.error(f"Failed to generate image for element {element.get('id')}: {e}")
-                            element["type"] = "icon"
+                    # Convert any remaining 'image' elements to box cards (image service is unreliable)
+                    if element.get("type") == "image":
+                        element["type"] = "box"
+                        if not element.get("icon_name"):
+                            element["icon_name"] = "lightbulb"
+                        if not element.get("sublabel"):
+                            element["sublabel"] = element.get("visual_prompt", "Key concept")[:50]
+                        if not element.get("color"):
+                            element["color"] = "#6366F1"
+                    
+                    # Ensure box/icon elements have required fields
+                    if element.get("type") in ("box", "icon"):
+                        if not element.get("icon_name"):
+                            element["icon_name"] = "lightbulb"
+                        if not element.get("sublabel"):
+                            element["sublabel"] = ""
+                        if not element.get("color"):
+                            element["color"] = "#6366F1"
+                    
+                    # Ensure every element has a label
+                    if not element.get("label") or not str(element["label"]).strip():
+                        eid = element.get("id", "item")
+                        element["label"] = eid.replace("-", " ").replace("_", " ").title()
+                    
+                    # Clamp positions to safe canvas area
+                    pos = element.get("position", [50, 50])
+                    if isinstance(pos, list) and len(pos) >= 2:
+                        pos[0] = max(8, min(92, pos[0]))
+                        pos[1] = max(5, min(88, pos[1]))
+                        element["position"] = pos
             
-            logger.info(f"Successfully generated Manim-style motion script for {topic} with {len(motion_data.get('stages', []))} stages.")
+            logger.info(f"Successfully generated animation for {topic} with {len(motion_data.get('stages', []))} stages.")
+
             return motion_data
             
         except Exception as e:

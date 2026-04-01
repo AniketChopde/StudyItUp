@@ -425,50 +425,50 @@ CRITICAL: Each stage MUST have a COMPLETELY DIFFERENT visual layout. Never repea
 
 === ELEMENT TYPES ===
 - "text": Title/caption text. Fields: label, font_size (sm/md/lg/xl/2xl/3xl), font_weight, animation (typewriter/fade)
-- "box": Concept card with big icon. Fields: label, sublabel, icon_name, color
+- "metaphor_character": A lively character acting out the story. Fields: label, role (e.g. "waiter", "chef", "customer", "robot"), icon_name (fallback icon like "user", "bot", "chef-hat", "shopping-cart"), color
+- "box": Concept card with big icon (use for objects/places like "Kitchen", "Database"). Fields: label, sublabel, icon_name, color
 - "circle": Bubble node for key terms. Fields: label, color  
-- "connector": Arrow between elements. Fields: label, from_id, to_id, arrow_style (solid/dashed), color
-- "stick_figure": Teacher character. Fields: label, pose (standing/thinking/pointing/teaching), color
+- "connector": Arrow between elements showing action (e.g. "orders", "serves"). Fields: label, from_id, to_id, arrow_style, color
 
 === ICON_NAME OPTIONS ===
 brain, lightbulb, cpu, globe, zap, atom, book, star, rocket, check, target, trend, users, chat, flask, wifi, cloud, lock, search, chart, pie, award, help, refresh, db, server, layers, code, git, workflow, molecule, leaf, eye, heart, arrow, binary, pulse, battery, circuit
 
-=== 5 DIFFERENT LAYOUT TEMPLATES — use a DIFFERENT one per stage ===
+=== 5 DIFFERENT STORY LAYOUT TEMPLATES — use a DIFFERENT one per stage ===
 
-LAYOUT A — "Hero Center" (Introduction)
+LAYOUT A — "Meet the Characters" (Introduction)
 - Title [50,8] size [75,9]  
-- Big centered box card [50,40] size [38,30] — main concept with icon
-- 2 circle bubbles [22,72] and [78,72] size [16,12] — key terms
+- Central metaphor_character [50,45] size [25,30] (Main actor)
+- 2 circle bubbles [22,72] and [78,72] size [16,12] — defining traits
 - Caption [50,88] size [65,6]
 
-LAYOUT B — "Side by Side Compare" (Comparison)  
+LAYOUT B — "The Interaction" (Action Scene)  
 - Title [50,8] size [75,9]
-- Left box card [28,42] size [32,30] — concept A with icon
-- Right box card [72,42] size [32,30] — concept B with icon
-- Connector between them with label (e.g. "vs")
+- Left metaphor_character [25,45] size [22,25] (Actor 1)
+- Right metaphor_character [75,45] size [22,25] (Actor 2)
+- Connector between them with action verb label ("asks", "sends")
 - Caption [50,82] size [65,6]
 
-LAYOUT C — "3-Column Grid" (Types/Categories)
+LAYOUT C — "The Process Flow" (Kitchen/Factory Scene)
 - Title [50,8] size [75,9]
-- Box card 1 [20,42] size [24,30] — type 1
-- Box card 2 [50,42] size [24,30] — type 2  
-- Box card 3 [80,42] size [24,30] — type 3
-- Caption [50,82] size [65,6]
-
-LAYOUT D — "Flow Diagram" (Process/Steps)
-- Title [50,8] size [75,9]
-- Step 1 box [18,40] size [24,25]
-- Connector arrow → with label
-- Step 2 box [50,40] size [24,25]
-- Connector arrow → with label
-- Step 3 box [82,40] size [24,25]
+- Left metaphor_character [18,45] size [20,22] (Customer/Client)
+- Connector arrow → with action
+- Middle metaphor_character [50,45] size [20,22] (Waiter/API)
+- Connector arrow → with action
+- Right box [82,45] size [24,25] (Kitchen/Server with icon)
 - Caption [50,75] size [60,6]
 
-LAYOUT E — "Hub & Spoke" (Summary/Recap)
+LAYOUT D — "The Comparison" (Before vs After)
 - Title [50,8] size [75,9]
-- Central large box card [50,42] size [35,30] — main takeaway with icon
-- 4 circles around it [20,25] [80,25] [22,68] [78,68] size [16,12]
-- Connectors from center to each circle with 1-word labels
+- Left metaphor_character [25,45] size [22,25] (The old way)
+- Right metaphor_character [75,45] size [22,25] (The animated efficient way)
+- Connector between them with "vs"
+- Caption [50,82] size [65,6]
+
+LAYOUT E — "The Big Picture" (Summary Scene)
+- Title [50,8] size [75,9]
+- Central box [50,45] size [30,25] (The System/Result)
+- 3 metaphor_characters around it [20,45] [50,20] [80,45] size [18,20] (The actors involved)
+- Connectors converging on center box
 - Caption [50,88] size [65,6]
 
 === OUTPUT FORMAT ===
@@ -498,13 +498,13 @@ Output ONLY valid JSON. No markdown fences.
         }},
         {{
           "id": "s1-hero",
-          "type": "box",
-          "label": "Main concept name",
-          "sublabel": "Short description",
-          "icon_name": "brain",
+          "type": "metaphor_character",
+          "label": "The Waiter (API)",
+          "role": "waiter",
+          "icon_name": "user",
           "color": "#6366F1",
-          "position": [50, 40],
-          "size": [38, 30],
+          "position": [50, 45],
+          "size": [25, 30],
           "delay": 0.8
         }},
         {{
@@ -542,8 +542,9 @@ Output ONLY valid JSON. No markdown fences.
 }}
 
 === RULES ===
-1. UNIQUE LAYOUTS: Each stage MUST use a different layout (A through E). NEVER repeat.
-2. EVERY box/icon card MUST have: label, sublabel, icon_name, color. Choose relevant icon_name from the list above.
+1. STORY METAPHORS: Turn technical concepts into real-world analogies (e.g. Waiter/Kitchen = API, Teacher/Robot = Machine Learning).
+2. UNIQUE LAYOUTS: Each stage MUST use a different story layout (A through E). NEVER repeat.
+3. Every metaphor_character MUST have a 'role' (like 'waiter', 'customer', 'robot') and an 'icon_name' (like 'user', 'bot', 'shopping-cart') as fallback.
 3. RICH NARRATIONS: 2-3 sentences that teach, using analogies and examples.
 4. COLOR VARIETY: Use different colors per card: "#6366F1", "#10B981", "#F97316", "#A855F7", "#EF4444", "#0891B2"
 5. STAGGER DELAYS: 0, 0.8, 1.6, 2.4, 3.2, 3.8 — every element has different delay.
@@ -606,19 +607,24 @@ Generate COMPLETE 5-stage JSON for "{topic}".
                      ]
                  }
             
-            # Post-Process: Sanitize all elements
+            # Post-Process: Fetch GIFs and sanitize all elements
             logger.info(f"Post-processing {len(motion_data.get('stages', []))} stages...")
             for stage in motion_data.get("stages", []):
                 for element in stage.get("elements", []):
-                    # Convert any remaining 'image' elements to box cards (image service is unreliable)
-                    if element.get("type") == "image":
-                        element["type"] = "box"
-                        if not element.get("icon_name"):
-                            element["icon_name"] = "lightbulb"
-                        if not element.get("sublabel"):
-                            element["sublabel"] = element.get("visual_prompt", "Key concept")[:50]
-                        if not element.get("color"):
-                            element["color"] = "#6366F1"
+                    # Fetch animated GIF stickers for characters
+                    if element.get("type") == "metaphor_character":
+                        try:
+                            # Search giphy for transparent cartoon sticker
+                            role = element.get("role", "character").replace("_", " ")
+                            query = f"{role} cartoon sticker transparent"
+                            img_url = await image_service.generate_illustration(
+                                prompt=query, topic=topic, is_character=True
+                            )
+                            if img_url:
+                                element["image_url"] = img_url
+                        except Exception as e:
+                            logger.info(f"Using Icon Puppet fallback for character {element.get('id')}: {e}")
+                            # The frontend StoryCharacter inherently falls back to icon_name
                     
                     # Ensure box/icon elements have required fields
                     if element.get("type") in ("box", "icon"):

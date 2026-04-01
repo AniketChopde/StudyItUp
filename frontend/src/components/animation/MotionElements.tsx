@@ -9,7 +9,8 @@ import {
   ArrowRight, GitBranch, Code2, Binary, Workflow,
   CheckCircle, Target, TrendingUp, Users, MessageCircle,
   FlaskConical, Wifi, Cloud, Lock, Search, BarChart3,
-  PieChart, Award, HelpCircle, RefreshCw, Eye, Heart
+  PieChart, Award, HelpCircle, RefreshCw, Eye, Heart,
+  User, Bot, ChefHat, ShoppingCart, Truck, Home, Store, Coffee
 } from 'lucide-react';
 import type { MotionElement } from './motionTypes';
 
@@ -55,6 +56,8 @@ const ICONS: Record<string, any> = {
   workflow: Workflow, molecule: Dna, leaf: Leaf, info: Info,
   battery: Battery, circuit: Share2, pulse: Activity, binary: Binary,
   arrow: ArrowRight, cell: Microscope, eye: Eye, heart: Heart,
+  user: User, bot: Bot, 'chef-hat': ChefHat, 'shopping-cart': ShoppingCart,
+  truck: Truck, home: Home, store: Store, coffee: Coffee,
 };
 
 const getIconComp = (name?: string) => ICONS[name?.toLowerCase() || 'info'] || Info;
@@ -261,6 +264,75 @@ const ImageCard: React.FC<{
 };
 
 /* ══════════════════════════════════════
+   STORY CHARACTER — Metaphorical Puppets
+   Uses Giphy stickers or resilient Icon Puppets
+   ══════════════════════════════════════ */
+const StoryCharacter: React.FC<{ element: MotionElement }> = ({ element }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+  const p = getPalette(element.id);
+  const delay = element.delay || 0;
+  const hasGif = element.image_url && !imgFailed;
+
+  return (
+    <motion.div 
+      className="w-full h-full flex flex-col items-center justify-end relative"
+      initial={{ opacity: 0, y: 15, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ delay, type: 'spring', bounce: 0.5 }}
+    >
+      {/* The Character (GIF or Icon) */}
+      <div className="flex-1 w-full flex items-end justify-center pb-2 relative z-10">
+        {hasGif ? (
+          <motion.img 
+            src={element.image_url} 
+            alt={element.role || 'character'} 
+            className="max-h-full max-w-full object-contain drop-shadow-md"
+            onError={() => setImgFailed(true)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: delay + 0.2 }}
+          />
+        ) : (
+          <motion.div 
+            animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }} 
+            transition={{ repeat: Infinity, duration: 2.5, ease: "easeInOut", delay: delay + Math.random() }}
+            className="flex items-center justify-center drop-shadow-sm"
+            style={{ 
+               color: p.accent, 
+               width: '80%', 
+               height: '80%',
+               background: `linear-gradient(135deg, ${p.bg}, #ffffff)`,
+               borderRadius: '50%',
+               border: `2px solid ${p.border}`
+            }}
+          >
+            <div style={{ width: '50%', height: '50%' }}>
+              {(() => {
+                const IconComp = getIconComp(element.icon_name || 'user');
+                return <IconComp style={{ width: '100%', height: '100%' }} strokeWidth={1.5} />;
+              })()}
+            </div>
+          </motion.div>
+        )}
+      </div>
+      
+      {/* Character Nameplate */}
+      <motion.div 
+        className="flex-shrink-0 px-3 py-1 rounded-full z-20 shadow-sm"
+        style={{ backgroundColor: '#ffffff', border: `1.5px solid ${p.accent}40` }}
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: delay + 0.4 }}
+      >
+        <p className="text-[0.65rem] font-bold tracking-tight" style={{ color: p.text }}>
+          {element.label}
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+/* ══════════════════════════════════════
    CIRCLE BUBBLE — always shows text
    ══════════════════════════════════════ */
 const CircleBubble: React.FC<{ label?: string; color?: string; delay?: number; id: string }> = ({
@@ -434,7 +506,7 @@ const WhiteboardElement: React.FC<{ element: MotionElement }> = ({ element }) =>
         />
       )}
 
-      {/* STICK FIGURE */}
+      {/* STICK FIGURE (Legacy whiteboard) */}
       {element.type === 'stick_figure' && (
         <StickFigure
           color={safeColor}
@@ -442,6 +514,11 @@ const WhiteboardElement: React.FC<{ element: MotionElement }> = ({ element }) =>
           pose={(element as any).pose}
           label={element.label}
         />
+      )}
+
+      {/* METAPHOR CHARACTER (Storytelling Engine) */}
+      {element.type === 'metaphor_character' && (
+        <StoryCharacter element={element} />
       )}
 
       {/* MATH */}

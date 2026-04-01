@@ -1,6 +1,6 @@
 export interface MotionElement {
   id: string;
-  type: 'text' | 'code' | 'math' | 'box' | 'circle' | 'arrow' | 'connector' | 'highlight-box' | 'icon' | 'image' | 'svg' | 'stick_figure' | 'scatter_plot';
+  type: 'text' | 'code' | 'math' | 'box' | 'circle' | 'arrow' | 'connector' | 'highlight-box' | 'icon' | 'image' | 'svg' | 'stick_figure' | 'scatter_plot' | 'metaphor_character';
   label: string;
   position: [number, number]; // 0-100 scale
   size: [number, number]; // 0-100 scale
@@ -9,8 +9,9 @@ export interface MotionElement {
   delay?: number; // animation delay in seconds
   continuous_animation?: 'spin' | 'pulse' | 'float' | 'bounce' | 'dash-flow' | 'shake' | 'glitch' | 'none';
 
-  // Stick figure specific
+  // Stick figure / Metaphor character specific
   pose?: 'standing' | 'thinking' | 'pointing' | 'teaching';
+  role?: string;
 
   // Scatter plot specific
   x_label?: string;

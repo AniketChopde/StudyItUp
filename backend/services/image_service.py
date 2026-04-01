@@ -15,10 +15,11 @@ class ImageService:
     def __init__(self):
         self.image_cache = {}
 
-    async def generate_illustration(self, prompt: str, topic: str = "") -> str:
+    async def generate_illustration(self, prompt: str, topic: str = "", is_character: bool = False) -> str:
         """
-        Fetch a high-quality educational illustration.
-        Priority: Cache → Wikimedia SVG/GIF → Unsplash photo → raise for fallback
+        Fetch a high-quality educational illustration or animated character.
+        Priority for Characters: Cache → Giphy Sticker → raise for Icon fallback
+        Priority for Diagrams: Cache → Wikimedia SVG/GIF → Unsplash photo → raise
         """
         try:
             cache_key = hashlib.md5(f"{prompt}_{topic}".encode()).hexdigest()
@@ -36,7 +37,21 @@ class ImageService:
             if not search_terms:
                 search_terms = topic
 
-            # PASS 1: Wikimedia SVG/PNG search
+            # If it's a character, prioritize Giphy transparent stickers
+            if is_character:
+                try:
+                    giphy_url = self._giphy_search(search_terms)
+                    if giphy_url:
+                        self.image_cache[cache_key] = giphy_url
+                        return giphy_url
+                except Exception as e:
+                    logger.warning(f"Giphy search failed: {e}")
+                
+                # If Giphy fails for a character, we immediately raise so the frontend falls back
+                # to our 100% reliable animated Icon Puppets.
+                raise Exception(f"No transparent character found for: {search_terms}")
+
+            # PASS 1: Wikimedia SVG/PNG search (for non-characters)
             try:
                 wiki_url = self._wikimedia_search(search_terms)
                 if wiki_url:
@@ -83,11 +98,29 @@ class ImageService:
 
     def _unsplash_search(self, query: str) -> str | None:
         """Get a free Unsplash photo (no API key needed for source URLs)."""
-        # Use Unsplash Source redirect — returns a random photo for the query
         clean_q = urllib.parse.quote(query.strip())
         url = f"https://source.unsplash.com/600x400/?{clean_q}"
         logger.info(f"Unsplash fallback: {url}")
         return url
+
+    def _giphy_search(self, query: str) -> str | None:
+        """Search Giphy Stickers (transparent animated GIFs) for characters."""
+        clean_q = urllib.parse.quote(query.strip())
+        # Using the standard public beta key for Giphy
+        url = f"https://api.giphy.com/v1/stickers/search?api_key=dc6zaTOxFJmzC&q={clean_q}&limit=1&rating=pg"
+        
+        req = urllib.request.Request(url, headers={'User-Agent': 'NexusLearn-Bot/1.0'})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read().decode())
+            
+        gifs = data.get("data", [])
+        if gifs and len(gifs) > 0:
+            # We want the 'original' or 'fixed_height' URL
+            img_url = gifs[0].get("images", {}).get("fixed_height", {}).get("url", "")
+            if img_url:
+                logger.info(f"Giphy character found: {img_url[:80]}")
+                return img_url
+        return None
 
 # Global image service instance
 image_service = ImageService()

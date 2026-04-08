@@ -239,14 +239,24 @@ const ImageCard: React.FC<{
       transition={{ delay, duration: 0.5, type: 'spring', stiffness: 200, damping: 22 }}
     >
       <div className="flex items-center justify-center p-2 overflow-hidden" style={{ flex: '1 1 70%' }}>
-        <img
-          src={imageUrl}
-          alt={label}
-          loading="lazy"
-          className="max-w-full max-h-full object-contain"
-          style={{ borderRadius: 8 }}
-          onError={() => setImgFailed(true)}
-        />
+        {imageUrl.endsWith('.mp4') ? (
+          <video
+            src={imageUrl}
+            autoPlay loop muted playsInline
+            className="max-w-full max-h-full object-contain"
+            style={{ borderRadius: 8 }}
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <img
+            src={imageUrl}
+            alt={label}
+            loading="lazy"
+            className="max-w-full max-h-full object-contain"
+            style={{ borderRadius: 8 }}
+            onError={() => setImgFailed(true)}
+          />
+        )}
       </div>
       {label && (
         <div className="px-3 pb-2" style={{ flex: '0 0 auto', maxHeight: '30%' }}>
@@ -280,18 +290,32 @@ const StoryCharacter: React.FC<{ element: MotionElement }> = ({ element }) => {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay, type: 'spring', bounce: 0.5 }}
     >
-      {/* The Character (GIF or Icon) */}
+      {/* The Character (GIF or Icon or MP4) */}
       <div className="flex-1 w-full flex items-end justify-center pb-2 relative z-10">
         {hasGif ? (
-          <motion.img 
-            src={element.image_url} 
-            alt={element.role || 'character'} 
-            className="max-h-full max-w-full object-contain drop-shadow-md"
-            onError={() => setImgFailed(true)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: delay + 0.2 }}
-          />
+          element.image_url?.endsWith('.mp4') ? (
+            <motion.video 
+              src={element.image_url} 
+              autoPlay loop muted playsInline
+              className="max-h-full max-w-full object-contain"
+              style={{ mixBlendMode: 'multiply' }}
+              onError={() => setImgFailed(true)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: delay + 0.2 }}
+            />
+          ) : (
+            <motion.img 
+              src={element.image_url} 
+              alt={element.role || 'character'} 
+              className="max-h-full max-w-full object-contain"
+              style={{ mixBlendMode: 'multiply' }}
+              onError={() => setImgFailed(true)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: delay + 0.2 }}
+            />
+          )
         ) : (
           <motion.div 
             animate={{ y: [0, -8, 0], scale: [1, 1.05, 1] }} 

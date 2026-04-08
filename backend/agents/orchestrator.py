@@ -425,9 +425,7 @@ CRITICAL: Each stage MUST have a COMPLETELY DIFFERENT visual layout. Never repea
 
 === ELEMENT TYPES ===
 - "text": Title/caption text. Fields: label, font_size (sm/md/lg/xl/2xl/3xl), font_weight, animation (typewriter/fade)
-- "metaphor_character": A lively character acting out the story. Fields: label, role (e.g. "waiter", "chef", "customer", "robot"), icon_name (fallback icon like "user", "bot", "chef-hat", "shopping-cart"), color
-- "box": Concept card with big icon (use for objects/places like "Kitchen", "Database"). Fields: label, sublabel, icon_name, color
-- "circle": Bubble node for key terms. Fields: label, color  
+- "metaphor_character": An animated character or object (e.g. "Waiter", "Customer", "Database", "Server", "Kitchen"). ALL graphical nodes MUST use this so they fetch animated GIF stickers! Fields: label, role (e.g. "database", "chef", "server", "mobile app"), icon_name (fallback icon), color
 - "connector": Arrow between elements showing action (e.g. "orders", "serves"). Fields: label, from_id, to_id, arrow_style, color
 
 === ICON_NAME OPTIONS ===
@@ -436,40 +434,44 @@ brain, lightbulb, cpu, globe, zap, atom, book, star, rocket, check, target, tren
 === 5 DIFFERENT STORY LAYOUT TEMPLATES — use a DIFFERENT one per stage ===
 
 LAYOUT A — "Meet the Characters" (Introduction)
-- Title [50,8] size [75,9]  
-- Central metaphor_character [50,45] size [25,30] (Main actor)
-- 2 circle bubbles [22,72] and [78,72] size [16,12] — defining traits
-- Caption [50,88] size [65,6]
+- Title [50,10] size [75,9]  
+- Central metaphor_character [50,55] size [25,30] (Main actor/system)
+- 4 metaphor_character (smaller stickers) [15,55] [85,55] [25,80] [75,80] size [16,18] — defining traits, related tools, or objects
+- Caption [50,90] size [65,6]
 
 LAYOUT B — "The Interaction" (Action Scene)  
-- Title [50,8] size [75,9]
-- Left metaphor_character [25,45] size [22,25] (Actor 1)
-- Right metaphor_character [75,45] size [22,25] (Actor 2)
-- Connector between them with action verb label ("asks", "sends")
+- Title [50,10] size [75,9]
+- Left metaphor_character [25,55] size [22,25] (Actor/System 1)
+- Right metaphor_character [75,55] size [22,25] (Actor/System 2)
+- Top small metaphor_character [50,30] size [15,15] (The data/tool being passed)
+- Bottom small metaphor_character [50,60] size [15,15] (The environment/security rule)
+- Connector arrows pointing around
 - Caption [50,82] size [65,6]
 
 LAYOUT C — "The Process Flow" (Kitchen/Factory Scene)
-- Title [50,8] size [75,9]
-- Left metaphor_character [18,45] size [20,22] (Customer/Client)
-- Connector arrow → with action
-- Middle metaphor_character [50,45] size [20,22] (Waiter/API)
-- Connector arrow → with action
-- Right box [82,45] size [24,25] (Kitchen/Server with icon)
-- Caption [50,75] size [60,6]
+- Title [50,10] size [75,9]
+- Left metaphor_character [15,50] size [18,20] (Customer/Client/App)
+- Middle-left metaphor_character [38,50] size [18,20] (Waiter/API/Router)
+- Middle-right metaphor_character [62,50] size [18,20] (Chef/Processor)
+- Right metaphor_character [85,50] size [18,20] (Kitchen/Database/Server)
+- Connectors mapping the flow
+- Caption [50,85] size [60,6]
 
 LAYOUT D — "The Comparison" (Before vs After)
-- Title [50,8] size [75,9]
-- Left metaphor_character [25,45] size [22,25] (The old way)
-- Right metaphor_character [75,45] size [22,25] (The animated efficient way)
+- Title [50,10] size [75,9]
+- Left metaphor_character [25,45] size [22,25] (The old way/object)
+- Bottom-Left metaphor_character [25,70] size [15,15] (A negative trait, e.g. "snail", "bomb")
+- Right metaphor_character [75,45] size [22,25] (The animated efficient way/object)
+- Bottom-Right metaphor_character [75,70] size [15,15] (A positive trait, e.g. "rocket", "star")
 - Connector between them with "vs"
-- Caption [50,82] size [65,6]
+- Caption [50,85] size [65,6]
 
 LAYOUT E — "The Big Picture" (Summary Scene)
-- Title [50,8] size [75,9]
-- Central box [50,45] size [30,25] (The System/Result)
-- 3 metaphor_characters around it [20,45] [50,20] [80,45] size [18,20] (The actors involved)
-- Connectors converging on center box
-- Caption [50,88] size [65,6]
+- Title [50,10] size [75,9]
+- Central metaphor_character [50,55] size [26,28] (The Core System/Database)
+- 4 metaphor_characters around it [15,35] [85,35] [15,75] [85,75] size [16,18] (The actors/clients involved)
+- Connectors converging on center character
+- Caption [50,90] size [65,6]
 
 === OUTPUT FORMAT ===
 Output ONLY valid JSON. No markdown fences.
@@ -508,21 +510,25 @@ Output ONLY valid JSON. No markdown fences.
           "delay": 0.8
         }},
         {{
-          "id": "s1-bubble1",
-          "type": "circle",
-          "label": "Key Term 1",
-          "position": [22, 72],
-          "size": [16, 12],
+          "id": "s1-client",
+          "type": "metaphor_character",
+          "label": "Client App",
+          "role": "mobile app",
+          "icon_name": "smartphone",
           "color": "#10B981",
+          "position": [22, 72],
+          "size": [18, 20],
           "delay": 2.0
         }},
         {{
-          "id": "s1-bubble2",
-          "type": "circle",
-          "label": "Key Term 2",
-          "position": [78, 72],
-          "size": [16, 12],
+          "id": "s1-server",
+          "type": "metaphor_character",
+          "label": "Live Database",
+          "role": "database",
+          "icon_name": "database",
           "color": "#F97316",
+          "position": [78, 72],
+          "size": [18, 20],
           "delay": 2.6
         }},
         {{
@@ -542,16 +548,17 @@ Output ONLY valid JSON. No markdown fences.
 }}
 
 === RULES ===
-1. STORY METAPHORS: Turn technical concepts into real-world analogies (e.g. Waiter/Kitchen = API, Teacher/Robot = Machine Learning).
-2. UNIQUE LAYOUTS: Each stage MUST use a different story layout (A through E). NEVER repeat.
-3. Every metaphor_character MUST have a 'role' (like 'waiter', 'customer', 'robot') and an 'icon_name' (like 'user', 'bot', 'shopping-cart') as fallback.
-3. RICH NARRATIONS: 2-3 sentences that teach, using analogies and examples.
-4. COLOR VARIETY: Use different colors per card: "#6366F1", "#10B981", "#F97316", "#A855F7", "#EF4444", "#0891B2"
-5. STAGGER DELAYS: 0, 0.8, 1.6, 2.4, 3.2, 3.8 — every element has different delay.
-6. SAFE POSITIONS: x: 8-92, y: 5-88. NEVER position elements below y=88.
-7. 5 STAGES exactly. Each teaches a different aspect of the topic.
-8. Connectors MUST have short labels (1-2 words).
-9. Caption text MUST be at y=82-88, NEVER overlap with cards above.
+1. HIGH DENSITY STICKERS: Every single graphical element/node on the screen MUST be a `metaphor_character` type. Use lots of images (3-5 per stage) to make the whiteboard look deeply illustrated!
+2. EXACT CONCRETE NOUNS FOR ROLES: The 'role' field is passed DIRECTLY to image search APIs. YOU MUST use highly-searchable, literal, concrete nouns! (e.g. "laptop", "server", "chef", "customer", "robot", "cloud", "document", "shield", "lock", "envelope", "rocket", "magnifying glass"). DO NOT use abstract conceptual words like "frontend_app", "gateway", "machine_learning_engine", or "protocol". Abstract words cause the search engine to return random confusing junk. ALWAYS translate your concept into a physical object for the `role` field.
+3. STORY METAPHORS: Turn technical concepts into real-world analogies (e.g. Waiter/Kitchen = API, Teacher/Robot = Machine Learning).
+4. UNIQUE LAYOUTS: Each stage MUST use a different story layout (A through E). NEVER repeat.
+5. RICH NARRATIONS: 2-3 sentences that teach, using analogies and examples.
+6. COLOR VARIETY: Use different colors per card: "#6366F1", "#10B981", "#F97316", "#A855F7", "#EF4444", "#0891B2"
+7. STAGGER DELAYS: 0, 0.8, 1.6, 2.4, 3.2, 3.8 — every element has different delay.
+8. SAFE POSITIONS: x: 10-90, y: 15-85. NEVER position elements outside this box! Coordinates represent the CENTER of the object. y=10 and height=20 means it overflows! Safe Y bounds are 20 to 80 for characters.
+9. 5 STAGES exactly. Each teaches a different aspect of the topic.
+10. Connectors MUST have short labels (1-2 words).
+11. Caption text MUST be at y=85-92, NEVER overlap with cards above.
 
 Generate COMPLETE 5-stage JSON for "{topic}".
 """
@@ -562,7 +569,7 @@ Generate COMPLETE 5-stage JSON for "{topic}".
             response = await azure_openai_service.generate_structured_output(
                 system_prompt=system_prompt,
                 user_prompt=user_prompt,
-                temperature=1
+                temperature=0.8
             )
             
             from utils.helpers import parse_json_markdown
@@ -614,9 +621,8 @@ Generate COMPLETE 5-stage JSON for "{topic}".
                     # Fetch animated GIF stickers for characters
                     if element.get("type") == "metaphor_character":
                         try:
-                            # Search giphy for transparent cartoon sticker
-                            role = element.get("role", "character").replace("_", " ")
-                            query = f"{role} cartoon sticker transparent"
+                            # Search giphy for the role (the /stickers API inherently returns transparent animated GIFs)
+                            query = element.get("role", "character").replace("_", " ")
                             img_url = await image_service.generate_illustration(
                                 prompt=query, topic=topic, is_character=True
                             )

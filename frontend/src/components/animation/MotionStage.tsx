@@ -115,7 +115,7 @@ export const MotionStage: React.FC<MotionStageProps> = ({
       />
 
       {/* === ANIMATION CANVAS — perfectly centered === */}
-      <div className="absolute inset-0 z-10 flex items-center justify-center">
+      <div className="absolute inset-0 z-10 flex items-center justify-center overflow-hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStage.step}

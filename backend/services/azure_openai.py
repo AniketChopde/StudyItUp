@@ -95,11 +95,11 @@ class AzureOpenAIService:
                         logger.warning(f"Temperature {kwargs.get('temperature')} not supported, falling back to temperature=1")
                         kwargs["temperature"] = 1
                         response = await self.client.chat.completions.create(**kwargs)
-                    # Fallback to max_completion_tokens if max_completion_tokens is not supported
+                    # Fallback to max_tokens if max_completion_tokens is not supported
                     elif "max_completion_tokens" in error_msg or "unexpected keyword" in error_msg.lower():
-                        logger.debug("Falling back to max_completion_tokens")
+                        logger.debug("Falling back to max_tokens")
                         kwargs.pop("max_completion_tokens", None)
-                        kwargs["max_completion_tokens"] = max_completion_tokens
+                        kwargs["max_tokens"] = max_completion_tokens
                         response = await self.client.chat.completions.create(**kwargs)
                     else:
                         raise e

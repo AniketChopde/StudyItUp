@@ -59,6 +59,10 @@ class Settings(BaseSettings):
     duckduckgo_enable_fallback: bool = True
     force_mock_mode: bool = False
     
+    # Google Auth Settings
+    google_client_id: str = Field(default="", alias="GOOGLE_CLIENT_ID")
+    google_client_secret: str = Field(default="", alias="GOOGLE_CLIENT_SECRET")
+    
     # Logging
     log_level: str = "INFO"
     log_file: str = "logs/app.log"

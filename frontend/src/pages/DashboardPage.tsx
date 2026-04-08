@@ -11,6 +11,7 @@ import { XPBar } from '../components/gamification/XPBar';
 import { BadgeGallery } from '../components/gamification/BadgeGallery';
 import { analyticsService } from '../api/services';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
+import { MFASettings } from '../components/auth/MFASettings';
 
 export const DashboardPage: React.FC = () => {
     const { user } = useAuthStore();
@@ -253,6 +254,12 @@ export const DashboardPage: React.FC = () => {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Security Settings */}
+            <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-4">Security Settings</h2>
+                <MFASettings />
+            </div>
         </div>
     );
 };

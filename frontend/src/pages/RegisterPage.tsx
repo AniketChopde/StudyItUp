@@ -7,6 +7,8 @@ import { useAuthStore } from '../stores/authStore';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/Card';
+import { GoogleLogin } from '@react-oauth/google';
+import { AlertCircle } from 'lucide-react';
 
 const registerSchema = z.object({
     email: z.string().email('Invalid email address'),
@@ -22,7 +24,8 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterPage: React.FC = () => {
     const navigate = useNavigate();
-    const { register: registerUser, isLoading } = useAuthStore();
+    const { register: registerUser, googleLogin, isLoading } = useAuthStore();
+    const [apiError, setApiError] = React.useState<string | null>(null);
 
     const {
         register,
@@ -34,14 +37,25 @@ export const RegisterPage: React.FC = () => {
 
     const onSubmit = async (data: RegisterFormData) => {
         try {
+            setApiError(null);
             await registerUser({
                 email: data.email,
                 password: data.password,
                 full_name: data.full_name,
             });
             navigate('/dashboard');
-        } catch (error) {
-            // Error handled by store
+        } catch (error: any) {
+            setApiError(error.response?.data?.detail || 'Registration failed');
+        }
+    };
+
+    const handleGoogleSuccess = async (response: any) => {
+        try {
+            setApiError(null);
+            await googleLogin(response.credential);
+            navigate('/dashboard');
+        } catch (err: any) {
+            setApiError('Google login failed.');
         }
     };
 
@@ -88,9 +102,28 @@ export const RegisterPage: React.FC = () => {
                             error={errors.confirmPassword?.message}
                             {...register('confirmPassword')}
                         />
+                        {apiError && (
+                            <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                                <span>{apiError}</span>
+                            </div>
+                        )}
                         <Button type="submit" className="w-full" isLoading={isLoading}>
                             Create Account
                         </Button>
+                        <div className="mt-4 flex flex-col items-center gap-4">
+                            <div className="relative w-full flex items-center justify-center border-t border-border mt-2 pt-4">
+                                  <span className="absolute bg-card px-2 text-muted-foreground text-sm">or sign up with</span>
+                            </div>
+                            <GoogleLogin
+                                onSuccess={handleGoogleSuccess}
+                                onError={() => setApiError('Google signup failed')}
+                                useOneTap
+                                theme="filled_black"
+                                shape="pill"
+                                text="signup_with"
+                            />
+                        </div>
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-2">

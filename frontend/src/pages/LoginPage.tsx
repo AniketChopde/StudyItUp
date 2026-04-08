@@ -5,7 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useAuthStore } from '../stores/authStore';
 import { Button } from '../components/ui/Button';
-import { ShieldAlert, AlertCircle } from 'lucide-react';
+import { ShieldAlert, AlertCircle, KeyRound } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import { Input } from '../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/Card';
 
@@ -20,7 +21,12 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const LoginPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login, isLoading } = useAuthStore();
+    const { login, googleLogin, verifyMfaLogin, isLoading } = useAuthStore();
+
+    // MFA State
+    const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
+    const [showMfa, setShowMfa] = useState(false);
+    const [mfaCode, setMfaCode] = useState('');
 
     // Field-level API errors (shown inline under each input)
     const [apiEmailError, setApiEmailError] = useState<string | null>(null);
@@ -58,7 +64,12 @@ export const LoginPage: React.FC = () => {
                 localStorage.removeItem('remembered_email');
                 localStorage.removeItem('remembered_password');
             }
-            await login(data);
+            const result = await login(data);
+            if (result && result.mfa_required) {
+                setMfaTempToken(result.temp_token);
+                setShowMfa(true);
+                return;
+            }
 
             // Superusers always go to admin panel
             const loggedInUser = useAuthStore.getState().user;
@@ -89,6 +100,36 @@ export const LoginPage: React.FC = () => {
         }
     };
 
+    const handleGoogleSuccess = async (response: any) => {
+        try {
+            setApiError(null);
+            const result = await googleLogin(response.credential);
+            if (result && result.mfa_required) {
+                setMfaTempToken(result.temp_token);
+                setShowMfa(true);
+                return;
+            }
+            
+            const from = location.state?.from?.pathname || '/dashboard';
+            navigate(from, { replace: true });
+        } catch (err: any) {
+             setApiError('Google login failed.');
+        }
+    };
+
+    const handleMfaSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setApiError(null);
+        if (!mfaTempToken) return;
+        try {
+            await verifyMfaLogin(mfaTempToken, mfaCode, !!rememberedEmail);
+            const from = location.state?.from?.pathname || '/dashboard';
+            navigate(from, { replace: true });
+        } catch (error: any) {
+            setApiError('Invalid MFA code.');
+        }
+    };
+
     const from = location.state?.from?.pathname || '/dashboard';
     const isAdminLogin = from.includes('/admin');
 
@@ -114,6 +155,37 @@ export const LoginPage: React.FC = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    {showMfa ? (
+                        <form onSubmit={handleMfaSubmit} className="space-y-4">
+                             <div className="flex justify-center mb-4 text-primary">
+                                 <KeyRound size={48} />
+                             </div>
+                             <p className="text-center text-sm text-foreground mb-4">
+                                 Two-factor authentication is enabled. Please enter the code from your authenticator app.
+                             </p>
+                             <Input
+                                 label="Authenticator Code"
+                                 type="text"
+                                 placeholder="123456"
+                                 value={mfaCode}
+                                 onChange={(e) => setMfaCode(e.target.value)}
+                                 required
+                                 autoFocus
+                             />
+                             {apiError && (
+                                <div className="flex items-start gap-2 p-3 rounded-md bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                                    <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                                    <span>{apiError}</span>
+                                </div>
+                             )}
+                             <Button type="submit" className="w-full" isLoading={isLoading}>
+                                 Verify Code
+                             </Button>
+                             <Button type="button" variant="ghost" className="w-full mt-2" onClick={() => setShowMfa(false)}>
+                                 Cancel
+                             </Button>
+                        </form>
+                    ) : (
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                         <Input
                             label="Email"
@@ -161,7 +233,23 @@ export const LoginPage: React.FC = () => {
                         <Button type="submit" className="w-full" isLoading={isLoading}>
                             Sign In
                         </Button>
+
+                        {!isAdminLogin && (
+                            <div className="mt-4 flex flex-col items-center gap-4">
+                                <div className="relative w-full flex items-center justify-center border-t border-border mt-2 pt-4">
+                                     <span className="absolute bg-card px-2 text-muted-foreground text-sm">or continue with</span>
+                                </div>
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => setApiError('Google login failed')}
+                                    useOneTap
+                                    theme="filled_black"
+                                    shape="pill"
+                                />
+                            </div>
+                        )}
                     </form>
+                    )}
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-2">
                     {!isAdminLogin && (

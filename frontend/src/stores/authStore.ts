@@ -11,7 +11,9 @@ interface AuthState {
     isLoading: boolean;
 
     // Actions
-    login: (credentials: LoginCredentials) => Promise<void>;
+    login: (credentials: LoginCredentials) => Promise<any>;
+    googleLogin: (token: string) => Promise<any>;
+    verifyMfaLogin: (token: string, code: string, rememberMe?: boolean) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => void;
     fetchProfile: () => Promise<void>;
@@ -32,14 +34,19 @@ export const useAuthStore = create<AuthState>()(
                     const { rememberMe, ...apiCredentials } = credentials as any; // Cast to allow extra prop
 
                     const response = await authService.login(apiCredentials);
-                    const { access_token, refresh_token } = response.data;
+                    const { access_token, refresh_token, mfa_required, temp_token } = response.data;
+
+                    if (mfa_required) {
+                        set({ isLoading: false });
+                        return { mfa_required: true, temp_token };
+                    }
 
                     if (rememberMe) {
-                        localStorage.setItem('access_token', access_token);
-                        localStorage.setItem('refresh_token', refresh_token);
+                        localStorage.setItem('access_token', access_token!);
+                        localStorage.setItem('refresh_token', refresh_token!);
                     } else {
-                        sessionStorage.setItem('access_token', access_token);
-                        sessionStorage.setItem('refresh_token', refresh_token);
+                        sessionStorage.setItem('access_token', access_token!);
+                        sessionStorage.setItem('refresh_token', refresh_token!);
                     }
 
                     // Fetch user profile
@@ -75,6 +82,58 @@ export const useAuthStore = create<AuthState>()(
                     }
 
                     toast.error(message);
+                    throw error;
+                }
+            },
+
+            googleLogin: async (ssoToken: string) => {
+                try {
+                    set({ isLoading: true });
+                    const response = await authService.googleLogin(ssoToken);
+                    const { access_token, refresh_token, mfa_required, temp_token } = response.data;
+
+                    if (mfa_required) {
+                        set({ isLoading: false });
+                        return { mfa_required: true, temp_token };
+                    }
+
+                    localStorage.setItem('access_token', access_token!);
+                    localStorage.setItem('refresh_token', refresh_token!);
+
+                    const profileResponse = await authService.getProfile();
+                    const user = profileResponse.data;
+
+                    set({ user, token: access_token!, isAuthenticated: true, isLoading: false });
+                    toast.success('Login successful!');
+                } catch (error: any) {
+                    set({ isLoading: false });
+                    toast.error(error.response?.data?.detail || 'Google Login failed');
+                    throw error;
+                }
+            },
+
+            verifyMfaLogin: async (tempToken: string, code: string, rememberMe = false) => {
+                try {
+                    set({ isLoading: true });
+                    const response = await authService.verifyMFA(tempToken, code);
+                    const { access_token, refresh_token } = response.data;
+
+                    if (rememberMe) {
+                        localStorage.setItem('access_token', access_token!);
+                        localStorage.setItem('refresh_token', refresh_token!);
+                    } else {
+                        sessionStorage.setItem('access_token', access_token!);
+                        sessionStorage.setItem('refresh_token', refresh_token!);
+                    }
+
+                    const profileResponse = await authService.getProfile();
+                    const user = profileResponse.data;
+
+                    set({ user, token: access_token!, isAuthenticated: true, isLoading: false });
+                    toast.success('Verification successful!');
+                } catch (error: any) {
+                    set({ isLoading: false });
+                    toast.error(error.response?.data?.detail || 'Invalid code');
                     throw error;
                 }
             },

@@ -31,6 +31,11 @@ class User(Base):
     reset_token = Column(String(255), nullable=True)
     reset_token_expires = Column(DateTime, nullable=True)
     
+    # SSO and MFA
+    google_id = Column(String(255), unique=True, nullable=True, index=True)
+    mfa_secret = Column(String(255), nullable=True)
+    mfa_enabled = Column(Boolean, default=False)
+    
     # Relationships
     study_plans = relationship("StudyPlan", back_populates="user", cascade="all, delete-orphan")
     quiz_sessions = relationship("QuizSession", back_populates="user", cascade="all, delete-orphan")
@@ -60,10 +65,11 @@ class UserLogin(BaseModel):
 
 class UserResponse(UserBase):
     """Schema for user response."""
-    id: uuid.UUID
     is_active: bool
     is_verified: bool
     is_superuser: bool = False
+    mfa_enabled: bool = False
+    google_id: str | None = None
     created_at: datetime
     
     class Config:

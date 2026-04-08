@@ -6,6 +6,8 @@ export interface User {
     is_active: boolean;
     is_verified: boolean;
     is_superuser: boolean;
+    mfa_enabled?: boolean;
+    google_id?: string;
     created_at: string;
 }
 
@@ -21,9 +23,11 @@ export interface RegisterData {
 }
 
 export interface TokenResponse {
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
+    access_token?: string;
+    refresh_token?: string;
+    token_type?: string;
+    mfa_required?: boolean;
+    temp_token?: string;
 }
 
 // Study Plan Types

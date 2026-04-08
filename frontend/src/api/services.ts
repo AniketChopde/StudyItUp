@@ -33,6 +33,18 @@ export const authService = {
 
     refreshToken: () =>
         apiClient.post<TokenResponse>('/auth/refresh'),
+        
+    googleLogin: (token: string) =>
+        apiClient.post<TokenResponse>('/auth/google-login', { token }),
+        
+    setupMFA: () =>
+        apiClient.post<{ secret: string; qr_code: string }>('/auth/mfa/setup'),
+        
+    enableMFA: (token: string, code: string) =>
+        apiClient.post<{ message: string }>('/auth/mfa/enable', { token, code }),
+        
+    verifyMFA: (token: string, code: string) =>
+        apiClient.post<TokenResponse>('/auth/mfa/verify', { token, code }),
 };
 
 // Study Plan Service

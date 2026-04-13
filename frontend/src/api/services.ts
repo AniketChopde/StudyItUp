@@ -85,6 +85,12 @@ export const contentService = {
 
     visualize: (topic: string, context?: string) =>
         apiClient.post('/content/visualize', { topic, context }),
+        
+    getMyAnimations: () =>
+        apiClient.get<any[]>('/content/animations/my'),
+        
+    deleteAnimation: (id: string) =>
+        apiClient.delete(`/content/animations/${id}`),
 };
 
 // Topic Mindmap Service

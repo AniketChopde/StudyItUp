@@ -15,7 +15,8 @@ import {
     BarChart,
     Trophy,
     Map,
-    Box
+    Box,
+    Video
 } from 'lucide-react';
 import { useGamificationStore } from '../../stores/gamificationStore';
 import { LevelBadge } from '../gamification/LevelBadge';
@@ -31,6 +32,7 @@ const navigation = [
     { name: 'View Analytics', href: '/analytics', icon: BarChart },
     { name: '3D Visualize', href: '/visualize', icon: Box },
     { name: 'Gamification Hub', href: '/gamification', icon: Trophy },
+    { name: 'My Animations', href: '/my-animations', icon: Video },
     { name: 'Test Center', href: '/test-center', icon: ShieldCheck },
 ];
 

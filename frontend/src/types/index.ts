@@ -300,6 +300,13 @@ export interface TopicMindmap {
     };
 }
 
+export interface UserAnimationType {
+    id: string;
+    topic: string;
+    created_at: string;
+    viz_data: any;
+}
+
 // API Response Types
 export interface ApiResponse<T> {
     success: boolean;

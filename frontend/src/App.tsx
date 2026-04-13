@@ -28,6 +28,7 @@ import WorldMapDashboard from './pages/WorldMapDashboard';
 
 // Lazy-load 3D Visualize page — keeps main bundle size unchanged
 const VisualizePage = React.lazy(() => import('./pages/VisualizePage'));
+const MyAnimationsPage = React.lazy(() => import('./pages/MyAnimationsPage'));
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -311,6 +312,18 @@ function App() {
               <Layout>
                 <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading visualizer..." /></div>}>
                   <VisualizePage />
+                </React.Suspense>
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/my-animations"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading vault..." /></div>}>
+                  <MyAnimationsPage />
                 </React.Suspense>
               </Layout>
             </ProtectedRoute>

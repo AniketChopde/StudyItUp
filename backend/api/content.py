@@ -11,6 +11,7 @@ from database.connection import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from utils.auth import get_current_user, TokenData
 from models.study_plan import StudyPlan
+from models.content import AnimationCache, UserAnimation
 from sqlalchemy import select
 import uuid
 from datetime import datetime
@@ -152,8 +153,51 @@ async def visualize_topic(
                 if plan:
                     exam_type = plan.exam_type
             
-            # Generate visualization data via orchestrator
-            viz_data = await orchestrator.generate_visualization(topic, exam_type)
+            # Check global cache first
+            cache_result = await db.execute(
+                select(AnimationCache).filter(
+                    AnimationCache.topic == topic,
+                    AnimationCache.exam_type == exam_type
+                )
+            )
+            cached_anim = cache_result.scalars().first()
+            
+            viz_data = None
+            cache_id = None
+            
+            if cached_anim:
+                viz_data = cached_anim.viz_data
+                cache_id = cached_anim.id
+            else:
+                # Generate visualization data via orchestrator
+                viz_data = await orchestrator.generate_visualization(topic, exam_type)
+                
+                # Save to global cache
+                new_cache = AnimationCache(
+                    topic=topic,
+                    exam_type=exam_type,
+                    viz_data=viz_data
+                )
+                db.add(new_cache)
+                await db.commit()
+                await db.refresh(new_cache)
+                cache_id = new_cache.id
+                
+            # Add to user's personal video library if they don't already have it
+            user_anim_result = await db.execute(
+                select(UserAnimation).filter(
+                    UserAnimation.user_id == current_user.user_id,
+                    UserAnimation.animation_id == cache_id
+                )
+            )
+            if not user_anim_result.scalars().first():
+                user_record = UserAnimation(
+                    user_id=current_user.user_id,
+                    animation_id=cache_id,
+                    topic=topic
+                )
+                db.add(user_record)
+                await db.commit()
             
             return viz_data
     except Exception as e:
@@ -161,4 +205,71 @@ async def visualize_topic(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
+        )
+
+@router.get("/animations/my")
+async def get_my_animations(
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the current user's generated animations."""
+    try:
+        from sqlalchemy.orm import selectinload
+        result = await db.execute(
+            select(UserAnimation)
+            .options(selectinload(UserAnimation.animation))
+            .filter(UserAnimation.user_id == current_user.user_id)
+            .order_by(UserAnimation.created_at.desc())
+        )
+        animations = result.scalars().all()
+        
+        return [
+            {
+                "id": str(anim.id),
+                "topic": anim.topic,
+                "created_at": anim.created_at,
+                "viz_data": anim.animation.viz_data
+            }
+            for anim in animations
+        ]
+    except Exception as e:
+        logger.error(f"Error fetching user animations: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
+
+@router.delete("/animations/{animation_id}")
+async def delete_user_animation(
+    animation_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Delete an animation from the user's personal library."""
+    try:
+        result = await db.execute(
+            select(UserAnimation).filter(
+                UserAnimation.id == animation_id,
+                UserAnimation.user_id == current_user.user_id
+            )
+        )
+        anim = result.scalars().first()
+        
+        if not anim:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Animation not found or you don't have permission to delete it"
+            )
+            
+        await db.delete(anim)
+        await db.commit()
+        
+        return {"status": "success", "message": "Animation deleted successfully from your library"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting animation: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete animation"
         )

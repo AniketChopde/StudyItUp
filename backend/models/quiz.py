@@ -178,7 +178,7 @@ class ChatSessionResponse(BaseModel):
     """Schema for chat session response."""
     id: uuid.UUID
     user_id: uuid.UUID
-    title: Optionall[str] = None
+    title: Optional[str] = None
     messages: List[Dict[str, Any]] = []
     context: Dict[str, Any] = {}
     created_at: datetime

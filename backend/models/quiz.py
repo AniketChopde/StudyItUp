@@ -2,6 +2,7 @@
 Quiz models and schemas.
 """
 
+from typing import Optional
 from sqlalchemy import Column, String, DateTime, Float, ForeignKey, Integer
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -10,7 +11,7 @@ import uuid
 from database.connection import Base
 from database.types import UUID, JSON
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 
 class QuizSession(Base):
@@ -177,7 +178,7 @@ class ChatSessionResponse(BaseModel):
     """Schema for chat session response."""
     id: uuid.UUID
     user_id: uuid.UUID
-    title: Optional[str] = None
+    title: Optionall[str] = None
     messages: List[Dict[str, Any]] = []
     context: Dict[str, Any] = {}
     created_at: datetime

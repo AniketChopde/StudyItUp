@@ -116,7 +116,7 @@ const ArtCard: React.FC<{
   id: string; label: string; sublabel?: string;
   iconName?: string; color?: string; delay?: number;
   w: number; h: number;
-}> = ({ id, label, sublabel, iconName, color, delay = 0, w, h }) => {
+}> = ({ id, label, sublabel, iconName, color, delay = 0, h }) => {
   const p = getPalette(id, color);
   const Icon = getIconComp(iconName);
   const isLarge = h >= 25;
@@ -195,7 +195,7 @@ const ArtCard: React.FC<{
    ══════════════════════════════════════ */
 const ImageCard: React.FC<{
   imageUrl?: string; label: string; visualPrompt?: string; delay?: number; id: string;
-}> = ({ imageUrl, label, visualPrompt, delay = 0, id }) => {
+}> = ({ imageUrl, label, delay = 0, id }) => {
   const [imgFailed, setImgFailed] = useState(false);
   const p = getPalette(id);
   // If no image URL or image failed, show a nice illustration card

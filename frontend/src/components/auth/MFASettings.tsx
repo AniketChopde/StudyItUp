@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { authService } from '../../api/services';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
-import { Shield, ShieldAlert, KeyRound, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, KeyRound, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export const MFASettings: React.FC = () => {

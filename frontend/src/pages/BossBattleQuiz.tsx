@@ -3,6 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuizStore } from '../stores/quizStore';
+import { useAuthStore } from '../stores/authStore';
+import { useGamificationStore } from '../stores/gamificationStore';
 import { 
   Shield, 
   Skull, 
@@ -16,6 +18,17 @@ import toast from 'react-hot-toast';
 const BossBattleQuiz: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthStore();
+  const { profile } = useGamificationStore();
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'Player';
+  const getTitle = (level: number) => {
+    if (level >= 50) return 'Eternal Oracle';
+    if (level >= 25) return 'Knowledge Guardian';
+    if (level >= 10) return 'Sage Apprentice';
+    return 'Novice Scribbler';
+  };
+  const playerTitle = getTitle(profile?.level || 1);
+
   const {
     activeQuiz,
     currentQuestion,
@@ -105,7 +118,7 @@ const BossBattleQuiz: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <Button 
             onClick={() => { resetQuiz(); navigate('/gamification'); }}
             className="h-16 px-10 rounded-2xl font-black uppercase tracking-widest"
@@ -115,7 +128,13 @@ const BossBattleQuiz: React.FC = () => {
           {!victory && (
             <Button 
               variant="outline"
-              onClick={() => { resetQuiz(); generateQuiz(topic, subject, 5, 'medium'); }}
+              onClick={() => { 
+                resetQuiz(); 
+                setUserHealth(100); 
+                setBossHealth(100); 
+                setCombatLog([]); 
+                generateQuiz(topic, subject, 5, 'medium'); 
+              }}
               className="h-16 px-10 rounded-2xl font-black uppercase tracking-widest border-2"
             >
               Re-Challenge
@@ -140,8 +159,8 @@ const BossBattleQuiz: React.FC = () => {
                 <Shield className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-50">Scholar</span>
-                <h3 className="text-lg font-bold">Maleshkumar</h3>
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-50">{playerTitle}</span>
+                <h3 className="text-lg font-bold truncate max-w-[150px]" title={displayName}>{displayName}</h3>
               </div>
             </div>
             <span className="text-xl font-black text-blue-600">{userHealth}%</span>
@@ -252,13 +271,13 @@ const BossBattleQuiz: React.FC = () => {
               key={index}
               variant="outline"
               onClick={() => handleAnswer(currentQ.question_id, option.charAt(1) === ')' ? option.charAt(0) : String.fromCharCode(65 + index))}
-              className="h-14 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 group relative overflow-hidden"
+              className="min-h-[3.5rem] h-auto py-3 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-500 hover:bg-slate-50 dark:hover:bg-slate-800/50 group relative overflow-hidden"
             >
               <div className="flex items-center gap-3 w-full">
-                <div className="w-8 h-8 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center justify-center font-black text-xs text-slate-500 group-hover:text-indigo-600 transition-colors">
+                <div className="w-8 h-8 shrink-0 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center justify-center font-black text-xs text-slate-500 group-hover:text-indigo-600 transition-colors">
                   {String.fromCharCode(65 + index)}
                 </div>
-                <span className="font-bold text-sm text-left">{option.charAt(1) === ')' ? option.substring(3) : option}</span>
+                <span className="font-bold text-sm text-left whitespace-normal break-words flex-1 leading-snug">{option.charAt(1) === ')' ? option.substring(3) : option}</span>
               </div>
             </Button>
           ))}

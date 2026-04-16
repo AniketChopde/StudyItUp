@@ -580,6 +580,7 @@ Generate COMPLETE 5-stage JSON for "{topic}".
                  return {
                      "theme": "whiteboard",
                      "title": topic,
+                     "is_fallback": True,
                      "stages": [
                          {
                              "step": 1,

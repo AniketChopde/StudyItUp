@@ -250,29 +250,32 @@ class CacheService:
         try:
             query_hash = self._generate_db_hash(content_type, key_data)
             
-            # Use upsert logic
-            existing_result = await db.execute(
-                select(SearchCache).where(SearchCache.query_hash == query_hash)
-            )
-            existing = existing_result.scalar_one_or_none()
-            
-            if existing:
-                existing.results = results
-                existing.cached_at = datetime.utcnow()
-                existing.content_type = content_type
-            else:
-                new_cache = SearchCache(
-                    query_hash=query_hash,
-                    query=key_data[:500],
-                    content_type=content_type,
-                    results=results
+            async with db.begin_nested():
+                # Use upsert logic
+                existing_result = await db.execute(
+                    select(SearchCache).where(SearchCache.query_hash == query_hash)
                 )
-                db.add(new_cache)
+                existing = existing_result.scalar_one_or_none()
+                
+                if existing:
+                    existing.results = results
+                    existing.cached_at = datetime.utcnow()
+                    existing.content_type = content_type
+                else:
+                    new_cache = SearchCache(
+                        query_hash=query_hash,
+                        query=key_data[:500],
+                        content_type=content_type,
+                        results=results
+                    )
+                    db.add(new_cache)
+                
+                # Flush inside the savepoint so IntegrityErrors are caught and rolled back gracefully without breaking the outer transaction
+                await db.flush()
             
-            await db.commit()
             return True
         except Exception as e:
-            logger.error(f"Error writing to DB cache: {e}")
+            logger.warning(f"Error writing to DB cache (handled gracefully): {e}")
             return False
 
 

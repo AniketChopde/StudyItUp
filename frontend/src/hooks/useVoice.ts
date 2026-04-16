@@ -75,7 +75,13 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
   /** TTS: Read text aloud */
   const speak = useCallback(
     async (text: string) => {
-      if (!text) return;
+      // Strip markdown symbols and non-speakable characters so speech sounds natural
+      const cleanText = text
+        .replace(/(\*\*|\*|__|_|#|`|>|~|- )/g, '') // Remove markdown formatting
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Extract text from links
+        .trim();
+
+      if (!cleanText) return;
 
       // Stop any current speech
       if (TTS_SUPPORTED) window.speechSynthesis.cancel();
@@ -88,14 +94,15 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
       // Attempt high-quality Sarvam TTS via backend
       try {
         setIsLoadingVoice(true);
-        console.log('Attempting Sarvam TTS for:', text.substring(0, 20) + '...', 'Lang:', lang);
+        console.log('Attempting Sarvam TTS for:', cleanText.substring(0, 20) + '...', 'Lang:', lang);
 
         const response = await apiClient.post('/voice/tts', {
-          text,
+          text: cleanText,
           language_code: lang
         });
 
-        if (response.data.success && response.data.audio_base64) {
+        // The python backend returns 'status', not 'success', or we just rely on audio_base64
+        if (response.data && response.data.audio_base64) {
           console.log('Sarvam TTS success, playing audio...');
           const audioSrc = `data:audio/mpeg;base64,${response.data.audio_base64}`;
           const audio = new Audio(audioSrc);
@@ -111,13 +118,13 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
           };
           audio.onerror = (e) => {
             console.error('Sarvam audio playback error:', e);
-            fallbackSpeak(text);
+            fallbackSpeak(cleanText);
           };
 
           await audio.play();
           return;
         } else {
-          console.warn('Sarvam TTS backend returned failure:', response.data.error);
+          console.warn('Sarvam TTS backend returned failure:', response.data);
         }
       } catch (err) {
         console.error('Sarvam TTS API call failed:', err);
@@ -127,7 +134,7 @@ export function useVoice(options: UseVoiceOptions = {}): UseVoiceReturn {
 
       // Fallback to browser TTS
       console.log('Falling back to browser TTS');
-      fallbackSpeak(text);
+      fallbackSpeak(cleanText);
     },
     [lang, fallbackSpeak]
   );

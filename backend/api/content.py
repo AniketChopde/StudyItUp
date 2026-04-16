@@ -172,32 +172,37 @@ async def visualize_topic(
                 # Generate visualization data via orchestrator
                 viz_data = await orchestrator.generate_visualization(topic, exam_type)
                 
-                # Save to global cache
-                new_cache = AnimationCache(
-                    topic=topic,
-                    exam_type=exam_type,
-                    viz_data=viz_data
-                )
-                db.add(new_cache)
-                await db.commit()
-                await db.refresh(new_cache)
-                cache_id = new_cache.id
+                # Save to global cache only if it's not a fallback
+                if not viz_data.get("is_fallback"):
+                    new_cache = AnimationCache(
+                        topic=topic,
+                        exam_type=exam_type,
+                        viz_data=viz_data
+                    )
+                    db.add(new_cache)
+                    await db.commit()
+                    await db.refresh(new_cache)
+                    cache_id = new_cache.id
+                else:
+                    cache_id = None
                 
             # Add to user's personal video library if they don't already have it
-            user_anim_result = await db.execute(
-                select(UserAnimation).filter(
-                    UserAnimation.user_id == current_user.user_id,
-                    UserAnimation.animation_id == cache_id
+            # Skip if cache_id is None (meaning it was a fallback that we didn't save)
+            if cache_id is not None:
+                user_anim_result = await db.execute(
+                    select(UserAnimation).filter(
+                        UserAnimation.user_id == current_user.user_id,
+                        UserAnimation.animation_id == cache_id
+                    )
                 )
-            )
-            if not user_anim_result.scalars().first():
-                user_record = UserAnimation(
-                    user_id=current_user.user_id,
-                    animation_id=cache_id,
-                    topic=topic
-                )
-                db.add(user_record)
-                await db.commit()
+                if not user_anim_result.scalars().first():
+                    user_record = UserAnimation(
+                        user_id=current_user.user_id,
+                        animation_id=cache_id,
+                        topic=topic
+                    )
+                    db.add(user_record)
+                    await db.commit()
             
             return viz_data
     except Exception as e:

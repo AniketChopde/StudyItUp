@@ -28,7 +28,7 @@ import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const StudyPlanDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { activePlan, isLoading, isTeaching, isSearchingCourses, getPlan, updateChapterStatus, teachChapter, getCourses } = useStudyPlanStore();
     const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
@@ -56,15 +56,23 @@ export const StudyPlanDetailPage: React.FC = () => {
     useEffect(() => {
         if (activePlan?.chapters && activePlan.chapters.length > 0) {
             if (urlChapterId) {
-                setSelectedChapterId(urlChapterId);
-                // Also automatically switch to lesson view when deep-linking from analytics
+                if (selectedChapterId !== urlChapterId) {
+                    setSelectedChapterId(urlChapterId);
+                }
+                
+                // Clear the Deep Link so the user can freely click other chapters later!
+                searchParams.delete('chapterId');
+                setSearchParams(searchParams, { replace: true });
+                
+                // Also automatically switch to lesson view when deep-linking
                 if (viewMode === 'overview') {
                     setViewMode('lesson');
                     
                     // Trigger teaching if content is missing
                     const ch = activePlan.chapters.find(c => c.id.toString() === urlChapterId);
                     if (ch && (!ch.content || !ch.content.topic_lessons) && !isTeaching) {
-                        teachChapter(urlChapterId);
+                        // Use timeout to prevent React update collisions
+                        setTimeout(() => teachChapter(urlChapterId), 0);
                     }
                 }
             } else if (!selectedChapterId) {

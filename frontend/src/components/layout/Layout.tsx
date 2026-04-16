@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../ui/Button';
 import {
@@ -48,6 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
+    const location = useLocation();
 
     const { fetchProfile } = useGamificationStore();
 
@@ -83,7 +84,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                                 <Link
                                     key={item.name}
                                     to={item.href}
-                                    className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent transition-colors"
+                                    className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                                        location.pathname.startsWith(item.href) 
+                                        ? 'bg-primary/10 text-primary font-medium' 
+                                        : 'hover:bg-accent text-foreground'
+                                    }`}
                                     onClick={() => setSidebarOpen(false)}
                                 >
                                     <item.icon className="h-5 w-5" />
@@ -98,7 +103,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                                         <Link
                                             key={item.name}
                                             to={item.href}
-                                            className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent transition-colors text-purple-600 dark:text-purple-400 font-medium"
+                                            className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors font-medium ${
+                                                location.pathname.startsWith(item.href)
+                                                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                                                : 'text-purple-600 dark:text-purple-400 hover:bg-accent'
+                                            }`}
                                             onClick={() => setSidebarOpen(false)}
                                         >
                                             <item.icon className="h-5 w-5" />
@@ -136,7 +145,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                             <Link
                                 key={item.name}
                                 to={item.href}
-                                className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent transition-colors"
+                                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                                    location.pathname.startsWith(item.href) 
+                                    ? 'bg-primary/10 text-primary font-medium' 
+                                    : 'hover:bg-accent text-foreground'
+                                }`}
                             >
                                 <item.icon className="h-5 w-5" />
                                 <span>{item.name}</span>
@@ -151,7 +164,11 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                                     <Link
                                         key={item.name}
                                         to={item.href}
-                                        className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent transition-colors text-purple-600 dark:text-purple-400 font-medium"
+                                        className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors font-medium ${
+                                            location.pathname.startsWith(item.href)
+                                            ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                                            : 'text-purple-600 dark:text-purple-400 hover:bg-accent'
+                                        }`}
                                     >
                                         <item.icon className="h-5 w-5" />
                                         <span>{item.name}</span>

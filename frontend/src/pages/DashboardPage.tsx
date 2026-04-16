@@ -11,7 +11,7 @@ import { XPBar } from '../components/gamification/XPBar';
 import { BadgeGallery } from '../components/gamification/BadgeGallery';
 import { analyticsService } from '../api/services';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
-import { MFASettings } from '../components/auth/MFASettings';
+
 
 export const DashboardPage: React.FC = () => {
     const { user } = useAuthStore();
@@ -94,7 +94,7 @@ export const DashboardPage: React.FC = () => {
     return (
         <div className="space-y-8">
             {/* Welcome Section */}
-            <div className="flex items-start justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">
                         {!statsLoading && stats && (stats.study_streak_days > 0 || stats.hours_studied > 0 || stats.topics_completed > 0 || (stats.quiz_average_percent != null))
@@ -254,12 +254,6 @@ export const DashboardPage: React.FC = () => {
                     </div>
                 </CardContent>
             </Card>
-
-            {/* Security Settings */}
-            <div className="mt-8">
-                <h2 className="text-2xl font-bold mb-4">Security Settings</h2>
-                <MFASettings />
-            </div>
         </div>
     );
 };

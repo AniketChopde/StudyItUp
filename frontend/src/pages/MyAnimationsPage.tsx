@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import MotionVideoPlayer from '../components/video/MotionVideoPlayer';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -129,7 +130,7 @@ export default function MyAnimationsPage() {
                                         <X className="w-5 h-5" />
                                     </Button>
                                 </div>
-                                <div className="w-full h-[60vh] min-h-[400px] max-h-[800px] bg-slate-50 relative">
+                                <div className="w-full h-[50vh] sm:h-[60vh] md:h-[75vh] min-h-[300px] sm:min-h-[400px] lg:min-h-[600px] max-h-[850px] bg-slate-50 relative">
                                     <MotionVideoPlayer topic={anim.topic} />
                                 </div>
                             </Card>
@@ -173,52 +174,55 @@ export default function MyAnimationsPage() {
                 })}
             </div>
 
-            {/* Delete Confirmation Modal */}
-            <AnimatePresence>
-                {deleteModalId && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-                    >
+            {/* Delete Confirmation Modal using Portal to escape stacking contexts */}
+            {createPortal(
+                <AnimatePresence>
+                    {deleteModalId && (
                         <motion.div 
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full space-y-6"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
                         >
-                            <div className="flex flex-col items-center text-center space-y-4">
-                                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
-                                    <AlertTriangle className="w-6 h-6" />
+                            <motion.div 
+                                initial={{ scale: 0.95, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full space-y-6"
+                            >
+                                <div className="flex flex-col items-center text-center space-y-4">
+                                    <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600">
+                                        <AlertTriangle className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-slate-900">Remove Animation?</h3>
+                                        <p className="text-slate-500 mt-2 text-sm">
+                                            Are you sure you want to remove this video from your vault? You can always generate it again later.
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-900">Remove Animation?</h3>
-                                    <p className="text-slate-500 mt-2 text-sm">
-                                        Are you sure you want to remove this video from your vault? You can always generate it again later.
-                                    </p>
+                                <div className="flex gap-3 w-full">
+                                    <Button 
+                                        variant="outline" 
+                                        className="flex-1"
+                                        onClick={() => setDeleteModalId(null)}
+                                    >
+                                        Cancel
+                                    </Button>
+                                    <Button 
+                                        variant="default" 
+                                        className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                                        onClick={handleConfirmDelete}
+                                    >
+                                        Remove
+                                    </Button>
                                 </div>
-                            </div>
-                            <div className="flex gap-3 w-full">
-                                <Button 
-                                    variant="outline" 
-                                    className="flex-1"
-                                    onClick={() => setDeleteModalId(null)}
-                                >
-                                    Cancel
-                                </Button>
-                                <Button 
-                                    variant="default" 
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                                    onClick={handleConfirmDelete}
-                                >
-                                    Remove
-                                </Button>
-                            </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </div>
     );
 }

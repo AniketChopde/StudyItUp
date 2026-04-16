@@ -60,7 +60,7 @@ export const AnalyticsPage: React.FC = () => {
 
     return (
         <div className="space-y-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold">Performance Analytics</h1>
                     <p className="text-muted-foreground mt-2">
@@ -74,7 +74,7 @@ export const AnalyticsPage: React.FC = () => {
             </div>
 
             {/* Tabs */}
-            <div className="flex space-x-1 bg-muted p-1 rounded-lg w-fit">
+            <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-lg w-fit">
                 {(['subjects', 'topics', 'weak-strong', 'badges'] as const).map((tab) => (
                     <button
                         key={tab}

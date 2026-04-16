@@ -49,11 +49,17 @@ const EVOLUTION_TIERS: EvolutionTier[] = [
 
 const AvatarEvolution: React.FC = () => {
   const { profile } = useGamificationStore();
+  const [imgError, setImgError] = React.useState(false);
   const level = profile?.level || 1;
 
   const currentTier = useMemo(() => {
     return [...EVOLUTION_TIERS].reverse().find(t => level >= t.minLevel) || EVOLUTION_TIERS[0];
   }, [level]);
+
+  // Reset error state when tier changes
+  React.useEffect(() => {
+    setImgError(false);
+  }, [currentTier.name]);
 
   const nextTier = useMemo(() => {
     return EVOLUTION_TIERS.find(t => t.minLevel > level);
@@ -69,19 +75,26 @@ const AvatarEvolution: React.FC = () => {
         {/* Tier Glow */}
         <div className={`absolute -inset-20 bg-gradient-to-br ${currentTier.color} opacity-10 blur-3xl group-hover:opacity-20 transition-opacity`} />
 
-        <div className="relative p-8 flex flex-col md:flex-row items-center gap-12">
+        <div className="relative p-6 md:p-8 flex flex-col md:flex-row items-center gap-8 md:gap-12">
           {/* Avatar Perspective */}
-          <div className="relative w-64 h-64 md:w-80 md:h-80">
+          <div className="relative w-40 h-40 md:w-48 md:h-48 shrink-0">
              <motion.div 
                animate={{ y: [0, -10, 0] }}
                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
                className="relative z-10 w-full h-full rounded-[2.5rem] overflow-hidden border-4 border-white dark:border-slate-800 shadow-2xl"
              >
-                <img 
-                  src={currentTier.image} 
-                  alt={currentTier.name} 
-                  className="w-full h-full object-cover"
-                />
+                {!imgError ? (
+                  <img 
+                    src={currentTier.image} 
+                    alt={currentTier.name} 
+                    className="w-full h-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className={`w-full h-full bg-gradient-to-br ${currentTier.color} flex items-center justify-center`}>
+                    <Sparkles className="w-16 h-16 text-white opacity-80" />
+                  </div>
+                )}
              </motion.div>
              {/* Platform Shadow */}
              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-48 h-12 bg-black/20 blur-xl rounded-full" />
@@ -109,7 +122,7 @@ const AvatarEvolution: React.FC = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700/50">
                 <div className="flex items-center gap-2 mb-1">
                   <Shield className="w-4 h-4 text-emerald-500" />
@@ -157,7 +170,7 @@ const AvatarEvolution: React.FC = () => {
           return (
             <div 
               key={tier.name}
-              className={`relative p-6 rounded-[2rem] border transition-all ${
+              className={`relative p-4 rounded-2xl border transition-all ${
                 isCurrent 
                   ? 'bg-white dark:bg-slate-900 border-indigo-500 shadow-xl scale-105 z-10' 
                   : isUnlocked 
@@ -165,7 +178,7 @@ const AvatarEvolution: React.FC = () => {
                     : 'bg-slate-100/50 dark:bg-slate-900/50 border-transparent grayscale opacity-50'
               }`}
             >
-              <div className={`w-12 h-12 rounded-xl mb-4 flex items-center justify-center ${
+              <div className={`w-10 h-10 rounded-xl mb-3 flex items-center justify-center ${
                 isUnlocked ? `bg-gradient-to-br ${tier.color} text-white shadow-lg` : 'bg-slate-200 dark:bg-slate-800 text-slate-400'
               }`}>
                 {isUnlocked ? <Sparkles className="w-6 h-6" /> : <Star className="w-6 h-6" />}

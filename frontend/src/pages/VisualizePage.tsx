@@ -152,7 +152,7 @@ export const VisualizePage: React.FC = () => {
             </Button>
           </div>
 
-          <div className="w-full max-w-5xl mx-auto h-[520px] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(88,196,221,0.06)] border border-white/5 bg-[#0f0f23]">
+          <div className="w-full max-w-5xl mx-auto h-[50vh] sm:h-[60vh] md:h-[75vh] min-h-[300px] sm:min-h-[400px] lg:min-h-[600px] max-h-[850px] rounded-2xl overflow-hidden shadow-[0_0_40px_rgba(88,196,221,0.06)] border border-white/5 bg-[#0f0f23]">
             <Suspense
               fallback={
                 <div className="w-full h-full flex items-center justify-center bg-[#0f0f23]">

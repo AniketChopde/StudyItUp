@@ -51,16 +51,6 @@ class ImageService:
                     logger.warning(f"IconScout search failed or 0 results: {e}")
                 
                 try:
-                    if os.environ.get('LORDICON_API_KEY'):
-                        logger.info(f"Querying Lordicon SVGs for: {search_terms}")
-                        lordicon_url = self._lordicon_search(search_terms)
-                        if lordicon_url:
-                            self.image_cache[cache_key] = lordicon_url
-                            return lordicon_url
-                except Exception as e:
-                    logger.warning(f"Lordicon search failed or 0 results: {e}")
-
-                try:
                     logger.info(f"Querying Giphy API for: {search_terms}")
                     giphy_url = self._giphy_search(search_terms)
                     if giphy_url:
@@ -68,6 +58,16 @@ class ImageService:
                         return giphy_url
                 except Exception as e:
                     logger.warning(f"Giphy search failed: {e}")
+                
+                try:
+                    if os.environ.get('LORDICON_API_KEY'):
+                        logger.info(f"Querying Lordicon SVGs for: {search_terms}")
+                        lordicon_url = self._lordicon_search(search_terms)
+                        if lordicon_url:
+                            self.image_cache[cache_key] = lordicon_url
+                            return lordicon_url
+                except Exception as e:
+                    logger.warning(f"Lordicon search failed: {e}")
                 
                 # If Giphy fails for a character, we immediately raise so the frontend falls back
                 # to our 100% reliable animated Icon Puppets.
@@ -184,7 +184,7 @@ class ImageService:
         if not api_key:
             return None
             
-        url = f"https://api.lordicon.com/v1/icons?query={clean_q}&limit=2"
+        url = f"https://api.lordicon.com/v1/icons?q={clean_q}&limit=2"
         headers = {
             'Authorization': f'Bearer {api_key}',
             'Accept': 'application/json',
@@ -198,7 +198,13 @@ class ImageService:
                 # Lordicon returns a list of dictionaries if successful
                 if isinstance(data, list) and len(data) > 0:
                     first_icon = data[0]
-                    if 'files' in first_icon and 'preview' in first_icon['files']:
+                    icon_name = str(first_icon.get('name', '')).lower()
+                    
+                    # Prevent Lordicon from returning the default 'share' icon on empty search matches
+                    query_terms = query.lower().split()
+                    is_match = any(term in icon_name for term in query_terms) if icon_name != 'share' else False
+                    
+                    if is_match and 'files' in first_icon and 'preview' in first_icon['files']:
                         return first_icon['files']['preview']
         except Exception as e:
             logger.error(f"Lordicon API error for {query}: {e}")

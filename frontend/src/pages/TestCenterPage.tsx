@@ -111,7 +111,7 @@ export const TestCenterPage: React.FC = () => {
     const showTestCenterLanding = (!activeQuiz && (!results || quizSource !== 'test_center')) || (activeQuiz && quizSource !== 'test_center');
     if (showTestCenterLanding) {
         return (
-            <div className="max-w-3xl mx-auto py-10 px-4 animate-in fade-in duration-700">
+            <div className="max-w-3xl mx-auto px-4 animate-in fade-in duration-700">
                 <div className="text-center mb-8 space-y-4">
                     <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 transform rotate-3 shadow-inner">
                         <ShieldCheck className="h-8 w-8 text-primary" />

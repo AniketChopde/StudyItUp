@@ -378,10 +378,21 @@ PYQ QUESTION INPUTS (may include literal questions):
                 except Exception:
                     pass
             
+            user_answer_full = user_answer if user_answer else "Skipped"
+            correct_answer_full = correct_answer
+            options = question.get("options", [])
+            
+            for opt in options:
+                opt_str = str(opt).strip()
+                if user_answer and len(opt_str) >= 2 and opt_str[0].upper() == user_answer.upper() and opt_str[1] in [')', '.', ' ']:
+                    user_answer_full = opt_str
+                if correct_answer and len(opt_str) >= 2 and opt_str[0].upper() == correct_answer.upper() and opt_str[1] in [')', '.', ' ']:
+                    correct_answer_full = opt_str
+
             evaluation = {
                 "question_id": question.get("question_id"),
-                "user_answer": user_answer,
-                "correct_answer": correct_answer,
+                "user_answer": user_answer_full,
+                "correct_answer": correct_answer_full,
                 "is_correct": is_correct,
                 "explanation": question.get("explanation", ""),
                 "marks_obtained": question.get("marks", 1) if is_correct else 0,

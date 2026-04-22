@@ -113,7 +113,7 @@ export const QuizPage: React.FC = () => {
     // Quiz Generation Form (also when results/active are from Test Center – don't show those here)
     if (showQuizConfig) {
         return (
-            <div className="max-w-2xl mx-auto py-12 px-4 animate-in fade-in duration-700 space-y-10">
+            <div className="max-w-2xl mx-auto px-4 animate-in fade-in duration-700 space-y-10">
                 <div className="text-center mb-10 space-y-4">
                     <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Brain className="h-10 w-10 text-primary" />
@@ -351,7 +351,7 @@ export const QuizPage: React.FC = () => {
         const progress = ((currentQuestion + 1) / activeQuiz.questions.length) * 100;
 
         return (
-            <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in duration-700">
+            <div className="max-w-4xl mx-auto py-6 md:py-10 px-4 animate-in fade-in duration-700">
                 {/* Header */}
                 <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-1">
@@ -381,7 +381,7 @@ export const QuizPage: React.FC = () => {
                             style={{ width: `${progress}%` }}
                         />
                     </div>
-                    <CardContent className="p-10 md:p-14 space-y-10">
+                    <CardContent className="p-5 md:p-8 space-y-4 md:space-y-6">
                         <div>
                             <p className="text-xl font-bold leading-relaxed mb-3">
                                 {currentQ.question_text || currentQ.question || "Question text unavailable"}
@@ -409,7 +409,7 @@ export const QuizPage: React.FC = () => {
                         )}
 
 
-                        <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 gap-3">
                             {currentQ.options.map((option, index) => {
                                 const hasPrefix = option.length > 3 && option.charAt(1) === ')';
                                 const optionLetter = hasPrefix ? option.charAt(0) : String.fromCharCode(65 + index);
@@ -419,13 +419,13 @@ export const QuizPage: React.FC = () => {
                                     <button
                                         key={index}
                                         onClick={() => submitAnswer(currentQ.question_id, optionLetter)}
-                                        className={`group text-left p-6 rounded-[2rem] border-2 transition-all duration-300 relative overflow-hidden ${selectedAnswer === optionLetter
+                                        className={`group text-left p-3 md:p-4 rounded-2xl border-2 transition-all duration-300 relative overflow-hidden ${selectedAnswer === optionLetter
                                             ? 'border-primary bg-primary/5 ring-1 ring-primary/20'
                                             : 'border-muted/50 bg-card hover:bg-muted/10 hover:border-muted-foreground/30'
                                             }`}
                                     >
-                                        <div className="flex items-center gap-5 relative z-10">
-                                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center font-black transition-colors ${selectedAnswer === optionLetter ? 'bg-primary text-primary-foreground' : 'bg-muted group-hover:bg-muted-foreground/10 text-muted-foreground'}`}>
+                                        <div className="flex items-center gap-4 relative z-10">
+                                            <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-sm font-black transition-colors ${selectedAnswer === optionLetter ? 'bg-primary text-primary-foreground' : 'bg-muted group-hover:bg-muted-foreground/10 text-muted-foreground'}`}>
                                                 {optionLetter}
                                             </div>
                                             <span className="text-lg font-bold leading-tight">

@@ -168,13 +168,26 @@ class ContentAgent:
                     "Tip 2 for scoring well"
                 ],
                 "visual_description": "A detailed textual description of how this concept can be visualized (e.g., flowchart, diagram, memory layout, etc.)",
-                "mermaid_diagram": "graph TD\\n    A[Start] --> B[Step 1]\\n    B --> C[Step 2]\\n    C --> D[End]\\n    %% Create a proper Mermaid diagram (graph TD, flowchart, sequenceDiagram, or classDiagram) that visualizes the concept"
+                "mermaid_diagram": "graph TD\\n    A[Start] --> B[Step 1]\\n    B --> C[Step 2]\\n    C --> D[End]\\n    %% Create a proper Mermaid diagram (graph TD, flowchart, sequenceDiagram, or classDiagram) that visualizes the concept",
+                "practical_implementation": {{
+                    "project_title": "A simple practical project (e.g., Deploying a Node App using Docker/Kubernetes)",
+                    "description": "Brief overview of what this practical implementation achieves.",
+                    "steps": [
+                        {{
+                            "title": "Step 1 name",
+                            "description": "Explanation of the step",
+                            "command": "kubectl apply -f deployment.yaml",
+                            "code": "apiVersion: apps/v1\\nkind: Deployment..."
+                        }}
+                    ]
+                }}
             }}
             
             IMPORTANT: 
             - main_explanation must be comprehensive (200-400 words)
             - mermaid_diagram must be valid Mermaid syntax starting with graph TD, flowchart, sequenceDiagram, or classDiagram
             - Include at least 2 detailed examples
+            - If the topic is technical/software-related (like Docker, Kubernetes, Python etc.), you MUST include a 'practical_implementation' section with actionable commands/code snippets for a simple project to demonstrate how it works.
             """
             
             user_prompt = f"""

@@ -14,7 +14,7 @@ import {
     ArrowLeft, GraduationCap, ChevronRight,
     PlayCircle,
     Download, ListChecks, Target as GoalIcon,
-    AlertTriangle, Lightbulb, Archive, Zap
+    AlertTriangle, Lightbulb, Archive, Zap, Terminal
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mermaid } from '../components/ui/Mermaid';
@@ -728,6 +728,49 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                     </div>
                                                                 </div>
                                                             ))}
+
+                                                            {lesson.practical_implementation && (
+                                                                <div className="mt-8 bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl border border-blue-500/30">
+                                                                    <div className="px-6 py-5 bg-gradient-to-r from-blue-900/40 to-slate-800 flex items-center gap-3 border-b border-white/5">
+                                                                        <Terminal size={20} className="text-blue-400" />
+                                                                        <h3 className="text-sm font-black text-blue-300 uppercase tracking-widest">Practical Implementation</h3>
+                                                                    </div>
+                                                                    <div className="p-8 space-y-6">
+                                                                        <div>
+                                                                            <h4 className="text-lg font-bold text-white mb-2">{lesson.practical_implementation.project_title}</h4>
+                                                                            <p className="text-slate-400 text-sm leading-relaxed">{lesson.practical_implementation.description}</p>
+                                                                        </div>
+                                                                        
+                                                                        <div className="space-y-6">
+                                                                            {lesson.practical_implementation.steps.map((step: any, sIdx: number) => (
+                                                                                <div key={sIdx} className="relative pl-8 border-l-2 border-blue-500/20 last:border-transparent pb-6 last:pb-0">
+                                                                                    <div className="absolute left-[-9px] top-0 h-4 w-4 rounded-full bg-blue-500 border-4 border-slate-900" />
+                                                                                    <h5 className="text-md font-bold text-slate-200 mb-1">{step.title}</h5>
+                                                                                    <p className="text-sm text-slate-400 mb-3">{step.description}</p>
+                                                                                    
+                                                                                    {step.command && (
+                                                                                        <div className="mb-3">
+                                                                                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Terminal</div>
+                                                                                            <pre className="p-4 bg-black/60 rounded-xl border border-white/5 overflow-x-auto text-green-400 font-mono text-xs">
+                                                                                                $ {step.command}
+                                                                                            </pre>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    
+                                                                                    {step.code && (
+                                                                                        <div>
+                                                                                            <div className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Code / Config</div>
+                                                                                            <pre className="p-4 bg-slate-950 rounded-xl border border-white/5 overflow-x-auto text-blue-300 font-mono text-xs">
+                                                                                                {step.code}
+                                                                                            </pre>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
 
                                                             {/* Mindmap (collapsed by default) */}
                                                             <div className="pt-2">

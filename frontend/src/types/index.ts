@@ -247,6 +247,16 @@ export interface Explanation {
     difficulty_level?: string;
     citation?: string; // New: source citation
     is_blocked?: boolean; // New: for grounding filter
+    practical_implementation?: {
+        project_title: string;
+        description: string;
+        steps: {
+            title: string;
+            description: string;
+            command?: string;
+            code?: string;
+        }[];
+    };
 }
 
 export interface Example {

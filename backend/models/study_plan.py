@@ -128,6 +128,7 @@ class StudyPlanCreate(BaseModel):
     language: str = Field("English", description="Preferred language (e.g. English, Marathi, Hindi)")
     current_knowledge: Dict[str, Any] = Field(default_factory=dict)
     fast_learn: bool = Field(default=False, description="Whether to prioritize core/foundational topics first")
+    force_regenerate: bool = Field(default=False, description="Whether to bypass cache and regenerate a new plan")
 
 
 class StudyPlanResponse(BaseModel):

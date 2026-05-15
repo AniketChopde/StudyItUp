@@ -21,6 +21,7 @@ interface StudyPlanState {
     teachChapter: (chapterId: string) => Promise<any>;
     getCourses: (planId: string) => Promise<void>;
     setActivePlan: (plan: StudyPlan | null) => void;
+    updatePlan: (id: string, data: Partial<StudyPlan>) => Promise<void>;
 }
 
 export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
@@ -140,9 +141,8 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
 
             toast.success(`Chapter marked as ${status}`);
 
-            // Refresh gamification profile and plans if chapter completed
+            // Refresh plans if chapter completed
             if (status === 'completed') {
-                useGamificationStore.getState().fetchProfile();
                 await get().fetchPlans();
             }
         } catch (error) {
@@ -179,4 +179,22 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
     },
 
     setActivePlan: (plan) => set({ activePlan: plan }),
+
+    updatePlan: async (id, data) => {
+        try {
+            set({ isLoading: true });
+            const response = await studyPlanService.update(id, data);
+            set((state) => ({
+                activePlan: state.activePlan?.id === id ? response.data : state.activePlan,
+                plans: state.plans.map(p => p.id === id ? response.data : p),
+                isLoading: false
+            }));
+            toast.success('Study plan updated');
+        } catch (error) {
+            set({ isLoading: false });
+            toast.error('Failed to update study plan');
+            throw error;
+        }
+    },
+}));
 }));

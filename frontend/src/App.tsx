@@ -20,11 +20,6 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
 import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import AdminPage from './pages/AdminPage';
-import GamificationHub from './pages/GamificationHub';
-import BossBattleQuiz from './pages/BossBattleQuiz';
-import DungeonDelver from './pages/DungeonDelver';
-import WisdomTrials from './pages/WisdomTrials';
-import WorldMapDashboard from './pages/WorldMapDashboard';
 
 // Lazy-load 3D Visualize page — keeps main bundle size unchanged
 const VisualizePage = React.lazy(() => import('./pages/VisualizePage'));
@@ -53,19 +48,17 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
-
-
 const ResourcesPage = () => (
-  <div>
-    <h1 className="text-3xl font-bold mb-4">Resources</h1>
-    <p className="text-muted-foreground">Resources page coming soon...</p>
+  <div className="p-8">
+    <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Resources Vault</h1>
+    <p className="text-muted-foreground font-medium">Coming soon: A collection of all your saved study materials, PDF notes, and external links.</p>
   </div>
 );
 
 const SettingsPage = () => (
-  <div>
-    <h1 className="text-3xl font-bold mb-4">Settings</h1>
-    <p className="text-muted-foreground">Settings page coming soon...</p>
+  <div className="p-8">
+    <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Account Settings</h1>
+    <p className="text-muted-foreground font-medium">Coming soon: Manage your profile, notification preferences, and exam goals.</p>
   </div>
 );
 
@@ -91,8 +84,8 @@ function App() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loading size="lg" text="Loading..." />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loading size="lg" text="Booting StudyItUp..." />
       </div>
     );
   }
@@ -107,238 +100,37 @@ function App() {
             background: 'hsl(var(--card))',
             color: 'hsl(var(--card-foreground))',
             border: '1px solid hsl(var(--border))',
+            borderRadius: '1rem',
+            padding: '1rem',
+            fontWeight: '600'
           },
         }}
       />
 
       <Routes>
         {/* Public Routes */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <RegisterPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/forgot-password"
-          element={
-            <PublicRoute>
-              <ForgotPasswordPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/reset-password"
-          element={
-            <PublicRoute>
-              <ResetPasswordPage />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/admin/forgot-password"
-          element={<AdminForgotPasswordPage />}
-        />
-        <Route
-          path="/admin/reset-password"
-          element={<AdminResetPasswordPage />}
-        />
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+        <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+        <Route path="/admin/forgot-password" element={<AdminForgotPasswordPage />} />
+        <Route path="/admin/reset-password" element={<AdminResetPasswordPage />} />
 
         {/* Protected Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <DashboardPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/study-plans"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <StudyPlansPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/study-plans/create"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <CreateStudyPlanPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/study-plans/:id"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <StudyPlanDetailPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <ChatPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quiz"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <QuizPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/test-center"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <TestCenterPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <AnalyticsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/gamification"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <GamificationHub />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/boss-battle"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <BossBattleQuiz />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dungeon-delver"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <DungeonDelver />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/wisdom-trials"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <WisdomTrials />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/world-map"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <WorldMapDashboard />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/resources"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <ResourcesPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <SettingsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/visualize"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading visualizer..." /></div>}>
-                  <VisualizePage />
-                </React.Suspense>
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-animations"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading vault..." /></div>}>
-                  <MyAnimationsPage />
-                </React.Suspense>
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminPage />
-              </AdminLayout>
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/dashboard" element={<ProtectedRoute><Layout><DashboardPage /></Layout></ProtectedRoute>} />
+        <Route path="/study-plans" element={<ProtectedRoute><Layout><StudyPlansPage /></Layout></ProtectedRoute>} />
+        <Route path="/study-plans/create" element={<ProtectedRoute><Layout><CreateStudyPlanPage /></Layout></ProtectedRoute>} />
+        <Route path="/study-plans/:id" element={<ProtectedRoute><Layout><StudyPlanDetailPage /></Layout></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><Layout><ChatPage /></Layout></ProtectedRoute>} />
+        <Route path="/quiz" element={<ProtectedRoute><Layout><QuizPage /></Layout></ProtectedRoute>} />
+        <Route path="/test-center" element={<ProtectedRoute><Layout><TestCenterPage /></Layout></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Layout><AnalyticsPage /></Layout></ProtectedRoute>} />
+        <Route path="/resources" element={<ProtectedRoute><Layout><ResourcesPage /></Layout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
+        <Route path="/visualize" element={<ProtectedRoute><Layout><React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading visualizer..." /></div>}><VisualizePage /></React.Suspense></Layout></ProtectedRoute>} />
+        <Route path="/my-animations" element={<ProtectedRoute><Layout><React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading vault..." /></div>}><MyAnimationsPage /></React.Suspense></Layout></ProtectedRoute>} />
+        
+        <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminPage /></AdminLayout></ProtectedRoute>} />
 
         {/* Default redirect */}
         <Route
@@ -358,5 +150,8 @@ function App() {
     </BrowserRouter>
   );
 }
+
+export default App;
+
 
 export default App;

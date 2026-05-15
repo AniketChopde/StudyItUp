@@ -92,16 +92,18 @@ async def create_study_plan(
             from sqlalchemy import func
             
             # 1. Global Cache Check: Look for an existing plan for this exact exam_type and language
-            cached_plan_result = await db.execute(
-                select(StudyPlan)
-                .where(
-                    func.lower(StudyPlan.exam_type) == plan_data.exam_type.lower(),
-                    func.lower(StudyPlan.language) == plan_data.language.lower()
+            cached_plan = None
+            if not plan_data.force_regenerate:
+                cached_plan_result = await db.execute(
+                    select(StudyPlan)
+                    .where(
+                        func.lower(StudyPlan.exam_type) == plan_data.exam_type.lower(),
+                        func.lower(StudyPlan.language) == plan_data.language.lower()
+                    )
+                    .options(selectinload(StudyPlan.chapters))
+                    .limit(1)
                 )
-                .options(selectinload(StudyPlan.chapters))
-                .limit(1)
-            )
-            cached_plan = cached_plan_result.scalar_one_or_none()
+                cached_plan = cached_plan_result.scalar_one_or_none()
 
             if cached_plan:
                 logger.info(f"♻️ REUSING existing Study Plan for: {plan_data.exam_type} ({plan_data.language})")

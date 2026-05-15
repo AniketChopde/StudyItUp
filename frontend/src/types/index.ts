@@ -75,6 +75,7 @@ export interface CreatePlanData {
     current_knowledge: Record<string, any>;
     fast_learn: boolean;
     language?: string;
+    force_regenerate?: boolean;
 }
 
 // Quiz Types

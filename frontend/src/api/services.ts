@@ -67,8 +67,8 @@ export const studyPlanService = {
     teachChapter: (chapterId: string) =>
         apiClient.post(`/study-plan/chapter/${chapterId}/teach`),
 
-    getCourses: (planId: string) =>
-        apiClient.get<Resource[]>(`/study-plan/${planId}/courses`),
+    getCourses: (planId: string) => apiClient.get<Resource[]>(`/study-plan/${planId}/courses`),
+    update: (id: string, data: Partial<StudyPlan>) => apiClient.put<StudyPlan>(`/study-plan/${id}`, data),
 };
 
 // Content Service

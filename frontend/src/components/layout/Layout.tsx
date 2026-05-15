@@ -13,25 +13,19 @@ import {
     ShieldAlert,
     Brain,
     BarChart,
-    Trophy,
-    Map,
     Box,
-    Video
+    Video,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
-import { useGamificationStore } from '../../stores/gamificationStore';
-import { LevelBadge } from '../gamification/LevelBadge';
-import { XPToast } from '../gamification/XPToast';
-import { BadgeModal } from '../gamification/BadgeModal';
 
 const navigation = [
-    { name: 'World Map', href: '/world-map', icon: Map },
-    { name: 'Dashboard Explorer', href: '/dashboard', icon: Home },
+    { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Study Plans', href: '/study-plans', icon: BookOpen },
     { name: 'Learning Chat', href: '/chat', icon: MessageSquare },
     { name: 'Take Quiz', href: '/quiz', icon: Brain },
     { name: 'View Analytics', href: '/analytics', icon: BarChart },
     { name: '3D Visualize', href: '/visualize', icon: Box },
-    { name: 'Gamification Hub', href: '/gamification', icon: Trophy },
     { name: 'My Animations', href: '/my-animations', icon: Video },
     { name: 'Test Center', href: '/test-center', icon: ShieldCheck },
 ];
@@ -46,25 +40,27 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
+    const [isCollapsed, setIsCollapsed] = React.useState(() => {
+        const saved = localStorage.getItem('sidebar_collapsed');
+        return saved === 'true';
+    });
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
 
-    const { fetchProfile } = useGamificationStore();
-
     React.useEffect(() => {
-        if (user) {
-            fetchProfile();
-        }
-    }, [user, fetchProfile]);
+        localStorage.setItem('sidebar_collapsed', String(isCollapsed));
+    }, [isCollapsed]);
 
     const handleLogout = () => {
         logout();
         navigate('/login');
     };
 
+    const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+
     return (
-        <div className="min-h-screen bg-background">
+        <div className="min-h-screen bg-background flex">
             {/* Mobile sidebar */}
             {sidebarOpen && (
                 <div className="fixed inset-0 z-50 lg:hidden">
@@ -72,14 +68,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <div className="fixed inset-y-0 left-0 w-64 bg-card border-r flex flex-col">
                         <div className="flex items-center justify-between p-4 border-b">
                             <div className="flex items-center gap-2">
-                                <img src="/logo.png" alt="StudyItUp" className="h-12 w-12 mix-blend-multiply" />
+                                <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 mix-blend-multiply" />
                                 <h1 className="text-xl font-bold">StudyItUp</h1>
                             </div>
                             <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
                                 <X className="h-5 w-5" />
                             </Button>
                         </div>
-                        <nav className="flex-1 p-4 space-y-2">
+                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
                             {navigation.map((item) => (
                                 <Link
                                     key={item.name}
@@ -120,7 +116,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <div className="p-4 border-t">
                             <Button
                                 variant="ghost"
-                                className="w-full justify-start"
+                                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
                                 onClick={handleLogout}
                             >
                                 <LogOut className="h-5 w-5 mr-3" />
@@ -132,68 +128,74 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             )}
 
             {/* Desktop sidebar */}
-            <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
-                <div className="flex flex-col flex-1 border-r bg-card">
-                    <div className="flex items-center h-16 px-6 border-b">
-                        <div className="flex items-center gap-2">
-                            <img src="/logo.png" alt="StudyItUp" className="h-12 w-12 mix-blend-multiply" />
-                            <h1 className="text-xl font-bold">StudyItUp</h1>
-                        </div>
-                    </div>
-                    <nav className="flex-1 p-4 space-y-2">
-                        {navigation.map((item) => (
-                            <Link
-                                key={item.name}
-                                to={item.href}
-                                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                                    location.pathname.startsWith(item.href) 
-                                    ? 'bg-primary/10 text-primary font-medium' 
-                                    : 'hover:bg-accent text-foreground'
-                                }`}
-                            >
-                                <item.icon className="h-5 w-5" />
-                                <span>{item.name}</span>
-                            </Link>
-                        ))}
-
-                        {/* Admin Links */}
-                        {user?.is_superuser && (
-                            <>
-                                <div className="border-t my-2 border-border/50" />
-                                {adminNavigation.map((item) => (
-                                    <Link
-                                        key={item.name}
-                                        to={item.href}
-                                        className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors font-medium ${
-                                            location.pathname.startsWith(item.href)
-                                            ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-                                            : 'text-purple-600 dark:text-purple-400 hover:bg-accent'
-                                        }`}
-                                    >
-                                        <item.icon className="h-5 w-5" />
-                                        <span>{item.name}</span>
-                                    </Link>
-                                ))}
-                            </>
-                        )}
-                    </nav>
-                    <div className="p-4 border-t">
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start"
-                            onClick={handleLogout}
-                        >
-                            <LogOut className="h-5 w-5 mr-3" />
-                            Logout
-                        </Button>
+            <aside 
+                className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 border-r bg-card transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+            >
+                <div className="flex items-center h-16 px-4 border-b overflow-hidden">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 flex-shrink-0 mix-blend-multiply" />
+                        {!isCollapsed && <h1 className="text-xl font-bold truncate">StudyItUp</h1>}
                     </div>
                 </div>
-            </div>
+                <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
+                    {navigation.map((item) => (
+                        <Link
+                            key={item.name}
+                            to={item.href}
+                            title={isCollapsed ? item.name : ''}
+                            className={`flex items-center rounded-md transition-colors ${
+                                isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'
+                            } ${
+                                location.pathname.startsWith(item.href) 
+                                ? 'bg-primary/10 text-primary font-medium' 
+                                : 'hover:bg-accent text-foreground'
+                            }`}
+                        >
+                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                            {!isCollapsed && <span className="truncate">{item.name}</span>}
+                        </Link>
+                    ))}
+
+                    {user?.is_superuser && (
+                        <>
+                            <div className="border-t my-2 border-border/50" />
+                            {adminNavigation.map((item) => (
+                                <Link
+                                    key={item.name}
+                                    to={item.href}
+                                    title={isCollapsed ? item.name : ''}
+                                    className={`flex items-center rounded-md transition-colors font-medium ${
+                                        isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'
+                                    } ${
+                                        location.pathname.startsWith(item.href)
+                                        ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
+                                        : 'text-purple-600 dark:text-purple-400 hover:bg-accent'
+                                    }`}
+                                >
+                                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                                    {!isCollapsed && <span className="truncate">{item.name}</span>}
+                                </Link>
+                            ))}
+                        </>
+                    )}
+                </nav>
+                <div className="p-4 border-t">
+                    <Button
+                        variant="ghost"
+                        className={`w-full text-destructive hover:text-destructive hover:bg-destructive/10 ${isCollapsed ? 'justify-center p-2' : 'justify-start'}`}
+                        onClick={handleLogout}
+                        title={isCollapsed ? 'Logout' : ''}
+                    >
+                        <LogOut className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
+                        {!isCollapsed && <span>Logout</span>}
+                    </Button>
+                </div>
+            </aside>
 
             {/* Main content */}
-            <div className="lg:pl-64">
+            <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
                 {/* Top bar */}
-                <div className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-8">
+                <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-8">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -202,29 +204,37 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     >
                         <Menu className="h-5 w-5" />
                     </Button>
-                    <div className="flex-1 flex items-center gap-4">
-                         <LevelBadge />
-                    </div>
+                    
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hidden lg:flex"
+                        onClick={toggleSidebar}
+                    >
+                        {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+                    </Button>
+
+                    <div className="flex-1" />
+                    
                     <div className="flex items-center gap-4">
-                        <div className="text-sm">
-                            <p className="font-medium">{user?.full_name || user?.email}</p>
-                            <p className="text-xs text-muted-foreground">{user?.email}</p>
+                        <div className="hidden sm:block text-right">
+                            <p className="text-sm font-medium leading-none">{user?.full_name || user?.email}</p>
+                            <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
                         </div>
-                        <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold">
+                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
                             {user?.full_name?.[0] || user?.email?.[0] || 'U'}
                         </div>
                     </div>
-                </div>
+                </header>
 
                 {/* Page content */}
-                <main className="p-4 lg:p-8">
-                    {children}
+                <main className="flex-1 p-4 lg:p-8">
+                    <div className="max-w-7xl mx-auto">
+                        {children}
+                    </div>
                 </main>
             </div>
-
-            {/* Global Gamification Overlays */}
-            <XPToast />
-            <BadgeModal />
         </div>
     );
 };
+

@@ -41,6 +41,7 @@ export const QuizPage: React.FC = () => {
 
     const [topic, setTopic] = React.useState('');
     const [subject, setSubject] = React.useState('');
+    const [difficulty, setDifficulty] = React.useState('medium');
     const [elapsedTime, setElapsedTime] = React.useState(0);
     // Parse URL params
     const queryParams = new URLSearchParams(location.search);
@@ -91,7 +92,7 @@ export const QuizPage: React.FC = () => {
             const finalTopic = urlTopic || topic;
             const finalSubject = urlSubject || subject;
             if (!finalTopic || !finalSubject) return;
-            await generateQuiz(finalTopic, finalSubject, 10, 'medium', urlExamType);
+            await generateQuiz(finalTopic, finalSubject, 10, difficulty, urlExamType);
         }
     };
 
@@ -132,23 +133,45 @@ export const QuizPage: React.FC = () => {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="p-8 space-y-6">
-                        <Input
-                            label="Topic of Interest"
-                            placeholder="e.g., Quantum Mechanics"
-                            value={topic}
-                            onChange={(e) => setTopic(e.target.value)}
-                            className="h-14 rounded-2xl"
-                        />
-                        <Input
-                            label="Broad Subject Area"
-                            placeholder="e.g., Physics"
-                            value={subject}
-                            onChange={(e) => setSubject(e.target.value)}
-                            className="h-14 rounded-2xl"
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Input
+                                label="Topic"
+                                placeholder="e.g., Quantum Mechanics"
+                                value={topic}
+                                onChange={(e) => setTopic(e.target.value)}
+                                className="h-14 rounded-2xl"
+                            />
+                            <Input
+                                label="Subject"
+                                placeholder="e.g., Physics"
+                                value={subject}
+                                onChange={(e) => setSubject(e.target.value)}
+                                className="h-14 rounded-2xl"
+                            />
+                        </div>
+                        
+                        <div className="space-y-3">
+                            <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Difficulty Level</label>
+                            <div className="grid grid-cols-3 gap-3">
+                                {['Beginner', 'Intermediate', 'Advanced'].map((lvl) => (
+                                    <button
+                                        key={lvl}
+                                        onClick={() => setDifficulty(lvl.toLowerCase())}
+                                        className={`h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
+                                            difficulty === lvl.toLowerCase() 
+                                                ? 'border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5' 
+                                                : 'border-border hover:border-primary/20 text-muted-foreground'
+                                        }`}
+                                    >
+                                        {lvl}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
                         <Button
                             onClick={handleGenerateQuiz}
-                            className="w-full h-16 rounded-[1.5rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 mt-4"
+                            className="w-full h-16 rounded-[1.5rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 mt-4 bg-foreground text-background hover:scale-[1.02] transition-transform"
                             isLoading={isLoading}
                             disabled={!topic || !subject}
                         >

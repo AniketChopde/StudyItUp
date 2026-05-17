@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { studyPlanService } from '../api/services';
 import type { StudyPlan, CreatePlanData } from '../types';
 import toast from 'react-hot-toast';
-import { useGamificationStore } from './gamificationStore';
+
 
 interface StudyPlanState {
     plans: StudyPlan[];

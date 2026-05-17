@@ -35,8 +35,6 @@ export const CreateStudyPlanPage: React.FC = () => {
         register,
         handleSubmit,
         watch,
-        setValue,
-        getValues,
         formState: { errors },
     } = useForm<CreatePlanFormData>({
         resolver: zodResolver(createPlanSchema),
@@ -49,7 +47,6 @@ export const CreateStudyPlanPage: React.FC = () => {
     });
 
     const isFastLearn = watch('fast_learn');
-    const selectedHours = watch('daily_hours');
 
     // Use isCreating for the local state of this operation
     const isCreatingLocal = useStudyPlanStore(state => state.isCreating);

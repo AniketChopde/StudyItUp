@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Loading } from '../components/ui/Loading';
-import { Card, CardContent } from '../components/ui/Card';
+import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
     BookOpen, Brain, MessageSquare, TrendingUp, 
@@ -14,7 +14,7 @@ import { analyticsService } from '../api/services';
 
 export const DashboardPage: React.FC = () => {
     const { user } = useAuthStore();
-    const { plans, isLoading, fetchPlans } = useStudyPlanStore();
+    const { plans, fetchPlans } = useStudyPlanStore();
     const [stats, setStats] = React.useState<any>(null);
     const [weakAreas, setWeakAreas] = React.useState<{weak: any[], strong: any[]}>({weak: [], strong: []});
     const [loading, setLoading] = React.useState(true);

@@ -13,14 +13,13 @@ import {
     BookMarked, Video, FileText,
     ArrowLeft, GraduationCap, ChevronRight,
     PlayCircle,
-    Download, ListChecks, Target as TargetIcon,
+    ListChecks, Target as TargetIcon,
     AlertTriangle, Lightbulb, Archive, Zap, Terminal, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mermaid } from '../components/ui/Mermaid';
 import { TopicMindmap } from '../components/TopicMindmap';
 import { ResourcesTab } from '../components/ResourcesTab';
-import { downloadStudyPlanPdf } from '../lib/studyPlanPdf';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
 
@@ -42,11 +41,20 @@ export const StudyPlanDetailPage: React.FC = () => {
     const handleRegenerate = async () => {
         if (!activePlan) return;
         try {
-            const data = {
+            const data: {
+                exam_type: string;
+                target_date: string;
+                daily_hours: number;
+                current_knowledge: Record<string, any>;
+                start_date: string;
+                fast_learn: boolean;
+                force_regenerate: boolean;
+            } = {
                 exam_type: activePlan.exam_type,
                 target_date: activePlan.target_date,
                 daily_hours: activePlan.daily_hours,
                 current_knowledge: activePlan.current_knowledge,
+                start_date: new Date().toISOString().split('T')[0],
                 fast_learn: true,
                 force_regenerate: true
             };
@@ -114,10 +122,10 @@ export const StudyPlanDetailPage: React.FC = () => {
         setViewMode('lesson');
     };
 
-    const handleDownloadPdf = () => {
-        if (!activePlan) return;
-        downloadStudyPlanPdf(activePlan);
-    };
+    // const handleDownloadPdf = () => {
+    //     // PDF Generation logic will go here
+    //     console.log('Downloading PDF...');
+    // };
 
     if (isLoading && !activePlan) {
         return (

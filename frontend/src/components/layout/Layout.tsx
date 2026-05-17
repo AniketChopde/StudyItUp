@@ -17,8 +17,6 @@ import {
     Video,
     PanelLeftClose,
     PanelLeftOpen,
-    ChevronLeft,
-    ChevronRight,
     Settings
 } from 'lucide-react';
 
@@ -51,8 +49,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
     const location = useLocation();
-
-    const [isHidden, setIsHidden] = React.useState(false);
+    const [isHidden] = React.useState(false);
 
     React.useEffect(() => {
         localStorage.setItem('sidebar_collapsed', String(isCollapsed));
@@ -64,7 +61,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
 
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
-    const toggleHideSidebar = () => setIsHidden(!isHidden);
 
     return (
         <div className="min-h-screen bg-background flex">

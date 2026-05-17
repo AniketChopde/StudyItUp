@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { GraduationCap, User, BookOpen, Brain, Save, Briefcase, Clock, Activity } from 'lucide-react';
+import { GraduationCap, User, Brain, Save, Briefcase } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
     const { user, updateProfile, isLoading } = useAuthStore();

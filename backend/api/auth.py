@@ -17,7 +17,7 @@ from google.auth.transport import requests as google_requests
 
 from config import settings
 from database.connection import get_db
-from models.user import User, UserCreate, UserLogin, UserResponse, TokenResponse
+from models.user import User, UserCreate, UserLogin, UserResponse, TokenResponse, UserUpdate
 from utils.auth import hash_password, verify_password, create_token_pair, get_current_user, get_current_refresh_user, TokenData
 
 class GoogleLoginRequest(BaseModel):
@@ -197,6 +197,49 @@ async def get_profile(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch profile"
+        )
+
+
+@router.put("/profile", response_model=UserResponse)
+async def update_profile(
+    profile_data: UserUpdate,
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Update current user profile.
+    """
+    try:
+        result = await db.execute(
+            select(User).where(User.id == current_user.user_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        if profile_data.full_name is not None:
+            user.full_name = profile_data.full_name
+            
+        if profile_data.profile_data is not None:
+            # Merge or overwrite? Let's overwrite for simplicity
+            user.profile_data = profile_data.profile_data
+            
+        await db.commit()
+        await db.refresh(user)
+        
+        return user
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in update_profile: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update profile"
         )
 
 

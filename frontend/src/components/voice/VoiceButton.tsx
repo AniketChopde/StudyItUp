@@ -30,25 +30,20 @@ export const ReadAloudButton: React.FC<ReadAloudButtonProps> = ({
       disabled={isLoadingVoice}
       onClick={() => (isSpeaking ? stopSpeaking() : speak(text))}
       title={isSpeaking ? 'Stop reading' : 'Read aloud'}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg transition-all
         ${isSpeaking
           ? 'bg-primary/10 text-primary ring-1 ring-primary/30 hover:bg-primary/20'
           : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
         } ${isLoadingVoice ? 'opacity-70 cursor-not-allowed' : ''} ${className}`}
     >
       {isLoadingVoice ? (
-        <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating...
-        </>
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : isSpeaking ? (
-        <>
-          <VolumeX className="h-3.5 w-3.5" /> Stop
-        </>
+        <VolumeX className="h-4 w-4" />
       ) : (
-        <>
-          <Volume2 className="h-3.5 w-3.5" /> Read Aloud
-        </>
+        <Volume2 className="h-4 w-4" />
       )}
+      <span className="sr-only">{isSpeaking ? 'Stop reading' : 'Read aloud'}</span>
     </button>
   );
 };
@@ -60,6 +55,7 @@ interface VoiceInputButtonProps {
   voiceOptions?: UseVoiceOptions;
   className?: string;
   label?: string;
+  showLabel?: boolean;
 }
 
 export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
@@ -67,6 +63,7 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
   voiceOptions,
   className = '',
   label = 'Voice Input',
+  showLabel = false,
 }) => {
   const { isListening, sttSupported, startListening, stopListening } = useVoice(voiceOptions);
 
@@ -85,21 +82,20 @@ export const VoiceInputButton: React.FC<VoiceInputButtonProps> = ({
       type="button"
       onClick={handleClick}
       title={isListening ? 'Stop listening' : label}
-      className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all
+      className={`inline-flex items-center justify-center gap-1.5 rounded-lg transition-all
         ${isListening
           ? 'bg-red-500/10 text-red-600 ring-1 ring-red-400/30 animate-pulse hover:bg-red-500/20'
           : 'bg-muted text-muted-foreground hover:bg-muted/80 hover:text-foreground'
         } ${className}`}
     >
       {isListening ? (
-        <>
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Listening…
-        </>
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
-        <>
-          <Mic className="h-3.5 w-3.5" /> {label}
-        </>
+        <Mic className="h-4 w-4" />
       )}
+      <span className={showLabel ? "text-xs font-bold" : "sr-only"}>
+        {isListening ? 'Listening...' : label}
+      </span>
     </button>
   );
 };

@@ -54,7 +54,8 @@ class AgentOrchestrator:
         user_goal: str = None,
         current_knowledge: Dict[str, Any] = None,
         fast_learn: bool = False,
-        language: str = "English"
+        language: str = "English",
+        user_profile: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Create a study plan for any learning goal (exam, skill, or subject).
@@ -73,7 +74,8 @@ class AgentOrchestrator:
                 exam_type=exam_type,
                 target_date=target_date,
                 daily_hours=daily_hours,
-                current_knowledge=current_knowledge or {}
+                current_knowledge=current_knowledge or {},
+                user_profile=user_profile
             )
             
             # Step 3: Create study plan
@@ -82,11 +84,12 @@ class AgentOrchestrator:
                 exam_type=exam_type,
                 target_date=target_date,
                 daily_hours=daily_hours,
-                syllabus_data=None, # Explicitly None to use LLM knowledge only
-                current_knowledge=current_knowledge or {},
+                syllabus_data=exam_info,
+                current_knowledge=current_knowledge,
                 goal=user_goal,
                 fast_learn=fast_learn,
-                language=language
+                language=language,
+                user_profile=user_profile
             )
             
             # Step 4: Generate immediate actions

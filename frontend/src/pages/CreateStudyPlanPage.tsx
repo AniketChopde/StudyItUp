@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,14 +7,20 @@ import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
-import { Target, Calendar, Clock, Sparkles } from 'lucide-react';
+import { Target, Calendar, Clock, Sparkles, AlertTriangle } from 'lucide-react';
+
+const today = new Date().toISOString().split('T')[0];
 
 const createPlanSchema = z.object({
     exam_type: z.string().min(2, 'Learning goal or topic is required'),
+    start_date: z.string().min(1, 'Start date is required'),
     target_date: z.string().min(1, 'Target completion date is required'),
     daily_hours: z.number().min(1).max(24),
     fast_learn: z.boolean().default(false),
     language: z.string().default('English'),
+}).refine(data => new Date(data.target_date) >= new Date(data.start_date), {
+    message: "Target date must be after start date",
+    path: ["target_date"]
 });
 
 type CreatePlanFormData = z.infer<typeof createPlanSchema>;
@@ -22,15 +28,20 @@ type CreatePlanFormData = z.infer<typeof createPlanSchema>;
 export const CreateStudyPlanPage: React.FC = () => {
     const navigate = useNavigate();
     const { createPlan } = useStudyPlanStore();
+    const [showHoursWarning, setShowHoursWarning] = useState(false);
+    const [pendingData, setPendingData] = useState<CreatePlanFormData | null>(null);
 
     const {
         register,
         handleSubmit,
         watch,
+        setValue,
+        getValues,
         formState: { errors },
     } = useForm<CreatePlanFormData>({
         resolver: zodResolver(createPlanSchema),
         defaultValues: {
+            start_date: today,
             daily_hours: 4,
             fast_learn: false,
             language: 'English',
@@ -38,17 +49,23 @@ export const CreateStudyPlanPage: React.FC = () => {
     });
 
     const isFastLearn = watch('fast_learn');
+    const selectedHours = watch('daily_hours');
 
     // Use isCreating for the local state of this operation
     const isCreatingLocal = useStudyPlanStore(state => state.isCreating);
 
     const onSubmit = async (data: CreatePlanFormData) => {
+        if (data.daily_hours > 8 && !pendingData) {
+            setPendingData(data);
+            setShowHoursWarning(true);
+            return;
+        }
+        
         try {
             const response = await createPlan({
                 ...data,
                 current_knowledge: {},
             });
-            // response.study_plan is the new plan object
             if (response.study_plan?.id) {
                 navigate(`/study-plans/${response.study_plan.id}`);
             } else {
@@ -56,6 +73,13 @@ export const CreateStudyPlanPage: React.FC = () => {
             }
         } catch (error) {
             // Error handled by store
+        }
+    };
+
+    const confirmHighHours = () => {
+        if (pendingData) {
+            onSubmit(pendingData);
+            setShowHoursWarning(false);
         }
     };
 
@@ -71,7 +95,7 @@ export const CreateStudyPlanPage: React.FC = () => {
                 </div>
             </div>
 
-            <Card className="border-2 border-primary/20 shadow-xl">
+            <Card className="border-2 border-primary/20 shadow-xl relative">
                 <CardHeader>
                     <CardTitle>Plan Details</CardTitle>
                     <CardDescription>Tell us about your goal and schedule</CardDescription>
@@ -87,37 +111,50 @@ export const CreateStudyPlanPage: React.FC = () => {
                                 {...register('exam_type')}
                             />
 
-                            <div className="space-y-1">
-                                <label className="text-sm font-medium leading-none">
-                                    Preferred Language
-                                </label>
-                                <select
-                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                    {...register('language')}
-                                >
-                                    <option value="English">English</option>
-                                    <option value="Hindi">Hindi (हिंदी)</option>
-                                    <option value="Marathi">Marathi (मराठी)</option>
-                                </select>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-sm font-medium leading-none">
+                                        Preferred Language
+                                    </label>
+                                    <select
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        {...register('language')}
+                                    >
+                                        <option value="English">English</option>
+                                        <option value="Hindi">Hindi (हिंदी)</option>
+                                        <option value="Marathi">Marathi (मराठी)</option>
+                                    </select>
+                                </div>
+
+                                <Input
+                                    label="Daily study hours"
+                                    type="number"
+                                    min="1"
+                                    max="24"
+                                    icon={<Clock className="h-4 w-4" />}
+                                    error={errors.daily_hours?.message}
+                                    {...register('daily_hours', { valueAsNumber: true })}
+                                />
                             </div>
 
-                            <Input
-                                label="Target completion date"
-                                type="date"
-                                icon={<Calendar className="h-4 w-4" />}
-                                error={errors.target_date?.message}
-                                {...register('target_date')}
-                            />
-
-                            <Input
-                                label="How many hours can you study daily?"
-                                type="number"
-                                min="1"
-                                max="24"
-                                icon={<Clock className="h-4 w-4" />}
-                                error={errors.daily_hours?.message}
-                                {...register('daily_hours', { valueAsNumber: true })}
-                            />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Input
+                                    label="Start Date"
+                                    type="date"
+                                    min={today}
+                                    icon={<Calendar className="h-4 w-4" />}
+                                    error={errors.start_date?.message}
+                                    {...register('start_date')}
+                                />
+                                <Input
+                                    label="Target completion date"
+                                    type="date"
+                                    min={watch('start_date') || today}
+                                    icon={<Calendar className="h-4 w-4" />}
+                                    error={errors.target_date?.message}
+                                    {...register('target_date')}
+                                />
+                            </div>
 
                             <div className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${isFastLearn ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20' : 'border-border bg-card hover:bg-muted/50'}`}>
                                 <label className="flex items-start gap-3 cursor-pointer">
@@ -134,7 +171,7 @@ export const CreateStudyPlanPage: React.FC = () => {
                                             {isFastLearn && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full uppercase">Enabled</span>}
                                         </div>
                                         <p className="text-xs text-muted-foreground font-medium mt-1">
-                                            Focus on core and foundational topics first. Skip optional or advanced content to cover essentials in less time. Ideal when you have a deadline or want a quick overview.
+                                            Focus on core and foundational topics first. Skip optional or advanced content to cover essentials in less time.
                                         </p>
                                     </div>
                                 </label>
@@ -142,34 +179,55 @@ export const CreateStudyPlanPage: React.FC = () => {
                         </div>
 
                         <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                            <h4 className="font-semibold flex items-center gap-2 mb-2">
+                            <h4 className="font-semibold flex items-center gap-2 mb-2 text-sm">
                                 <Sparkles className="h-4 w-4 text-primary" />
                                 {isFastLearn ? 'Fast Learn Optimization' : 'AI Engine Features'}
                             </h4>
-                            <ul className="text-sm space-y-2 text-muted-foreground">
+                            <ul className="text-[11px] space-y-1 text-muted-foreground font-medium">
                                 {isFastLearn ? (
                                     <>
                                         <li>• Core-first topic prioritization</li>
                                         <li>• Compressed timeline for quick coverage</li>
-                                        <li>• Focus on must-know concepts before advanced topics</li>
-                                        <li>• Smart resource discovery for essential topics</li>
                                     </>
                                 ) : (
                                     <>
                                         <li>• Personalized topic breakdown and learning path</li>
                                         <li>• Smart resource discovery (videos, notes, articles)</li>
-                                        <li>• Adaptive scheduling based on your daily hours</li>
-                                        <li>• Integrated progress tracking and gap analysis</li>
                                     </>
                                 )}
                             </ul>
                         </div>
 
-                        <Button type="submit" className="w-full h-12 text-lg" isLoading={isCreatingLocal}>
+                        <Button type="submit" className="w-full h-12 text-lg font-bold" isLoading={isCreatingLocal}>
                             {isFastLearn ? 'Generate Fast Plan ⚡' : 'Generate My Plan 🚀'}
                         </Button>
                     </form>
                 </CardContent>
+
+                {/* Hours Warning Modal */}
+                {showHoursWarning && (
+                    <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm rounded-3xl animate-in fade-in duration-300">
+                        <div className="bg-card border-2 border-primary/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
+                            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                                <AlertTriangle size={32} />
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-black">Intensive Schedule!</h3>
+                                <p className="text-sm text-muted-foreground font-medium">
+                                    You've selected <span className="text-primary font-bold">{pendingData?.daily_hours} hours</span> per day. This is a very intense commitment. Are you sure you can maintain this pace?
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Button onClick={confirmHighHours} className="w-full h-12 font-black uppercase tracking-widest">
+                                    Yes, I'm Committed 🚀
+                                </Button>
+                                <Button variant="outline" onClick={() => {setShowHoursWarning(false); setPendingData(null);}} className="w-full h-12 font-black uppercase tracking-widest border-slate-200">
+                                    Let Me Reconsider
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </Card>
         </div>
     );

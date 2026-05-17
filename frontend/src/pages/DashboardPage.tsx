@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { 
     BookOpen, Brain, MessageSquare, TrendingUp, 
     Clock, Target, CheckCircle2, ChevronRight, 
-    AlertCircle, Zap, Star, Layout
+    AlertTriangle, Layout, GraduationCap
 } from 'lucide-react';
 import { analyticsService } from '../api/services';
 
@@ -54,47 +54,47 @@ export const DashboardPage: React.FC = () => {
     return (
         <div className="space-y-10 pb-20 animate-in fade-in duration-700">
             {/* Hero Section - Today's Task */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-foreground text-background p-8 md:p-12 shadow-2xl">
-                <div className="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
-                    <Zap className="h-64 w-64 absolute -top-10 -right-10 text-primary animate-pulse" />
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 text-white p-8 md:p-12 shadow-2xl border border-white/5">
+                <div className="absolute top-0 right-0 w-1/3 h-full opacity-5 pointer-events-none">
+                    <BookOpen className="h-64 w-64 absolute -top-10 -right-10 text-white" />
                 </div>
                 
                 <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                     <div className="space-y-6">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 text-primary border border-primary/20">
-                            <Star className="h-3.5 w-3.5 fill-current" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Recommended for Today</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary-foreground border border-primary/20">
+                            <Target className="h-3.5 w-3.5" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Today's Academic Objective</span>
                         </div>
                         
                         <div className="space-y-2">
                             <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-                                {nextChapter ? `Next up: ${nextChapter.chapter_name}` : `Welcome back, ${user?.full_name || 'Student'}!`}
+                                {nextChapter ? `Next Chapter: ${nextChapter.chapter_name}` : `Welcome, ${user?.full_name || 'Student'}`}
                             </h1>
-                            <p className="text-lg opacity-70 font-medium max-w-lg">
+                            <p className="text-lg text-slate-400 font-medium max-w-lg">
                                 {nextChapter 
-                                    ? `You're ${progress}% through your ${activePlan?.exam_type} goals. Today's focus is on mastering this chapter.`
-                                    : "You've completed all your current tasks! Why not start a new study plan or take a challenging quiz?"}
+                                    ? `You have reached ${progress}% of your ${activePlan?.exam_type} curriculum. Focus on mastering this module today.`
+                                    : "Curriculum complete. You may review existing materials or initialize a new study trajectory."}
                             </p>
                         </div>
 
                         <div className="flex flex-wrap gap-4 pt-4">
                             {activePlan && nextChapter ? (
                                 <Link to={`/study-plans/${activePlan.id}?chapterId=${nextChapter.id}`}>
-                                    <Button className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:scale-105 transition-transform shadow-lg shadow-primary/20">
-                                        Resume Learning
+                                    <Button className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-lg shadow-primary/20">
+                                        Resume Study
                                         <ChevronRight className="ml-2 h-5 w-5" />
                                     </Button>
                                 </Link>
                             ) : (
                                 <Link to="/study-plans/create">
-                                    <Button className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:scale-105 transition-transform">
-                                        Create New Plan
+                                    <Button className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition-all">
+                                        Initialize New Plan
                                     </Button>
                                 </Link>
                             )}
                             <Link to="/chat">
-                                <Button variant="outline" className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest border-white/20 hover:bg-white/10">
-                                    Quick Chat
+                                <Button variant="outline" className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest border-white/10 hover:bg-white/5 text-white">
+                                    Consult AI Assistant
                                 </Button>
                             </Link>
                         </div>
@@ -103,18 +103,18 @@ export const DashboardPage: React.FC = () => {
                     <div className="hidden lg:block">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                <Clock className="h-6 w-6 text-primary mb-4" />
-                                <p className="text-3xl font-black">{stats?.hours_studied || 0}h</p>
-                                <p className="text-[10px] uppercase font-black tracking-widest opacity-50 mt-1">Focused Learning</p>
+                                <Clock className="h-6 w-6 text-primary/70 mb-4" />
+                                <p className="text-3xl font-black text-white">{stats?.hours_studied || 0}h</p>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mt-1">Total Study Time</p>
                             </div>
                             <div className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                                <Target className="h-6 w-6 text-emerald-400 mb-4" />
-                                <p className="text-3xl font-black">{stats?.topics_completed || 0}</p>
-                                <p className="text-[10px] uppercase font-black tracking-widest opacity-50 mt-1">Concepts Mastered</p>
+                                <CheckCircle2 className="h-6 w-6 text-emerald-500/70 mb-4" />
+                                <p className="text-3xl font-black text-white">{stats?.topics_completed || 0}</p>
+                                <p className="text-[10px] uppercase font-black tracking-widest text-slate-500 mt-1">Modules Mastered</p>
                             </div>
                             <div className="col-span-2 p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm">
                                 <div className="flex justify-between items-end mb-4">
-                                    <p className="text-[10px] uppercase font-black tracking-widest opacity-50">Mastery Progress</p>
+                                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-500">Curriculum Coverage</p>
                                     <p className="text-2xl font-black text-primary">{progress}%</p>
                                 </div>
                                 <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
@@ -131,14 +131,14 @@ export const DashboardPage: React.FC = () => {
                 {/* Left Column: Analytics & Weak Areas */}
                 <div className="lg:col-span-8 space-y-8">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Weak Areas */}
+                        {/* Areas for Improvement */}
                         <Card className="rounded-[2rem] border-none shadow-xl bg-card overflow-hidden">
                             <div className="p-8 space-y-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500">
-                                        <AlertCircle size={20} />
+                                    <div className="p-2.5 bg-rose-500/10 rounded-xl text-rose-500">
+                                        <AlertTriangle size={20} />
                                     </div>
-                                    <h3 className="text-xl font-black">Focus Needed</h3>
+                                    <h3 className="text-xl font-black uppercase tracking-tight">Areas for Improvement</h3>
                                 </div>
                                 <div className="space-y-3">
                                     {weakAreas.weak?.length > 0 ? (
@@ -174,7 +174,7 @@ export const DashboardPage: React.FC = () => {
                                     <div className="p-2.5 bg-indigo-500/10 rounded-xl text-indigo-500">
                                         <TrendingUp size={20} />
                                     </div>
-                                    <h3 className="text-xl font-black">Quiz Performance</h3>
+                                    <h3 className="text-xl font-black uppercase tracking-tight">Academic Analytics</h3>
                                 </div>
                                 <div className="flex flex-col items-center justify-center py-4 space-y-2">
                                     <div className="relative">
@@ -240,19 +240,19 @@ export const DashboardPage: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <Link to="/chat" className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/10 hover:border-blue-500/30 transition-all flex flex-col items-center gap-3 group text-center">
                                     <MessageSquare className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-xs font-black uppercase tracking-tighter">Chat</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 group-hover:text-blue-600 transition-colors">Chat</span>
                                 </Link>
                                 <Link to="/quiz" className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/10 hover:border-purple-500/30 transition-all flex flex-col items-center gap-3 group text-center">
                                     <Brain className="h-6 w-6 text-purple-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-xs font-black uppercase tracking-tighter">Quiz</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-600/70 group-hover:text-purple-600 transition-colors">Quiz</span>
                                 </Link>
                                 <Link to="/analytics" className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/10 hover:border-orange-500/30 transition-all flex flex-col items-center gap-3 group text-center">
                                     <Layout className="h-6 w-6 text-orange-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-xs font-black uppercase tracking-tighter">Stats</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600/70 group-hover:text-orange-600 transition-colors">Stats</span>
                                 </Link>
-                                <Link to="/study-plans/create" className="p-4 rounded-2xl bg-green-500/10 border border-green-500/10 hover:border-green-500/30 transition-all flex flex-col items-center gap-3 group text-center">
-                                    <Zap className="h-6 w-6 text-green-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-xs font-black uppercase tracking-tighter">Focus</span>
+                                <Link to="/study-plans/create" className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/30 transition-all flex flex-col items-center gap-3 group text-center">
+                                    <Target className="h-6 w-6 text-emerald-500 group-hover:scale-110 transition-transform" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70 group-hover:text-emerald-600 transition-colors">New Plan</span>
                                 </Link>
                             </div>
                         </div>
@@ -262,22 +262,28 @@ export const DashboardPage: React.FC = () => {
                     <Card className="rounded-[2.5rem] border-none shadow-xl bg-primary text-primary-foreground overflow-hidden">
                         <div className="p-8 space-y-6">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-xl font-black">Reminders</h3>
-                                <div className="h-2 w-2 rounded-full bg-white animate-ping" />
+                                <h3 className="text-xl font-black uppercase tracking-tight">Active Reminders</h3>
+                                <div className="h-2 w-2 rounded-full bg-white/40" />
                             </div>
                             <div className="space-y-4">
                                 {activePlan ? (
                                     <div className="p-5 rounded-2xl bg-white/10 border border-white/10 space-y-3">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 bg-white/20 rounded-lg">
-                                                <Target size={16} />
+                                                {progress >= 80 ? <GraduationCap size={16} /> : <Target size={16} />}
                                             </div>
-                                            <p className="text-sm font-bold leading-tight">Complete {nextChapter?.chapter_name || 'your daily task'}</p>
+                                            <p className="text-sm font-bold leading-tight">
+                                                {progress >= 80 ? "Complete the Course!" : `Next: ${nextChapter?.chapter_name || 'Review Curriculum'}`}
+                                            </p>
                                         </div>
-                                        <p className="text-xs opacity-70 font-medium">Consistency is key to mastering {activePlan.exam_type}. You're doing great!</p>
+                                        <p className="text-xs opacity-70 font-medium">
+                                            {progress >= 80 
+                                                ? `You are ${progress}% through! Finish the remaining modules to earn your certificate.` 
+                                                : `Continue your study path for ${activePlan.exam_type}. Consistency is vital for long-term retention.`}
+                                        </p>
                                         <Link to={`/study-plans/${activePlan.id}`} className="block">
                                             <Button variant="outline" className="w-full rounded-xl border-white/20 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-widest h-10">
-                                                Go to Course
+                                                {progress >= 80 ? "Final Sprint" : "Access Module"}
                                             </Button>
                                         </Link>
                                     </div>

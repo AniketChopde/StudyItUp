@@ -2,7 +2,7 @@
 User model and schemas.
 """
 
-from sqlalchemy import Column, String, DateTime, Boolean
+from sqlalchemy import Column, String, DateTime, Boolean, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import uuid
@@ -24,6 +24,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
     is_superuser = Column(Boolean, default=False)
+    profile_data = Column(JSON, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -52,6 +53,12 @@ class UserBase(BaseModel):
     full_name: str | None = None
 
 
+class UserUpdate(BaseModel):
+    """Schema for updating user profile."""
+    full_name: str | None = None
+    profile_data: dict | None = None
+
+
 class UserCreate(UserBase):
     """Schema for user registration."""
     password: str = Field(..., min_length=8)
@@ -70,6 +77,7 @@ class UserResponse(UserBase):
     is_superuser: bool = False
     mfa_enabled: bool = False
     google_id: str | None = None
+    profile_data: dict = Field(default_factory=dict)
     created_at: datetime
     
     class Config:

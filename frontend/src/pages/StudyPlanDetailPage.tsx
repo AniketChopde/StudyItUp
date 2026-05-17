@@ -13,17 +13,15 @@ import {
     BookMarked, Video, FileText,
     ArrowLeft, GraduationCap, ChevronRight,
     PlayCircle,
-    Download, ListChecks, Target as GoalIcon,
-    AlertTriangle, Lightbulb, Archive, Zap, Terminal
+    Download, ListChecks, Target as TargetIcon,
+    AlertTriangle, Lightbulb, Archive, Zap, Terminal, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mermaid } from '../components/ui/Mermaid';
 import { TopicMindmap } from '../components/TopicMindmap';
 import { ResourcesTab } from '../components/ResourcesTab';
 import { downloadStudyPlanPdf } from '../lib/studyPlanPdf';
-import { EngagementButtons } from '../components/EngagementButtons';
 import { FeedbackModal } from '../components/FeedbackModal';
-import { Star } from 'lucide-react';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const StudyPlanDetailPage: React.FC = () => {
@@ -116,7 +114,7 @@ export const StudyPlanDetailPage: React.FC = () => {
         setViewMode('lesson');
     };
 
-    const handleDownload = () => {
+    const handleDownloadPdf = () => {
         if (!activePlan) return;
         downloadStudyPlanPdf(activePlan);
     };
@@ -144,113 +142,96 @@ export const StudyPlanDetailPage: React.FC = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-700 pb-20">
             {/* Header section */}
-            <div className="relative overflow-hidden rounded-3xl bg-primary/5 border border-primary/10 p-8 md:p-12">
-                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <Sparkles className="h-32 w-32 text-primary" />
+            <div className="relative overflow-hidden rounded-3xl bg-slate-50 border border-slate-200 p-8 md:p-12 shadow-sm">
+                <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                    <BookOpen className="h-32 w-32 text-slate-400" />
                 </div>
 
                 <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="space-y-4">
+                        <div className="flex flex-wrap gap-2">
+                            <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
+                                <Clock className="h-3 w-3" />
+                                {activePlan.chapters.reduce((acc: number, c: any) => acc + (c.estimated_hours || 0), 0)} Hours Total
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
+                                <Calendar className="h-3 w-3" />
+                                Started {format(new Date(activePlan.start_date || activePlan.created_at), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
+                                <Calendar className="h-3 w-3" />
+                                Target {format(new Date(activePlan.target_date), 'MMM dd, yyyy')}
+                            </div>
+                        </div>
                         <div className="flex items-center gap-2">
-                            <span className="bg-primary/20 text-primary text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-primary/20">
+                            <span className="bg-slate-200 text-slate-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-slate-300">
                                 {activePlan.exam_type}
                             </span>
                             {progress === 100 ? (
-                                <span className="bg-emerald-500/20 text-emerald-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-500/20 flex items-center gap-1">
+                                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 flex items-center gap-1">
                                     <GraduationCap className="h-3 w-3" />
-                                    Certification Ready
+                                    Certification Eligible
                                 </span>
                             ) : (
-                                <span className="bg-amber-500/20 text-amber-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-amber-500/20">
-                                    Learning in Progress
+                                <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-blue-200">
+                                    Course in Progress
                                 </span>
                             )}
                         </div>
-                        <h1 className="text-5xl font-black tracking-tight bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
-                            {activePlan.exam_type} Roadmap
+                        <h1 className="text-5xl font-black tracking-tight text-slate-900">
+                            {activePlan.exam_type} Curriculum
                         </h1>
-                        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-muted-foreground font-bold">
-                            <div className="flex items-center gap-2.5">
-                                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-                                    <Calendar className="h-4 w-4" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-tighter opacity-60">Timeline</span>
-                                    <span className="text-sm text-foreground">
-                                        {format(new Date(activePlan.created_at), 'MMM d')} - {format(new Date(activePlan.target_date), 'MMM d, yyyy')}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-                                    <Clock className="h-4 w-4" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-tighter opacity-60">Daily Commitment</span>
-                                    <span className="text-sm text-foreground">{activePlan.daily_hours}h focus sessions</span>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                                <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-                                    <BookOpen className="h-4 w-4" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase tracking-tighter opacity-60">Total Effort</span>
-                                    <span className="text-sm text-foreground">
-                                        {activePlan.chapters.reduce((acc, c) => acc + c.estimated_hours, 0)} Total Hours
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
                     </div>
-
                     <div className="flex flex-col items-end gap-4 w-full md:w-auto">
                         <div className="flex flex-wrap justify-end gap-2">
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-2xl border-primary/20 hover:bg-primary/5 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
-                                onClick={handleDownload}
-                            >
-                                <Download size={16} />
-                                Export PDF
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="rounded-2xl border-primary/20 hover:bg-primary/5 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-2xl border-slate-200 hover:bg-slate-50 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
                                 onClick={() => setIsFeedbackModalOpen(true)}
                             >
-                                <Star size={16} className="text-yellow-500" />
-                                Rate
+                                <TargetIcon size={16} className="text-slate-500" />
+                                Evaluate
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-2xl border-primary/20 hover:bg-primary/5 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-2xl border-slate-200 hover:bg-slate-50 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
                                 onClick={() => setIsEditModalOpen(true)}
                             >
-                                Edit Plan
+                                <Layout size={16} className="text-slate-500" />
+                                Adjust Plan
                             </Button>
                             <Button
                                 variant="secondary"
                                 size="sm"
-                                className="rounded-2xl h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-2xl h-11 px-5 font-bold flex items-center gap-2 shadow-sm bg-slate-900 text-white hover:bg-slate-800"
                                 onClick={handleRegenerate}
                                 isLoading={isCreating}
                             >
-                                <Sparkles size={16} />
-                                Regenerate
+                                <RefreshCw size={16} />
+                                Re-optimize
                             </Button>
+                            {/* currently not implemented to use it */}
+                            {/* <Button
+                                variant="default"
+                                size="sm"
+                                className="rounded-2xl h-11 px-5 font-bold flex items-center gap-2 shadow-lg shadow-primary/20"
+                                onClick={handleDownloadPdf}
+                            >
+                                <Download size={16} />
+                                Export PDF
+                            </Button> */}
                         </div>
+
                         <div className="w-full md:w-72 space-y-2">
                             <div className="flex justify-between mb-1">
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Overall Mastery</span>
-                                <span className="text-sm font-black text-primary">{progress}%</span>
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Syllabus Mastery</span>
+                                <span className="text-sm font-black text-slate-900">{progress}%</span>
                             </div>
-                            <div className="w-full h-3 bg-primary/10 rounded-full overflow-hidden p-0.5 border border-primary/5">
+                            <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-primary rounded-full transition-all duration-1000 ease-out shadow-[0_0_12px_rgba(var(--primary),0.4)]"
+                                    className="h-full bg-slate-900 transition-all duration-1000 ease-out"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
@@ -374,7 +355,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     {activePlan.plan_metadata?.goal_analysis && (
                                         <div className="p-6 bg-primary/5 rounded-3xl border border-primary/10">
                                             <h4 className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-primary mb-3">
-                                                <GoalIcon size={16} />
+                                                <TargetIcon size={16} />
                                                 Goal Analysis
                                             </h4>
                                             <div className="space-y-4">
@@ -508,20 +489,20 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                 <p className="text-primary font-bold uppercase text-xs tracking-widest mt-1">
                                                     Focus: {selectedChapter.subject}
                                                 </p>
-                                                <div className="mt-4">
-                                                    <EngagementButtons 
-                                                        contentType="chapter" 
-                                                        contentId={selectedChapter.id.toString()} 
-                                                    />
-                                                </div>
                                             </div>
                                             <Button
-                                                onClick={handleStartLesson}
-                                                isLoading={isTeaching}
-                                                className="rounded-full px-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 h-12"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => updateChapterStatus(selectedChapter.id.toString(), selectedChapter.status === 'completed' ? 'pending' : 'completed')}
+                                                className={`rounded-xl px-4 h-10 text-[10px] font-black uppercase tracking-widest border transition-all ${
+                                                    selectedChapter.status === 'completed' 
+                                                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' 
+                                                    : 'bg-muted/50 text-muted-foreground border-border/50 hover:bg-muted hover:text-foreground'
+                                                }`}
                                             >
-                                                <GraduationCap className="mr-2 h-5 w-5" />
-                                                Start Deep Lesson
+                                                {selectedChapter.status === 'completed' ? (
+                                                    <span className="flex items-center gap-1.5"><CheckCircle2 size={12} /> Completed</span>
+                                                ) : 'Mark Complete'}
                                             </Button>
                                         </div>
                                     </div>
@@ -552,7 +533,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                     {selectedChapter.resources?.map((res, i) => (
                                                         <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-3.5 bg-muted/50 rounded-2xl hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all group">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="h-8 w-8 bg-background rounded-xl flex items-center justify-center text-primary shadow-sm">
+                                                                 <div className="h-8 w-8 bg-background rounded-xl flex items-center justify-center text-primary shadow-sm">
                                                                     {res.type === 'video' ? <Video size={16} /> : <FileText size={16} />}
                                                                 </div>
                                                                 <span className="text-xs font-bold line-clamp-1 group-hover:text-primary transition-colors">{res.title}</span>
@@ -566,110 +547,33 @@ export const StudyPlanDetailPage: React.FC = () => {
 
                                         <div className="pt-6 border-t border-border flex flex-col md:flex-row gap-4">
                                             <Button
-                                                variant={selectedChapter.status === 'completed' ? 'outline' : 'default'}
-                                                className="flex-1 rounded-2xl h-14 text-sm font-black uppercase tracking-widest"
-                                                onClick={() => updateChapterStatus(selectedChapter.id.toString(), selectedChapter.status === 'completed' ? 'pending' : 'completed')}
+                                                onClick={handleStartLesson}
+                                                isLoading={isTeaching}
+                                                className="flex-1 rounded-2xl h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 shadow-xl shadow-primary/20"
                                             >
-                                                {selectedChapter.status === 'completed' ? 'Completed 🎉' : 'Mark as Complete'}
+                                                <GraduationCap className="mr-2 h-5 w-5" />
+                                                Start Deep Lesson
                                             </Button>
                                             <Button
-                                                variant="secondary"
-                                                className="px-8 rounded-2xl h-14 text-sm font-black uppercase tracking-widest"
+                                                variant="outline"
+                                                className="px-8 rounded-2xl h-14 text-sm font-black uppercase tracking-widest border-slate-200"
                                                 onClick={() => navigate(`/quiz?topic=${encodeURIComponent(selectedChapter.chapter_name)}&subject=${encodeURIComponent(selectedChapter.subject)}&chapterId=${selectedChapter.id.toString()}&examType=${encodeURIComponent(activePlan.exam_type)}&autoStart=true`)}
                                             >
-                                                Knowledge Check
+                                                Assessment
                                             </Button>
                                         </div>
                                         <div className="flex justify-center pt-2">
                                             <button 
                                                 onClick={() => navigate(`/chat?planId=${activePlan.id}&chapter=${selectedChapter.chapter_name}&query=Give me a detailed 7-day breakdown for ${selectedChapter.chapter_name}`)}
-                                                className="text-[10px] font-black uppercase text-primary/60 hover:text-primary tracking-widest transition-colors flex items-center gap-1.5"
+                                                className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 tracking-widest transition-colors flex items-center gap-1.5"
                                             >
-                                                <Sparkles size={12} />
-                                                Need a detailed daily plan for this chapter?
+                                                <ListChecks size={12} />
+                                                Request detailed daily study breakdown
                                             </button>
                                         </div>
                                     </CardContent>
                                 </Card>
-                            )}
-
-                            {isEditModalOpen && (
-                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-                                    <Card className="w-full max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-card border border-border">
-                                        <CardHeader className="p-8 pb-4">
-                                            <CardTitle className="text-2xl font-black">Edit Study Plan</CardTitle>
-                                            <CardDescription>Adjust your learning pace and deadline</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="p-8 pt-4 space-y-6">
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Daily Hours</label>
-                                                    <input 
-                                                        type="number" 
-                                                        defaultValue={activePlan.daily_hours}
-                                                        min={1}
-                                                        max={24}
-                                                        className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
-                                                        onChange={(e) => {
-                                                            const val = parseInt(e.target.value);
-                                                            if (val > 0) activePlan.daily_hours = val;
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Target Date</label>
-                                                    <input 
-                                                        type="date" 
-                                                        defaultValue={activePlan.target_date}
-                                                        className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
-                                                        onChange={(e) => {
-                                                            activePlan.target_date = e.target.value;
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-3 pt-2">
-                                                <Button 
-                                                    variant="outline" 
-                                                    className="flex-1 rounded-2xl h-12 font-bold"
-                                                    onClick={() => setIsEditModalOpen(false)}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button 
-                                                    className="flex-1 rounded-2xl h-12 font-bold"
-                                                    onClick={async () => {
-                                                        const { updatePlan } = useStudyPlanStore.getState();
-                                                        await updatePlan(activePlan.id, {
-                                                            daily_hours: activePlan.daily_hours,
-                                                            target_date: activePlan.target_date
-                                                        });
-                                                        setIsEditModalOpen(false);
-                                                    }}
-                                                >
-                                                    Save Changes
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            )}
-                            
-                            <Card className="mt-8 rounded-[2rem] border-none bg-gradient-to-br from-primary/10 to-primary/5 shadow-inner overflow-hidden">
-                                <CardContent className="p-8 flex items-start gap-6">
-                                    <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
-                                        <Lightbulb className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-black uppercase tracking-widest text-primary">AI Strategy Note</h4>
-                                        <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                                            Your study plan is dynamic. If you find certain chapters too easy or too hard, use the <span className="text-primary">Regenerate</span> feature. 
-                                            Our AI analyzes your quiz performance to re-prioritize topics, ensuring you spend time where it matters most. 
-                                            <span className="block mt-2 opacity-60">Smarter plans = Faster mastery.</span>
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            ) : (
                                 <div className="space-y-6">
                                     <div className="flex items-center justify-between">
                                         <button
@@ -754,7 +658,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                 <div className="space-y-4">
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <div className="p-1.5 bg-primary/10 rounded-lg text-primary">
-                                                                            <GoalIcon size={14} />
+                                                                            <TargetIcon size={14} />
                                                                         </div>
                                                                         <h4 className="text-[10px] font-black uppercase text-primary tracking-widest">Visual Study Guide</h4>
                                                                     </div>
@@ -979,6 +883,84 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     )}
                                 </div>
                             )}
+
+                            {isEditModalOpen && (
+                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+                                    <Card className="w-full max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-card border border-border">
+                                        <CardHeader className="p-8 pb-4">
+                                            <CardTitle className="text-2xl font-black">Edit Study Plan</CardTitle>
+                                            <CardDescription>Adjust your learning pace and deadline</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="p-8 pt-4 space-y-6">
+                                            <div className="space-y-4">
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Daily Hours</label>
+                                                    <input 
+                                                        type="number" 
+                                                        defaultValue={activePlan.daily_hours}
+                                                        min={1}
+                                                        max={24}
+                                                        className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
+                                                        onChange={(e) => {
+                                                            const val = parseInt(e.target.value);
+                                                            if (val > 0) activePlan.daily_hours = val;
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Target Date</label>
+                                                    <input 
+                                                        type="date" 
+                                                        defaultValue={activePlan.target_date}
+                                                        className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
+                                                        onChange={(e) => {
+                                                            activePlan.target_date = e.target.value;
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 pt-2">
+                                                <Button 
+                                                    variant="outline" 
+                                                    className="flex-1 rounded-2xl h-12 font-bold"
+                                                    onClick={() => setIsEditModalOpen(false)}
+                                                >
+                                                    Cancel
+                                                </Button>
+                                                <Button 
+                                                    className="flex-1 rounded-2xl h-12 font-bold"
+                                                    onClick={async () => {
+                                                        const { updatePlan } = useStudyPlanStore.getState();
+                                                        await updatePlan(activePlan.id, {
+                                                            daily_hours: activePlan.daily_hours,
+                                                            target_date: activePlan.target_date
+                                                        });
+                                                        setIsEditModalOpen(false);
+                                                    }}
+                                                >
+                                                    Save Changes
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            )}
+                            
+                            <Card className="mt-8 rounded-[2rem] border-none bg-gradient-to-br from-primary/10 to-primary/5 shadow-inner overflow-hidden">
+                                <CardContent className="p-8 flex items-start gap-6">
+                                    <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
+                                        <Lightbulb className="h-6 w-6 text-primary" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="text-sm font-black uppercase tracking-widest text-primary">AI Strategy Note</h4>
+                                        <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                                            Your study plan is dynamic. If you find certain chapters too easy or too hard, use the <span className="text-primary">Regenerate</span> feature. 
+                                            Our AI analyzes your quiz performance to re-prioritize topics, ensuring you spend time where it matters most. 
+                                            <span className="block mt-2 opacity-60">Smarter plans = Faster mastery.</span>
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
                         </div>
                     ) : viewMode === 'courses' ? (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-6">

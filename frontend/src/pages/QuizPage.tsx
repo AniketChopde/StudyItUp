@@ -11,7 +11,6 @@ import {
     Target, Award, AlertTriangle, Lightbulb, History
 } from 'lucide-react';
 import { formatTime } from '../lib/utils';
-import { EngagementButtons } from '../components/EngagementButtons';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
 
 export const QuizPage: React.FC = () => {
@@ -248,12 +247,6 @@ export const QuizPage: React.FC = () => {
                     </Button> */}
                     <span className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">Performance Report</span>
                     <h1 className="text-4xl font-black">{results.topic}</h1>
-                    <div className="flex justify-center mt-4">
-                        <EngagementButtons 
-                            contentType="quiz" 
-                            contentId={results.id || 'unknown'} 
-                        />
-                    </div>
                 </div>
 
                 <Card className={`mb-8 border-none shadow-2xl rounded-[3rem] overflow-hidden ${isSuccess ? 'bg-green-500/5' : 'bg-orange-500/5'}`}>

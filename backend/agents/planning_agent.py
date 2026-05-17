@@ -41,7 +41,8 @@ class PlanningAgent:
         exam_type: str = "General",
         target_date: Any = None,
         daily_hours: int = 2,
-        current_knowledge: Dict[str, Any] = None
+        current_knowledge: Dict[str, Any] = None,
+        user_profile: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Analyze user's goal and create initial assessment.
@@ -92,9 +93,10 @@ class PlanningAgent:
             Days until target date: {days_until_exam}
             Daily Study Hours: {daily_hours}
             Total Available Hours: {total_hours}
+            User Profile/Education: {json.dumps(user_profile or {}, indent=2)}
             Current Knowledge: {json.dumps(current_knowledge or {}, indent=2)}
             
-            Provide a comprehensive analysis of this study plan taking into account the user's current knowledge.
+            Provide a comprehensive analysis of this study plan taking into account the user's current knowledge and educational background.
             """
             
             response = await azure_openai_service.generate_structured_output(
@@ -125,7 +127,8 @@ class PlanningAgent:
         current_knowledge: Dict[str, Any] = None,
         goal: str = None,
         fast_learn: bool = False,
-        language: str = "English"
+        language: str = "English",
+        user_profile: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
         Create a comprehensive study plan with full MLflow tracking.
@@ -169,11 +172,16 @@ class PlanningAgent:
                     - Ensure even with fewer topics, the pedagogical sequence remains logical.
                     """
 
+                user_profile_str = ""
+                if user_profile:
+                    user_profile_str = f"- User Profile (Education, Major, Goals): {json.dumps(user_profile)}"
+
                 system_prompt = f"""ROLE: Expert Pedagogical Planner Agent
 
                 INPUT:
                 - Learning goal / topic (can be an exam name or any subject): {exam_type}
                 - User level & Goal: {goal or "Master the topic"}
+                {user_profile_str}
                 - Available time: {days_until_exam} days
                 - Mode: {'Fast Learn (Core-first)' if fast_learn else 'Standard'}
                 - Language: {language}

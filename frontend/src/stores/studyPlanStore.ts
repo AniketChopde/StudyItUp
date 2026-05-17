@@ -197,4 +197,3 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
         }
     },
 }));
-}));

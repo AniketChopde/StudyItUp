@@ -20,6 +20,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
 import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import AdminPage from './pages/AdminPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 // Lazy-load 3D Visualize page — keeps main bundle size unchanged
 const VisualizePage = React.lazy(() => import('./pages/VisualizePage'));
@@ -52,13 +53,6 @@ const ResourcesPage = () => (
   <div className="p-8">
     <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Resources Vault</h1>
     <p className="text-muted-foreground font-medium">Coming soon: A collection of all your saved study materials, PDF notes, and external links.</p>
-  </div>
-);
-
-const SettingsPage = () => (
-  <div className="p-8">
-    <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Account Settings</h1>
-    <p className="text-muted-foreground font-medium">Coming soon: Manage your profile, notification preferences, and exam goals.</p>
   </div>
 );
 
@@ -150,8 +144,5 @@ function App() {
     </BrowserRouter>
   );
 }
-
-export default App;
-
 
 export default App;

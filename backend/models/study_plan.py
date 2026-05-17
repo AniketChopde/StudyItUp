@@ -21,6 +21,7 @@ class StudyPlan(Base):
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     exam_type = Column(String(100), nullable=False)
+    start_date = Column(Date, nullable=False, default=date.today)
     target_date = Column(Date, nullable=False)
     daily_hours = Column(Integer, nullable=False)
     language = Column(String(50), default="English")
@@ -123,6 +124,7 @@ class ChapterResponse(BaseModel):
 class StudyPlanCreate(BaseModel):
     """Schema for creating a study plan. Works for any learning goal: exams, skills (e.g. ML, LangChain), or subjects."""
     exam_type: str = Field(..., description="Learning goal or topic (e.g. Machine Learning, LangChain, UPSC, GATE CS)")
+    start_date: date = Field(default_factory=date.today, description="Start date of study")
     target_date: date = Field(..., description="Target completion date")
     daily_hours: int = Field(..., ge=1, le=24, description="Daily study hours")
     language: str = Field("English", description="Preferred language (e.g. English, Marathi, Hindi)")
@@ -135,6 +137,7 @@ class StudyPlanResponse(BaseModel):
     """Schema for study plan response."""
     id: uuid.UUID
     exam_type: str
+    start_date: date
     target_date: date
     daily_hours: int
     language: str

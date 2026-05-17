@@ -37,7 +37,6 @@ async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: 
     quiz_scores = {row.topic.lower(): row.max_score for row in quiz_result if row.max_score is not None}
     
     updated_any = False
-    from api.gamification import process_xp_award
     
     for plan in plans:
         plan_updated = False
@@ -54,16 +53,12 @@ async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: 
                                 score = topic_score
                                 break
                     
+                    
                     if score >= 70:
                         logger.info(f"✨ Smart Sync: Marking chapter '{chapter.chapter_name}' as completed (Score: {score}%)")
                         chapter.status = "completed"
                         plan_updated = True
                         updated_any = True
-                        # Award XP for the auto-completed chapter
-                        try:
-                            await process_xp_award(db, current_user_id, "chapter_complete")
-                        except Exception as e:
-                            logger.error(f"Failed to award XP during smart sync: {e}")
         
         # 2. Check if the entire plan is now done
         if plan.status == "active":
@@ -91,19 +86,31 @@ async def create_study_plan(
         with propagate_attributes(user_id=str(current_user.user_id)):
             from sqlalchemy import func
             
+            # Fetch user to get profile data
+            from models.user import User
+            user_result = await db.execute(select(User).where(User.id == current_user.user_id))
+            full_user = user_result.scalar_one_or_none()
+            user_profile = full_user.profile_data if full_user else {}
+
+            
             # 1. Global Cache Check: Look for an existing plan for this exact exam_type and language
             cached_plan = None
             if not plan_data.force_regenerate:
                 cached_plan_result = await db.execute(
                     select(StudyPlan)
                     .where(
-                        func.lower(StudyPlan.exam_type) == plan_data.exam_type.lower(),
-                        func.lower(StudyPlan.language) == plan_data.language.lower()
+                        func.lower(func.trim(StudyPlan.exam_type)) == plan_data.exam_type.strip().lower(),
+                        func.lower(func.trim(StudyPlan.language)) == plan_data.language.strip().lower()
                     )
                     .options(selectinload(StudyPlan.chapters))
-                    .limit(1)
+                    .order_by(StudyPlan.created_at.desc())
                 )
-                cached_plan = cached_plan_result.scalar_one_or_none()
+                
+                # Find the first valid plan (must have chapters)
+                for plan in cached_plan_result.scalars().all():
+                    if plan.chapters:
+                        cached_plan = plan
+                        break
 
             if cached_plan:
                 logger.info(f"♻️ REUSING existing Study Plan for: {plan_data.exam_type} ({plan_data.language})")
@@ -111,6 +118,7 @@ async def create_study_plan(
                 study_plan = StudyPlan(
                     user_id=current_user.user_id,
                     exam_type=plan_data.exam_type,
+                    start_date=plan_data.start_date,
                     target_date=plan_data.target_date,
                     daily_hours=plan_data.daily_hours,
                     language=plan_data.language,
@@ -163,7 +171,8 @@ async def create_study_plan(
                 daily_hours=plan_data.daily_hours,
                 current_knowledge=plan_data.current_knowledge,
                 fast_learn=plan_data.fast_learn,
-                language=plan_data.language
+                language=plan_data.language,
+                user_profile=user_profile
             )
             
             # Create study plan in database with full metadata
@@ -174,6 +183,7 @@ async def create_study_plan(
             study_plan = StudyPlan(
                 user_id=current_user.user_id,
                 exam_type=plan_data.exam_type,
+                start_date=plan_data.start_date,
                 target_date=plan_data.target_date,
                 daily_hours=plan_data.daily_hours,
                 language=plan_data.language,
@@ -220,18 +230,7 @@ async def create_study_plan(
             await db.commit()
             await db.refresh(study_plan)
             
-            # Trigger background course recommendation
-            try:
-                from agents.course_recommendation_agent import course_recommendation_agent
-                recommendations = await course_recommendation_agent.recommend_courses(
-                    exam_type=plan_data.exam_type,
-                    current_knowledge=plan_data.current_knowledge
-                )
-                study_plan.recommended_courses = recommendations
-                await db.commit()
-            except Exception as e:
-                logger.error(f"Error generating course recommendations: {str(e)}")
-                # Don't fail the request, just log it
+            # (Course recommendations are fetched asynchronously by the frontend when needed)
             
             # Re-fetch with chapters for the response
             final_plan = await db.execute(
@@ -483,14 +482,6 @@ async def update_chapter_status(
                 detail="Chapter not found"
             )
             
-        # Gamification: Award XP for completing a chapter
-        if new_status == "completed" and chapter.status != "completed":
-            from api.gamification import process_xp_award
-            try:
-                await process_xp_award(db, current_user.user_id, "chapter_complete")
-            except Exception as e:
-                logger.error(f"Failed to award XP for chapter completion: {e}")
-        
         chapter.status = new_status
         await db.commit()
         await db.refresh(chapter)

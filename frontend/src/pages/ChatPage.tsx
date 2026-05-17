@@ -81,7 +81,7 @@ export const ChatPage: React.FC = () => {
     };
 
     return (
-        <div className="h-[calc(100vh-10rem)] flex flex-col max-w-5xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="h-[calc(100vh-6rem)] flex flex-col w-full max-w-6xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-0">
             <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-4">
                     {planId && (
@@ -114,8 +114,8 @@ export const ChatPage: React.FC = () => {
                 </div>
             </div>
 
-            <Card className="flex-1 flex flex-col overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-card/50 backdrop-blur-md relative">
-                <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent">
+            <Card className="flex-1 flex flex-col overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-card/50 backdrop-blur-md relative min-h-0">
+                <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent min-h-0">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
                             <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center animate-bounce duration-1000">
@@ -161,16 +161,16 @@ export const ChatPage: React.FC = () => {
 
                             <div className="space-y-2 max-w-[85%] sm:max-w-[70%]">
                                 <div
-                                    className={`rounded-3xl p-6 shadow-sm border ${message.role === 'user'
-                                        ? 'bg-foreground text-background border-foreground/10 rounded-tr-none'
-                                        : 'bg-card border-border rounded-tl-none'
+                                    className={`rounded-3xl p-6 shadow-md border ${message.role === 'user'
+                                        ? 'bg-gradient-to-br from-slate-800 to-black text-white border-transparent rounded-tr-none'
+                                        : 'bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/10 rounded-tl-none'
                                         }`}
                                 >
                                     <div className={`prose ${message.role === 'user' ? 'prose-invert' : 'prose-zinc dark:prose-invert'} max-w-none text-sm leading-relaxed`}>
                                         <ReactMarkdown>{message.content}</ReactMarkdown>
                                     </div>
                                     
-                                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-current/10">
+                                    <div className="flex items-center justify-between mt-4 pt-2">
                                         <div className="flex items-center gap-3">
                                             {message.role === 'assistant' && (
                                                 <>
@@ -219,51 +219,34 @@ export const ChatPage: React.FC = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-6 md:p-8 bg-gradient-to-t from-card to-transparent pt-12">
-                    <div className="relative group max-w-4xl mx-auto">
+                <div className="shrink-0 p-6 md:p-8 bg-gradient-to-t from-card via-card/80 to-transparent pt-12">
+                    <div className="relative group max-w-5xl mx-auto flex items-end bg-card/60 backdrop-blur-xl border border-border/50 hover:border-primary/30 focus-within:border-primary/50 focus-within:ring-4 focus-within:ring-primary/5 rounded-[2.5rem] p-2 transition-all shadow-lg">
                         <textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyPress}
                             placeholder="Ask a question or request a deeper plan..."
-                            className="w-full bg-muted/50 border border-border/50 hover:border-primary/30 focus:border-primary/50 focus:ring-4 focus:ring-primary/5 rounded-[2rem] py-5 px-6 pr-32 outline-none font-bold text-sm min-h-[70px] max-h-[200px] resize-none transition-all placeholder:font-bold placeholder:opacity-40"
+                            className="flex-1 bg-transparent border-none focus:ring-0 py-4 px-6 outline-none font-bold text-sm min-h-[60px] max-h-[200px] resize-none transition-all placeholder:font-bold placeholder:opacity-30"
                             rows={1}
                         />
-                        <div className="absolute right-3 bottom-3 flex items-center gap-1.5">
+                        <div className="flex items-center gap-3 p-2">
                             <VoiceInputButton
                                 onTranscript={(t) => setInput(prev => prev ? prev + ' ' + t : t)}
-                                className="h-10 w-10 rounded-xl bg-muted hover:bg-accent border border-border shadow-sm"
+                                className="h-12 w-12 rounded-2xl bg-background hover:bg-muted border border-border/50 shadow-sm transition-all"
                             />
                             <Button 
                                 onClick={handleSend} 
                                 disabled={!input.trim() || isTyping}
-                                className="h-10 px-5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 flex items-center gap-2 font-black uppercase tracking-widest text-[10px]"
+                                size="icon"
+                                className="h-12 w-12 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg transition-all"
                             >
-                                <Send className="h-3.5 w-3.5" />
-                                Send
+                                <Send className="h-5 w-5" />
                             </Button>
                         </div>
                     </div>
                 </div>
             </Card>
-            
-            <div className="flex justify-center gap-6 pb-2">
-                <button 
-                    onClick={() => setInput("Can you regenerate my study plan based on my current progress?")}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors group"
-                >
-                    <RefreshCw size={12} className="group-hover:rotate-180 transition-transform duration-500" />
-                    Regenerate Plan
-                </button>
-                <div className="w-px h-3 bg-border" />
-                <button 
-                    onClick={() => setInput("I need a more detailed, hour-by-hour plan for this chapter.")}
-                    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors group"
-                >
-                    <Layers size={12} className="group-hover:scale-110 transition-transform" />
-                    Need Smarter Plan?
-                </button>
-            </div>
+
         </div>
     );
 };

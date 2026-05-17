@@ -8,6 +8,7 @@ export interface User {
     is_superuser: boolean;
     mfa_enabled?: boolean;
     google_id?: string;
+    profile_data?: Record<string, any>;
     created_at: string;
 }
 
@@ -34,6 +35,7 @@ export interface TokenResponse {
 export interface StudyPlan {
     id: string;
     exam_type: string;
+    start_date: string;
     target_date: string;
     daily_hours: number;
     status: string;
@@ -70,6 +72,7 @@ export interface ChapterContent {
 
 export interface CreatePlanData {
     exam_type: string;
+    start_date: string;
     target_date: string;
     daily_hours: number;
     current_knowledge: Record<string, any>;

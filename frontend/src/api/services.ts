@@ -30,6 +30,9 @@ export const authService = {
 
     getProfile: () =>
         apiClient.get<User>('/auth/profile'),
+        
+    updateProfile: (data: { full_name?: string; profile_data?: Record<string, any> }) =>
+        apiClient.put<User>('/auth/profile', data),
 
     refreshToken: () =>
         apiClient.post<TokenResponse>('/auth/refresh'),

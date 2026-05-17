@@ -17,6 +17,7 @@ interface AuthState {
     register: (data: RegisterData) => Promise<void>;
     logout: () => void;
     fetchProfile: () => Promise<void>;
+    updateProfile: (data: { full_name?: string; profile_data?: Record<string, any> }) => Promise<void>;
     setUser: (user: User) => void;
 }
 
@@ -179,6 +180,19 @@ export const useAuthStore = create<AuthState>()(
                     set({ user: response.data, isAuthenticated: true });
                 } catch (error) {
                     console.error('Failed to fetch profile:', error);
+                }
+            },
+            
+            updateProfile: async (data) => {
+                try {
+                    set({ isLoading: true });
+                    const response = await authService.updateProfile(data);
+                    set({ user: response.data, isLoading: false });
+                    toast.success('Profile updated successfully!');
+                } catch (error: any) {
+                    set({ isLoading: false });
+                    toast.error(error.response?.data?.detail || 'Failed to update profile');
+                    throw error;
                 }
             },
 

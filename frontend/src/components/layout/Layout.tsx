@@ -15,8 +15,11 @@ import {
     BarChart,
     Box,
     Video,
+    PanelLeftClose,
+    PanelLeftOpen,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Settings
 } from 'lucide-react';
 
 const navigation = [
@@ -28,6 +31,7 @@ const navigation = [
     { name: '3D Visualize', href: '/visualize', icon: Box },
     { name: 'My Animations', href: '/my-animations', icon: Video },
     { name: 'Test Center', href: '/test-center', icon: ShieldCheck },
+    { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 const adminNavigation = [
@@ -48,6 +52,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
+    const [isHidden, setIsHidden] = React.useState(false);
+
     React.useEffect(() => {
         localStorage.setItem('sidebar_collapsed', String(isCollapsed));
     }, [isCollapsed]);
@@ -58,6 +64,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
 
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
+    const toggleHideSidebar = () => setIsHidden(!isHidden);
 
     return (
         <div className="min-h-screen bg-background flex">
@@ -128,14 +135,43 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             )}
 
             {/* Desktop sidebar */}
-            <aside 
-                className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 border-r bg-card transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
-            >
-                <div className="flex items-center h-16 px-4 border-b overflow-hidden">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 flex-shrink-0 mix-blend-multiply" />
-                        {!isCollapsed && <h1 className="text-xl font-bold truncate">StudyItUp</h1>}
-                    </div>
+            {!isHidden && (
+                <aside 
+                    className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 border-r bg-card transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
+                >
+                <div 
+                    className={`group relative flex items-center h-16 px-4 border-b overflow-hidden transition-all duration-300 ${isCollapsed ? 'justify-center' : 'justify-between'}`}
+                >
+                    {isCollapsed ? (
+                        <div className="flex items-center justify-center w-full h-full">
+                            <div className="group-hover:opacity-0 transition-opacity duration-300 flex items-center justify-center">
+                                <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 flex-shrink-0 mix-blend-multiply" />
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleSidebar}
+                                className="absolute inset-0 m-auto opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 bg-muted/50 hover:bg-muted text-muted-foreground rounded-xl"
+                            >
+                                <PanelLeftOpen className="h-5 w-5" />
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex items-center gap-3 min-w-0">
+                                <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 flex-shrink-0 mix-blend-multiply" />
+                                <h1 className="text-xl font-bold truncate">StudyItUp</h1>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleSidebar}
+                                className="hidden lg:flex bg-muted/50 hover:bg-muted text-muted-foreground rounded-xl transition-all duration-300"
+                            >
+                                <PanelLeftClose className="h-5 w-5" />
+                            </Button>
+                        </>
+                    )}
                 </div>
                 <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
                     {navigation.map((item) => (
@@ -191,9 +227,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     </Button>
                 </div>
             </aside>
+            )}
 
             {/* Main content */}
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+            <div className={`flex-1 flex flex-col transition-all duration-300 ${isHidden ? 'lg:pl-0' : isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
                 {/* Top bar */}
                 <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-8">
                     <Button
@@ -205,15 +242,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                         <Menu className="h-5 w-5" />
                     </Button>
                     
-                    <Button
+                    {/* <Button
                         variant="ghost"
                         size="icon"
-                        className="hidden lg:flex"
-                        onClick={toggleSidebar}
+                        className="hidden lg:flex text-muted-foreground hover:bg-muted rounded-xl"
+                        onClick={toggleHideSidebar}
+                        title={isHidden ? "Show Sidebar" : "Hide Sidebar"}
                     >
-                        {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-                    </Button>
-
+                        {isHidden ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
+                    </Button> */}
+                    
                     <div className="flex-1" />
                     
                     <div className="flex items-center gap-4">

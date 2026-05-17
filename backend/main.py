@@ -161,10 +161,11 @@ app.include_router(search.router, prefix="/api/search", tags=["Search"])
 app.include_router(mindmap.router, prefix="/api/mindmap", tags=["Mindmap"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(voice.router, prefix="/api/voice", tags=["Voice"])
-from api import admin, engagement, gamification
+from api import admin
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+from api import engagement
 app.include_router(engagement.router, prefix="/api/engagement", tags=["Engagement"])
-app.include_router(gamification.router, prefix="/api/gamification", tags=["Gamification"])
+# app.include_router(gamification.router, prefix="/api/gamification", tags=["Gamification"])
 
 
 if __name__ == "__main__":

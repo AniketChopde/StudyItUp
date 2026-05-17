@@ -4,21 +4,27 @@ import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Loading } from '../components/ui/Loading';
-import { Plus, Calendar, Clock, BookOpen, ChevronRight, Trash2, CheckCircle } from 'lucide-react';
+import { Plus, Calendar, Clock, BookOpen, ChevronRight, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
 export const StudyPlansPage: React.FC = () => {
     const navigate = useNavigate();
     const { plans, isLoading, fetchPlans, deletePlan } = useStudyPlanStore();
+    const [planToDelete, setPlanToDelete] = React.useState<string | null>(null);
 
     useEffect(() => {
         fetchPlans();
     }, [fetchPlans]);
 
-    const handleDelete = async (e: React.MouseEvent, id: string) => {
+    const handleDeleteClick = (e: React.MouseEvent, id: string) => {
         e.stopPropagation();
-        if (window.confirm('Are you sure you want to delete this study plan?')) {
-            await deletePlan(id);
+        setPlanToDelete(id);
+    };
+
+    const confirmDelete = async () => {
+        if (planToDelete) {
+            await deletePlan(planToDelete);
+            setPlanToDelete(null);
         }
     };
 
@@ -31,20 +37,24 @@ export const StudyPlansPage: React.FC = () => {
     }
 
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Your Study Plans</h1>
-                    <p className="text-muted-foreground mt-1">
-                        Manage and track your preparation for various exams
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 p-8 bg-gradient-to-br from-primary/10 via-purple-500/5 to-blue-500/10 rounded-[2.5rem] border border-primary/10 shadow-sm relative overflow-hidden">
+                <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)] pointer-events-none" />
+                <div className="relative z-10">
+                    <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
+                        Study Plans
+                    </h1>
+                    <p className="text-muted-foreground mt-2 font-medium max-w-lg text-sm md:text-base">
+                        Your personalized learning trajectories. Manage, track, and master your exam preparations.
                     </p>
                 </div>
                 <Button
                     onClick={() => navigate('/study-plans/create')}
-                    className="group transition-all duration-300 hover:shadow-lg active:scale-95"
+                    size="lg"
+                    className="relative z-10 rounded-2xl group transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 active:scale-95 font-black uppercase tracking-wider h-14 px-8"
                 >
                     <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
-                    New Study Plan
+                    New Path
                 </Button>
             </div>
 
@@ -64,77 +74,110 @@ export const StudyPlansPage: React.FC = () => {
                     </CardContent>
                 </Card>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {plans.map((plan) => (
-                        <Card
+                        <div
                             key={plan.id}
-                            className="group relative cursor-pointer hover:border-primary/40 hover:shadow-xl transition-all duration-300 overflow-hidden"
+                            className="group relative cursor-pointer hover:-translate-y-2 transition-all duration-500 ease-out"
                             onClick={() => navigate(`/study-plans/${plan.id}`)}
                         >
-                            <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
-                                    onClick={(e) => handleDelete(e, plan.id.toString())}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                            </div>
-
-                            <CardHeader>
-                                <div className="flex justify-between items-start mb-2">
-                                    <div className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
-                                        {plan.exam_type}
-                                    </div>
-                                    <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase transition-colors ${plan.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
-                                        }`}>
-                                        {plan.status}
-                                    </div>
+                            {/* Decorative glowing orb behind the card on hover */}
+                            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[2.5rem] blur opacity-0 group-hover:opacity-20 transition duration-500"></div>
+                            
+                            <Card className="relative h-full flex flex-col overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/60 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-500">
+                                <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-10 w-10 rounded-full bg-background/50 hover:bg-destructive text-destructive hover:text-white backdrop-blur-md shadow-sm border border-border/50"
+                                        onClick={(e) => handleDeleteClick(e, plan.id.toString())}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
                                 </div>
-                                <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors">
-                                    {plan.exam_type} Preparation
-                                </CardTitle>
-                                <CardDescription className="flex items-center gap-2 mt-1">
-                                    <Calendar className="h-3 w-3" />
-                                    Target: {format(new Date(plan.target_date), 'PPP')}
-                                </CardDescription>
-                            </CardHeader>
 
-                            <CardContent>
-                                <div className={`grid grid-cols-2 gap-4 mb-6 transition-opacity ${plan.status === 'completed' ? 'opacity-70' : ''}`}>
-                                    <div className="flex flex-col bg-muted/50 p-3 rounded-lg border border-border/50">
-                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                                            <Clock className="h-3 w-3" />
-                                            Daily Effort
+                                <CardHeader className="pb-4 relative z-10 pt-8 px-8">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <div className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm">
+                                            {plan.exam_type}
                                         </div>
-                                        <div className="text-lg font-bold">{plan.daily_hours}h</div>
-                                    </div>
-                                    <div className="flex flex-col bg-muted/50 p-3 rounded-lg border border-border/50">
-                                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                                            <BookOpen className="h-3 w-3" />
-                                            Chapters
+                                        <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center gap-1.5 transition-colors ${plan.status === 'completed' ? 'bg-green-500/10 text-green-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                                            {plan.status === 'completed' && <CheckCircle size={10} />}
+                                            {plan.status}
                                         </div>
-                                        <div className="text-lg font-bold">{plan.chapters?.length || 0}</div>
                                     </div>
-                                </div>
+                                    <CardTitle className="text-2xl font-black leading-tight group-hover:text-primary transition-colors duration-300 line-clamp-2">
+                                        {plan.exam_type} Prep
+                                    </CardTitle>
+                                    <CardDescription className="flex items-center gap-2 mt-3 font-medium opacity-70">
+                                        <Calendar className="h-3.5 w-3.5" />
+                                        Target: {format(new Date(plan.target_date), 'PPP')}
+                                    </CardDescription>
+                                </CardHeader>
 
-                                <div className="flex items-center justify-between text-sm group-hover:translate-x-1 transition-transform">
-                                    <span className={`${plan.status === 'completed' ? 'text-green-600' : 'text-primary'} font-bold flex items-center gap-2`}>
-                                        {plan.status === 'completed' ? (
-                                            <>
-                                                <CheckCircle className="h-4 w-4" />
-                                                Mastered
-                                            </>
-                                        ) : (
-                                            'Continue Planning'
-                                        )}
-                                    </span>
-                                    <ChevronRight className={`h-4 w-4 ${plan.status === 'completed' ? 'text-green-600' : 'text-primary'}`} />
-                                </div>
-                            </CardContent>
-                        </Card>
+                                <CardContent className="mt-auto px-8 pb-8 relative z-10">
+                                    <div className={`grid grid-cols-2 gap-3 mb-6 transition-opacity duration-300 ${plan.status === 'completed' ? 'opacity-50' : ''}`}>
+                                        <div className="flex flex-col bg-muted/40 hover:bg-muted/60 transition-colors p-4 rounded-2xl border border-border/30">
+                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">
+                                                <Clock className="h-3 w-3 text-primary" />
+                                                Pacing
+                                            </div>
+                                            <div className="text-xl font-black text-foreground">{plan.daily_hours} <span className="text-sm font-bold text-muted-foreground">hrs/day</span></div>
+                                        </div>
+                                        <div className="flex flex-col bg-muted/40 hover:bg-muted/60 transition-colors p-4 rounded-2xl border border-border/30">
+                                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">
+                                                <BookOpen className="h-3 w-3 text-primary" />
+                                                Scope
+                                            </div>
+                                            <div className="text-xl font-black text-foreground">{plan.chapters?.length || 0} <span className="text-sm font-bold text-muted-foreground">modules</span></div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between mt-2 pt-6 border-t border-border/50">
+                                        <span className={`text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-colors ${plan.status === 'completed' ? 'text-green-600' : 'text-slate-500 group-hover:text-primary'}`}>
+                                            {plan.status === 'completed' ? 'Fully Mastered' : 'Resume Journey'}
+                                        </span>
+                                        <div className={`h-8 w-8 rounded-full flex items-center justify-center transition-all duration-300 ${plan.status === 'completed' ? 'bg-green-100 text-green-600' : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white group-hover:scale-110 shadow-sm'}`}>
+                                            <ChevronRight className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
                     ))}
+                </div>
+            )}
+
+            {/* Custom Delete Confirmation Modal */}
+            {planToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-card border-2 border-destructive/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
+                        <div className="mx-auto w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center text-destructive">
+                            <AlertTriangle size={32} />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-black">Delete Study Plan?</h3>
+                            <p className="text-sm text-muted-foreground font-medium">
+                                Are you sure you want to delete this study plan? This action cannot be undone and all your progress will be lost.
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Button 
+                                onClick={confirmDelete} 
+                                variant="destructive"
+                                className="w-full h-12 font-black uppercase tracking-widest shadow-lg shadow-destructive/20"
+                            >
+                                Yes, Delete Plan
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                onClick={() => setPlanToDelete(null)} 
+                                className="w-full h-12 font-black uppercase tracking-widest border-slate-200 hover:bg-slate-100"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

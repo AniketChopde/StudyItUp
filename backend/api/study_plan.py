@@ -142,7 +142,8 @@ async def create_study_plan(
                         status="pending",
                         weightage_percent=chapter.weightage_percent,
                         weightage_source=chapter.weightage_source,
-                        resources=chapter.resources
+                        resources=chapter.resources,
+                        content=chapter.content  # Reuse teaching content from cache
                     )
                     db.add(new_chapter)
                     

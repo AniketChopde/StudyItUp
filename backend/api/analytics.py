@@ -106,6 +106,7 @@ async def get_dashboard_stats(
             "topics_completed": completed_topics,
             "topics_total": total_topics,
             "quiz_average_percent": quiz_average,
+            "quizzes_taken": score_count,
         }
     except Exception as e:
         logger.error(f"Error computing dashboard stats: {str(e)}", exc_info=True)

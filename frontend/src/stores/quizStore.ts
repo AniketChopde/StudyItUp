@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { quizService } from '../api/services';
 import type { Quiz, QuizResult, QuizHistoryItem } from '../types';
 import toast from 'react-hot-toast';
-import { useGamificationStore } from './gamificationStore';
 
 const POLL_INTERVAL_MS = 2500;
 const POLL_TIMEOUT_MS = 120000; // 2 minutes
@@ -211,8 +210,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 isLoading: false,
             });
 
-            // Refresh gamification profile to show XPToast/BadgeModal
-            useGamificationStore.getState().fetchProfile();
+
 
             toast.success('Quiz submitted successfully!');
         } catch (error) {

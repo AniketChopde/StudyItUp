@@ -16,7 +16,7 @@ export const DashboardPage: React.FC = () => {
     const { user } = useAuthStore();
     const { plans, fetchPlans } = useStudyPlanStore();
     const [stats, setStats] = React.useState<any>(null);
-    const [weakAreas, setWeakAreas] = React.useState<{weak: any[], strong: any[]}>({weak: [], strong: []});
+    const [weakAreas, setWeakAreas] = React.useState<{weak_topics: any[], strong_topics: any[], recommendations: any[]}>({weak_topics: [], strong_topics: [], recommendations: []});
     const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
@@ -29,7 +29,7 @@ export const DashboardPage: React.FC = () => {
                     analyticsService.getWeakStrongAnalysis()
                 ]);
                 setStats(statsRes.data);
-                setWeakAreas(analysisRes.data || {weak: [], strong: []});
+                setWeakAreas(analysisRes.data || {weak_topics: [], strong_topics: [], recommendations: []});
             } catch (error) {
                 console.error("Dashboard init error:", error);
             } finally {
@@ -141,8 +141,8 @@ export const DashboardPage: React.FC = () => {
                                     <h3 className="text-xl font-black uppercase tracking-tight">Areas for Improvement</h3>
                                 </div>
                                 <div className="space-y-3">
-                                    {weakAreas.weak?.length > 0 ? (
-                                        weakAreas.weak.slice(0, 4).map((area, i) => (
+                                    {weakAreas.weak_topics?.length > 0 ? (
+                                        weakAreas.weak_topics.slice(0, 4).map((area, i) => (
                                             <div key={i} className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border border-transparent hover:border-red-500/20 transition-all group">
                                                 <div className="flex items-center gap-3">
                                                     <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />

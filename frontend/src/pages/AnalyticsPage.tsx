@@ -9,34 +9,29 @@ import {
 } from 'recharts';
 import { 
     TrendingUp, Award, AlertTriangle, CheckCircle, 
-    BookOpen, Zap, Trophy, Medal, Star
+    BookOpen, Zap
 } from 'lucide-react';
 import { Loading } from '../components/ui/Loading';
-import { gamificationService } from '../api/services';
-import type { BadgeOut } from '../types';
 
 export const AnalyticsPage: React.FC = () => {
     const navigate = useNavigate();
     const [topicAnalysis, setTopicAnalysis] = React.useState<any[]>([]);
     const [subjectAnalysis, setSubjectAnalysis] = React.useState<any[]>([]);
     const [weakStrong, setWeakStrong] = React.useState<any>(null);
-    const [gamificationProfile, setGamificationProfile] = React.useState<any>(null);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [activeTab, setActiveTab] = React.useState<'subjects' | 'topics' | 'weak-strong' | 'badges'>('subjects');
+    const [activeTab, setActiveTab] = React.useState<'subjects' | 'topics' | 'weak-strong'>('subjects');
 
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            const [topicsRes, subjectsRes, wsRes, gamificationRes] = await Promise.all([
+            const [topicsRes, subjectsRes, wsRes] = await Promise.all([
                 analyticsService.getTopicAnalysis(),
                 analyticsService.getSubjectAnalysis(),
-                analyticsService.getWeakStrongAnalysis(),
-                gamificationService.getProfile()
+                analyticsService.getWeakStrongAnalysis()
             ]);
             setTopicAnalysis(topicsRes.data || []);
             setSubjectAnalysis(subjectsRes.data || []);
             setWeakStrong(wsRes.data);
-            setGamificationProfile(gamificationRes.data);
         } catch (error) {
             console.error('Failed to fetch analytics:', error);
         } finally {
@@ -75,7 +70,7 @@ export const AnalyticsPage: React.FC = () => {
 
             {/* Tabs */}
             <div className="flex flex-wrap gap-1 bg-muted p-1 rounded-lg w-fit">
-                {(['subjects', 'topics', 'weak-strong', 'badges'] as const).map((tab) => (
+                {(['subjects', 'topics', 'weak-strong'] as const).map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -337,90 +332,7 @@ export const AnalyticsPage: React.FC = () => {
                     </div>
                 </div>
             )}
-            {activeTab === 'badges' && gamificationProfile && (
-                <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none overflow-hidden relative group">
-                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                                <Trophy size={140} />
-                            </div>
-                            <CardContent className="p-6 relative z-10">
-                                <p className="text-white/80 font-medium text-sm mb-1 uppercase tracking-wider">Total Badges</p>
-                                <div className="flex items-baseline gap-2">
-                                    <h3 className="text-4xl font-bold">{gamificationProfile.badges.length}</h3>
-                                    <span className="text-white/60 text-sm font-medium">Achievements</span>
-                                </div>
-                            </CardContent>
-                        </Card>
 
-                        <Card className="bg-gradient-to-br from-amber-400 to-orange-500 text-white border-none overflow-hidden relative group">
-                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                                <Medal size={140} />
-                            </div>
-                            <CardContent className="p-6 relative z-10">
-                                <p className="text-white/80 font-medium text-sm mb-1 uppercase tracking-wider">Current Level</p>
-                                <div className="flex items-baseline gap-2">
-                                    <h3 className="text-4xl font-bold">{gamificationProfile.level}</h3>
-                                    <span className="text-white/60 text-sm font-medium">Scholar Status</span>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white border-none overflow-hidden relative group">
-                            <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
-                                <Star size={140} />
-                            </div>
-                            <CardContent className="p-6 relative z-10">
-                                <p className="text-white/80 font-medium text-sm mb-1 uppercase tracking-wider">Total XP</p>
-                                <div className="flex items-baseline gap-2">
-                                    <h3 className="text-4xl font-bold">{gamificationProfile.total_xp}</h3>
-                                    <span className="text-white/60 text-sm font-medium">Points</span>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Badge Gallery</CardTitle>
-                            <CardDescription>All the certifications and achievements you've earned.</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {gamificationProfile.badges.length > 0 ? (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                                    {gamificationProfile.badges.map((badge: BadgeOut, idx: number) => (
-                                        <div 
-                                            key={idx} 
-                                            className="flex flex-col items-center text-center p-4 rounded-2xl border border-indigo-50 bg-indigo-50/20 hover:bg-indigo-50/50 transition-all group hover:-translate-y-1"
-                                        >
-                                            <div className="text-4xl mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform">
-                                                {badge.icon || '🏆'}
-                                            </div>
-                                            <h4 className="font-bold text-sm text-indigo-900 mb-1">{badge.name}</h4>
-                                            <p className="text-xs text-muted-foreground line-clamp-2">
-                                                {badge.description}
-                                            </p>
-                                            {badge.earned_at && (
-                                                <p className="text-[10px] text-indigo-400 mt-2 font-medium">
-                                                    Earned {new Date(badge.earned_at).toLocaleDateString()}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center">
-                                    <Trophy className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
-                                    <h3 className="font-medium text-lg">No Badges Yet</h3>
-                                    <p className="text-muted-foreground text-sm max-w-xs">
-                                        Keep studying and completing quizzes to earn your first achievements!
-                                    </p>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
-            )}
         </div>
     );
 };

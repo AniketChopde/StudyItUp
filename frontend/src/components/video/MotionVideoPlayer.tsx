@@ -116,14 +116,17 @@ export default function MotionVideoPlayer({ topic }: MotionVideoPlayerProps) {
     }
   }, [currentTime, motionData, isPlaying, currentStepIndex, isSyncing]);
 
-  const playVoice = useCallback((index: number) => {
+  const playVoice = useCallback((index: number, startOffset: number = 0) => {
     if (!audioRef.current) return;
     try {
       audioRef.current.pause();
-      audioRef.current.currentTime = 0;
       const cachedSrc = audioCacheRef.current.get(index);
       if (cachedSrc) {
-        audioRef.current.src = cachedSrc;
+        // Only change src if it's a different stage
+        if (audioRef.current.src !== cachedSrc) {
+          audioRef.current.src = cachedSrc;
+        }
+        audioRef.current.currentTime = startOffset;
         audioRef.current.muted = isMuted;
         audioRef.current.play().catch(err => {
           if (err.name !== 'AbortError') console.warn('Voice play failed:', err);
@@ -154,14 +157,18 @@ export default function MotionVideoPlayer({ topic }: MotionVideoPlayerProps) {
     if (totalDuration <= 0) return;
     const seekTime = Math.max(0, Math.min(newTime, totalDuration));
     setCurrentTime(seekTime);
-    if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; }
+    if (audioRef.current) { audioRef.current.pause(); }
     if (motionData?.stages) {
       let accumulated = 0;
       for (let i = 0; i < motionData.stages.length; i++) {
-        accumulated += Number(motionData.stages[i].duration) || 10;
+        const stageDur = Number(motionData.stages[i].duration) || 10;
+        const stageStart = accumulated;
+        accumulated += stageDur;
         if (seekTime < accumulated) {
-          if (currentStepIndex !== i) setCurrentStepIndex(i);
-          if (isPlaying) playVoice(i);
+          // Calculate the offset within this stage
+          const offsetWithinStage = seekTime - stageStart;
+          setCurrentStepIndex(i);
+          if (isPlaying) playVoice(i, offsetWithinStage);
           break;
         }
       }

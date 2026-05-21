@@ -15,7 +15,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { MessageSquareQuote, Sparkles, FileText, Send, X, Bot, Loader2 } from 'lucide-react';
+import { MessageSquareQuote, Sparkles, Send, X, Bot, Loader2 } from 'lucide-react';
 import { cn } from '../utils/cn';
 import { chatService } from '../api/services';
 
@@ -195,14 +195,6 @@ export const TextSelectionAsk: React.FC<TextSelectionAskProps> = ({
     const handleAskClick = () => {
         openPanelWith('__open__');
         setInput(`"${selectedText.substring(0, 80)}${selectedText.length > 80 ? '…' : ''}" — `);
-    };
-
-    const handleExplainClick = () => {
-        openPanelWith(`Explain this in simple terms: "${selectedText}"`);
-    };
-
-    const handleSummarizeClick = () => {
-        openPanelWith(`Give me a concise summary of: "${selectedText}"`);
     };
 
     const handleSend = () => {

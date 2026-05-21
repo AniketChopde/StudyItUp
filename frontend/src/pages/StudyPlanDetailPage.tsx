@@ -6,7 +6,6 @@ import { useStudyPlanStore } from '../stores/studyPlanStore';
 const TopicVisualizer3D = lazy(() => import('../components/3d/TopicVisualizer3D'));
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
-import { Loading } from '../components/ui/Loading';
 import { Skeleton } from '../components/ui/Skeleton';
 import {
     Calendar, Clock, BookOpen, CheckCircle2,

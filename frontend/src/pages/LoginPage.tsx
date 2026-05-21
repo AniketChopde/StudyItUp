@@ -35,7 +35,6 @@ export const LoginPage: React.FC = () => {
     const [apiError, setApiError] = useState<string | null>(null);
 
     const rememberedEmail = localStorage.getItem('remembered_email');
-    const rememberedPassword = localStorage.getItem('remembered_password');
 
     const {
         register,
@@ -45,7 +44,7 @@ export const LoginPage: React.FC = () => {
         resolver: zodResolver(loginSchema),
         defaultValues: {
             email: rememberedEmail || '',
-            password: rememberedPassword || '',
+            password: '',
             rememberMe: !!rememberedEmail,
         }
     });
@@ -57,14 +56,14 @@ export const LoginPage: React.FC = () => {
         setApiError(null);
 
         try {
+            const result = await login(data);
+            
             if (data.rememberMe) {
                 localStorage.setItem('remembered_email', data.email);
-                localStorage.setItem('remembered_password', data.password);
             } else {
                 localStorage.removeItem('remembered_email');
-                localStorage.removeItem('remembered_password');
             }
-            const result = await login(data);
+            
             if (result && result.mfa_required) {
                 setMfaTempToken(result.temp_token);
                 setShowMfa(true);
@@ -190,6 +189,7 @@ export const LoginPage: React.FC = () => {
                         <Input
                             label="Email"
                             type="email"
+                            autoComplete="email"
                             placeholder="you@example.com"
                             error={errors.email?.message || apiEmailError || undefined}
                             {...register('email')}
@@ -197,6 +197,7 @@ export const LoginPage: React.FC = () => {
                         <Input
                             label="Password"
                             type="password"
+                            autoComplete="current-password"
                             placeholder="••••••••"
                             error={errors.password?.message || apiPasswordError || undefined}
                             {...register('password')}
@@ -234,7 +235,7 @@ export const LoginPage: React.FC = () => {
                             Sign In
                         </Button>
 
-                        {!isAdminLogin && (
+                        {!isAdminLogin && import.meta.env.VITE_GOOGLE_CLIENT_ID && (
                             <div className="mt-4 flex flex-col items-center gap-4">
                                 <div className="relative w-full flex items-center justify-center border-t border-border mt-2 pt-4">
                                      <span className="absolute bg-card px-2 text-muted-foreground text-sm">or continue with</span>

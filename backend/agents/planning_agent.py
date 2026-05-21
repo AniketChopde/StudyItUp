@@ -40,6 +40,7 @@ class PlanningAgent:
         goal: str,
         exam_type: str = "General",
         target_date: Any = None,
+        start_date: Any = None,
         daily_hours: int = 2,
         current_knowledge: Dict[str, Any] = None,
         user_profile: Dict[str, Any] = None
@@ -50,6 +51,21 @@ class PlanningAgent:
         try:
             # Set agent version for tracking
             mlflow_service.set_agent_version(self.agent_name, self.version)
+            
+            # Ensure start_date is a datetime/date object
+            if start_date is None:
+                start_date_obj = datetime.now().date()
+            elif isinstance(start_date, str):
+                try:
+                    clean_start = start_date.replace('Z', '+00:00')
+                    start_date_obj = datetime.fromisoformat(clean_start).date()
+                except ValueError:
+                    start_date_obj = datetime.now().date()
+            elif isinstance(start_date, datetime):
+                start_date_obj = start_date.date()
+            else:
+                start_date_obj = start_date
+
             # Ensure target_date is a datetime/date object
             if target_date is None:
                 target_date_obj = (datetime.now() + timedelta(days=30)).date()
@@ -65,7 +81,8 @@ class PlanningAgent:
             else:
                 target_date_obj = target_date
                 
-            days_until_exam = (target_date_obj - datetime.now().date()).days
+            # Calculate inclusive study days in the plan
+            days_until_exam = (target_date_obj - start_date_obj).days + 1
             # Ensure at least 1 day to avoid division/zero errors
             days_until_exam = max(1, days_until_exam)
             total_hours = days_until_exam * daily_hours
@@ -123,6 +140,7 @@ class PlanningAgent:
         exam_type: str,
         target_date: Any,
         daily_hours: int,
+        start_date: Any = None,
         syllabus_data: Any = None,
         current_knowledge: Dict[str, Any] = None,
         goal: str = None,
@@ -135,10 +153,25 @@ class PlanningAgent:
         """
         with mlflow_service.track_run(run_name=f"study_plan_generation_{exam_type}") as run:
             try:
+                # Ensure start_date is a datetime/date object
+                if start_date is None:
+                    start_date_obj = datetime.now().date()
+                elif isinstance(start_date, str):
+                    try:
+                        clean_start = start_date.replace('Z', '+00:00')
+                        start_date_obj = datetime.fromisoformat(clean_start).date()
+                    except ValueError:
+                        start_date_obj = datetime.now().date()
+                elif isinstance(start_date, datetime):
+                    start_date_obj = start_date.date()
+                else:
+                    start_date_obj = start_date
+
                 # Log Input Parameters
                 mlflow.log_params({
                     "exam_type": exam_type,
                     "target_date_raw": str(target_date),
+                    "start_date_raw": str(start_date),
                     "daily_hours": daily_hours,
                     "fast_learn": fast_learn,
                     "has_syllabus": bool(syllabus_data),
@@ -159,12 +192,24 @@ class PlanningAgent:
                 else:
                     target_date_obj = target_date
                     
-                days_until_exam = (target_date_obj - datetime.now().date()).days
+                # Calculate inclusive study days in the plan
+                days_until_exam = (target_date_obj - start_date_obj).days + 1
                 days_until_exam = max(1, days_until_exam)
+
+                short_plan_constraint = ""
+                if days_until_exam <= 7:
+                    short_plan_constraint = f"""
+                    CRITICAL DURATION, MODULE COUNT & ESTIMATED DAYS CONSTRAINT:
+                    - The total study plan duration is EXACTLY {days_until_exam} days.
+                    - You MUST generate EXACTLY {days_until_exam} modules in the "modules" list. No more, no less!
+                    - For EACH and EVERY module, the "estimated_days" field MUST be EXACTLY "1" (meaning 1 day per module).
+                    - You are STRICTLY FORBIDDEN from using fractional values like "0.5", "0.25", or any values other than "1" for the "estimated_days" field.
+                    - Each module represents exactly one day of study. Therefore, the number of modules in the array must be exactly {days_until_exam}.
+                    """
 
                 fast_learn_instruction = ""
                 if fast_learn:
-                    fast_learn_instruction = """
+                    fast_learn_instruction = f"""
                     FAST LEARN MODE (CRITICAL):
                     - Prioritize ONLY core and foundational topics.
                     - Skip optional or advanced topics that can be learned later.
@@ -189,13 +234,15 @@ class PlanningAgent:
                 TASK:
                 Generate a module-wise learning path for {exam_type}. The goal may be an exam (e.g. GATE, UPSC), a skill (e.g. Machine Learning, LangChain), or any subject—structure the plan accordingly.
                 {fast_learn_instruction}
+                {short_plan_constraint}
 
                 CRITICAL LANGUAGE INSTRUCTION:
                 You MUST generate the entire study plan, including ALL module names, topics, and descriptions, STRICTLY in {language}. If {language} is not English, ensure high-quality native terminology is used.
 
-                CRITICAL SEQUENCING RULES:
+                CRITICAL SEQUENCING & ESTIMATION RULES:
                 1. PEDAGOGICAL FLOW: You MUST order modules in a logical pedagogical sequence.
                 2. Master building blocks before tackling complex topics.
+                3. WHOLE NUMBER DAYS: For any study plan, the "estimated_days" field for EACH module MUST be a positive integer string representing whole days (e.g. "1", "2", "3"). Decimal/fractional values (like "0.5" or "1.5") are STRICTLY FORBIDDEN.
 
                 CONSTRAINTS:
                 - If syllabus/curriculum data is provided, use it. IF NOT, use your internal expertise to determine a standard learning path for {exam_type} (whether exam syllabus, course outline, or skill roadmap).
@@ -210,7 +257,7 @@ class PlanningAgent:
                   "modules": [
                     {{
                       "module_name": "Logical Step Name",
-                      "estimated_days": "days",
+                      "estimated_days": "1",
                       "difficulty": "Easy/Medium/Hard",
                       "weightage_percent": 15.5,
                       "topics": ["topic1", "topic2"],

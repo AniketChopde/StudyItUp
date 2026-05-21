@@ -6,6 +6,7 @@ import { Trash2, User as UserIcon, ShieldAlert, Activity, MessageSquare, Users, 
 import { useAuthStore } from '../stores/authStore';
 import { fetchUsers, deleteUser, fetchEngagements } from '../api/admin';
 import type { User, Engagement } from '../types';
+import { Skeleton } from '../components/ui/Skeleton';
 
 type Tab = 'users' | 'activity' | 'feedback';
 
@@ -63,9 +64,20 @@ const AdminPage: React.FC = () => {
         }
     };
 
-    const LoadingSpinner = () => (
-        <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    const SkeletonLoading = () => (
+        <div className="space-y-4">
+            <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+                <div className="p-4 border-b dark:border-gray-700">
+                    <Skeleton className="h-6 w-full" />
+                </div>
+                {[1, 2, 3, 4, 5].map(i => (
+                    <div key={i} className="p-4 border-b dark:border-gray-700 flex justify-between gap-4">
+                        <Skeleton className="h-6 w-1/3" />
+                        <Skeleton className="h-6 w-1/4" />
+                        <Skeleton className="h-6 w-1/6" />
+                    </div>
+                ))}
+            </div>
         </div>
     );
 
@@ -246,7 +258,7 @@ const AdminPage: React.FC = () => {
             </div>
 
             {loading ? (
-                <LoadingSpinner />
+                <SkeletonLoading />
             ) : (
                 <>
                     {activeTab === 'users' && <UsersTable />}

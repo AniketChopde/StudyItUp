@@ -134,11 +134,27 @@ async def start_test_center(
             
             try:
                 # Primary: Celery (Best for scale)
+                # Let's verify if there is at least one active celery worker.
+                # If not, raise an exception to fall back to BackgroundTasks.
+                from celery_app import app
+                workers_active = False
+                try:
+                    inspect = app.control.inspect(timeout=1.0)
+                    if inspect:
+                        pings = inspect.ping()
+                        if pings:
+                            workers_active = True
+                except Exception as e:
+                    logger.warning(f"Could not connect to Celery broker or inspect workers: {e}")
+                
+                if not workers_active:
+                    raise RuntimeError("No active Celery workers found. Using BackgroundTasks fallback.")
+
                 generate_test_center_questions_task.delay(str(quiz_session.id), test_data.exam_name, test_data.plan_id, test_data.language)
                 logger.info(f"🚀 Test Center task enqueued via CELERY for session {quiz_session.id}")
             except Exception as celery_err:
-                # Fallback: FastAPI BackgroundTasks (Resilient if Redis is down)
-                logger.warning(f"⚠️ Celery/Redis failed, using BackgroundTasks fallback: {celery_err}")
+                # Fallback: FastAPI BackgroundTasks (Resilient if Redis is down or no Celery worker is active)
+                logger.warning(f"⚠️ Celery/Redis failed or no workers active, using BackgroundTasks fallback: {celery_err}")
                 background_tasks.add_task(
                     _generate_and_update_session, 
                     str(quiz_session.id), 

@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
+    jwt_remember_access_expire_days: int = 7
+    jwt_remember_refresh_expire_days: int = 30
     
     # Vector Store Configuration
     chroma_persist_directory: str = "./chroma_db"

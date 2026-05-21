@@ -12,7 +12,9 @@ import { AlertCircle } from 'lucide-react';
 
 const registerSchema = z.object({
     email: z.string().email('Invalid email address'),
-    full_name: z.string().min(2, 'Name must be at least 2 characters').optional(),
+    full_name: z.string().optional().refine(v => !v || v.trim().length >= 2, {
+        message: 'Name must be at least 2 characters',
+    }),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -41,7 +43,7 @@ export const RegisterPage: React.FC = () => {
             await registerUser({
                 email: data.email,
                 password: data.password,
-                full_name: data.full_name,
+                full_name: data.full_name || undefined,
             });
             navigate('/dashboard');
         } catch (error: any) {
@@ -77,6 +79,7 @@ export const RegisterPage: React.FC = () => {
                         <Input
                             label="Full Name (Optional)"
                             type="text"
+                            autoComplete="name"
                             placeholder="John Doe"
                             error={errors.full_name?.message}
                             {...register('full_name')}
@@ -84,6 +87,7 @@ export const RegisterPage: React.FC = () => {
                         <Input
                             label="Email"
                             type="email"
+                            autoComplete="email"
                             placeholder="you@example.com"
                             error={errors.email?.message}
                             {...register('email')}
@@ -91,6 +95,7 @@ export const RegisterPage: React.FC = () => {
                         <Input
                             label="Password"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="••••••••"
                             error={errors.password?.message}
                             {...register('password')}
@@ -98,6 +103,7 @@ export const RegisterPage: React.FC = () => {
                         <Input
                             label="Confirm Password"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="••••••••"
                             error={errors.confirmPassword?.message}
                             {...register('confirmPassword')}
@@ -111,19 +117,21 @@ export const RegisterPage: React.FC = () => {
                         <Button type="submit" className="w-full" isLoading={isLoading}>
                             Create Account
                         </Button>
-                        <div className="mt-4 flex flex-col items-center gap-4">
-                            <div className="relative w-full flex items-center justify-center border-t border-border mt-2 pt-4">
-                                  <span className="absolute bg-card px-2 text-muted-foreground text-sm">or sign up with</span>
+                        {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+                            <div className="mt-4 flex flex-col items-center gap-4">
+                                <div className="relative w-full flex items-center justify-center border-t border-border mt-2 pt-4">
+                                      <span className="absolute bg-card px-2 text-muted-foreground text-sm">or sign up with</span>
+                                </div>
+                                <GoogleLogin
+                                    onSuccess={handleGoogleSuccess}
+                                    onError={() => setApiError('Google signup failed')}
+                                    useOneTap
+                                    theme="filled_black"
+                                    shape="pill"
+                                    text="signup_with"
+                                />
                             </div>
-                            <GoogleLogin
-                                onSuccess={handleGoogleSuccess}
-                                onError={() => setApiError('Google signup failed')}
-                                useOneTap
-                                theme="filled_black"
-                                shape="pill"
-                                text="signup_with"
-                            />
-                        </div>
+                        )}
                     </form>
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-2">

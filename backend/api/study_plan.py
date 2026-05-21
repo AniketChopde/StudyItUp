@@ -2,7 +2,7 @@
 Study Plan API endpoints.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -74,10 +74,79 @@ async def smart_sync_plans(db: AsyncSession, current_user_id: uuid.UUID, plans: 
     return plans
 
 
+async def pregenerate_remaining_chapters(plan_id: uuid.UUID):
+    """
+    Background task to pre-generate teaching content for all chapters in a study plan.
+    Runs silently after plan creation or when plan is loaded.
+    """
+    from database.connection import AsyncSessionLocal
+    from models.study_plan import StudyPlanChapter, StudyPlan
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select
+    from agents.orchestrator import orchestrator
+    import asyncio
+    
+    logger.info(f"Background pre-generation started for plan {plan_id}")
+    
+    async with AsyncSessionLocal() as db:
+        try:
+            # 1. Fetch study plan with chapters
+            result = await db.execute(
+                select(StudyPlan)
+                .where(StudyPlan.id == plan_id)
+                .options(selectinload(StudyPlan.chapters))
+            )
+            plan = result.scalar_one_or_none()
+            if not plan:
+                logger.warning(f"Plan {plan_id} not found in background task.")
+                return
+            
+            # 2. Iterate through chapters in order
+            for chapter in sorted(plan.chapters, key=lambda c: c.order_index):
+                # If chapter already has valid content, skip it!
+                if chapter.content and chapter.content.get("topic_lessons"):
+                    lessons = chapter.content.get("topic_lessons", [])
+                    if lessons and lessons[0].get("main_explanation"):
+                        logger.info(f"Chapter '{chapter.chapter_name}' already has content. Skipping.")
+                        continue
+                
+                # Pre-generate content for this chapter
+                logger.info(f"Background generating content for chapter '{chapter.chapter_name}'")
+                try:
+                    teaching_content = await orchestrator.handle_chapter_teaching(
+                        chapter_id=str(chapter.id),
+                        chapter_name=chapter.chapter_name,
+                        topics=chapter.topics if isinstance(chapter.topics, list) else [chapter.topics],
+                        db=db,
+                        exam_type=plan.exam_type,
+                        language=plan.language
+                    )
+                    
+                    # Fetch fresh chapter within the current session block to prevent bound instances error
+                    chapter_result = await db.execute(
+                        select(StudyPlanChapter).where(StudyPlanChapter.id == chapter.id)
+                    )
+                    db_chapter = chapter_result.scalar_one_or_none()
+                    if db_chapter:
+                        db_chapter.content = teaching_content
+                        await db.commit()
+                        logger.info(f"✅ Background generated and saved content for chapter '{chapter.chapter_name}'")
+                except Exception as ex:
+                    logger.error(f"❌ Failed to background generate chapter '{chapter.chapter_name}': {ex}")
+                    await db.rollback()
+                
+                # Small pause between chapters to avoid overloading the LLM rate limit or db
+                await asyncio.sleep(2)
+                
+        except Exception as e:
+            logger.error(f"Error in background pregeneration: {e}")
+
+
 @router.post("/create", response_model=StudyPlanCreateResponse, status_code=status.HTTP_201_CREATED)
 @observe()
 async def create_study_plan(
     plan_data: StudyPlanCreate,
+    background_tasks: BackgroundTasks,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -85,6 +154,18 @@ async def create_study_plan(
     try:
         with propagate_attributes(user_id=str(current_user.user_id)):
             from sqlalchemy import func
+            from datetime import date, datetime
+            def get_days_diff(start, end):
+                try:
+                    start_date_obj = datetime.strptime(start, "%Y-%m-%d").date() if isinstance(start, str) else start
+                    end_date_obj = datetime.strptime(end, "%Y-%m-%d").date() if isinstance(end, str) else end
+                    if isinstance(start_date_obj, datetime):
+                        start_date_obj = start_date_obj.date()
+                    if isinstance(end_date_obj, datetime):
+                        end_date_obj = end_date_obj.date()
+                    return (end_date_obj - start_date_obj).days + 1
+                except Exception:
+                    return 0
             
             # Fetch user to get profile data
             from models.user import User
@@ -106,11 +187,28 @@ async def create_study_plan(
                     .order_by(StudyPlan.created_at.desc())
                 )
                 
-                # Find the first valid plan (must have chapters)
+                # Compute requested duration in days
+                req_days = get_days_diff(plan_data.start_date, plan_data.target_date)
+                
+                # Find the first valid plan (must have chapters and match target duration constraints)
                 for plan in cached_plan_result.scalars().all():
                     if plan.chapters:
-                        cached_plan = plan
-                        break
+                        plan_days = get_days_diff(plan.start_date, plan.target_date)
+                        if req_days > 0 and plan_days > 0:
+                            # For short-term plans <= 7 days, enforce an exact day match
+                            if req_days <= 7:
+                                if plan_days == req_days and len(plan.chapters) == req_days:
+                                    cached_plan = plan
+                                    break
+                            # For longer plans, allow a variance of up to 2 days
+                            else:
+                                if abs(plan_days - req_days) <= 2:
+                                    cached_plan = plan
+                                    break
+                        else:
+                            # Fallback to standard check if date parsing failed
+                            cached_plan = plan
+                            break
 
             if cached_plan:
                 logger.info(f"♻️ REUSING existing Study Plan for: {plan_data.exam_type} ({plan_data.language})")
@@ -169,6 +267,7 @@ async def create_study_plan(
                 user_goal=f"Learn {plan_data.exam_type}",
                 exam_type=plan_data.exam_type,
                 target_date=plan_data.target_date,
+                start_date=plan_data.start_date,
                 daily_hours=plan_data.daily_hours,
                 current_knowledge=plan_data.current_knowledge,
                 fast_learn=plan_data.fast_learn,
@@ -209,6 +308,66 @@ async def create_study_plan(
                     "topics": ["Exam Pattern Overview", "Current Knowledge Assessment"]
                 }]
 
+            # Dynamic adjustment according to exact chosen dates & plan selection (especially for short plans <= 7 days)
+            req_days = get_days_diff(plan_data.start_date, plan_data.target_date)
+            if req_days > 0 and req_days <= 7:
+                if len(modules) != req_days:
+                    logger.info(f"⚙️ Dynamic Adjustment: AI returned {len(modules)} modules for a {req_days}-day study plan. Programmatically adjusting modules count to exactly {req_days}.")
+                    if len(modules) > req_days:
+                        # Keep first req_days - 1 modules as is
+                        keep_modules = modules[:req_days]
+                        excess_modules = modules[req_days:]
+                        # Merge the excess modules' topics and details into the last module
+                        last_module = keep_modules[-1]
+                        last_module["topics"] = list(last_module.get("topics", []))
+                        for em in excess_modules:
+                            last_module["topics"].extend(em.get("topics", []))
+                            last_module["module_name"] = f"{last_module['module_name']} & {em.get('module_name')}"
+                        # Ensure the combined topics list doesn't contain duplicates and module name is truncated if too long
+                        last_module["topics"] = list(dict.fromkeys(last_module["topics"]))
+                        if len(last_module["module_name"]) > 60:
+                            last_module["module_name"] = last_module["module_name"][:57] + "..."
+                        modules = keep_modules
+                    else:
+                        # Pad the modules list until it matches req_days
+                        while len(modules) < req_days:
+                            modules.append({
+                                "module_name": "Practice & Final Review",
+                                "estimated_days": "1",
+                                "difficulty": "Medium",
+                                "topics": ["Comprehensive assessment practice", "Reviewing focus areas"],
+                                "weightage_percent": 10.0
+                            })
+                
+                # Enforce estimated_days to be exactly 1 for all modules
+                for module in modules:
+                    module["estimated_days"] = "1"
+                
+                # Normalize weightages to sum to 100
+                total_weight = sum(float(m.get("weightage_percent", 0.0)) for m in modules)
+                if total_weight > 0:
+                    for m in modules:
+                        m["weightage_percent"] = round((float(m.get("weightage_percent", 0.0)) / total_weight) * 100.0, 1)
+                else:
+                    weight_per_mod = round(100.0 / len(modules), 1)
+                    for m in modules:
+                        m["weightage_percent"] = weight_per_mod
+            else:
+                # For longer plans, make sure estimated_days is always a safe integer-like string >= 1
+                for module in modules:
+                    try:
+                        days_float = float(module.get("estimated_days", 1))
+                        # Enforce minimum of 1 day and round to nearest integer
+                        days_int = max(1, round(days_float))
+                        module["estimated_days"] = str(days_int)
+                    except Exception:
+                        module["estimated_days"] = "1"
+
+            # Update the stored plan_metadata modules to be perfectly consistent in DB
+            plan_metadata["modules"] = modules
+            study_plan.plan_metadata = plan_metadata
+
+            first_chapter = None
             for idx, module in enumerate(modules):
                 module_name = module.get("module_name", f"Module {idx+1}")
                 topics = module.get("topics", [])
@@ -219,7 +378,7 @@ async def create_study_plan(
                     chapter_name=module_name,
                     subject=plan_data.exam_type,
                     topics=topics,
-                    estimated_hours=int(float(module.get("estimated_days", 1)) * plan_data.daily_hours),
+                    estimated_hours=max(1, round(float(module.get("estimated_days", 1)) * plan_data.daily_hours)),
                     order_index=idx,
                     status="pending",
                     weightage_percent=float(module.get("weightage_percent", 0.0)),
@@ -227,9 +386,34 @@ async def create_study_plan(
                     resources=[] # Resources will be grounded via Research Agent during teaching
                 )
                 db.add(chapter)
+                if idx == 0:
+                    first_chapter = chapter
+                
+            await db.flush()  # Populates first_chapter.id
+            
+            # Pre-generate teaching content for the very first chapter (Week 1)
+            # This ensures that when the user lands on the study plan details,
+            # clicking "Start Deep Lesson" on Week 1 loads instantly without a 30s spinner!
+            if first_chapter:
+                try:
+                    logger.info(f"⏳ Pre-generating teaching content for Week 1 chapter: '{first_chapter.chapter_name}'")
+                    teaching_content = await orchestrator.handle_chapter_teaching(
+                        chapter_id=str(first_chapter.id),
+                        chapter_name=first_chapter.chapter_name,
+                        topics=first_chapter.topics if isinstance(first_chapter.topics, list) else [first_chapter.topics],
+                        db=db,
+                        exam_type=study_plan.exam_type,
+                        language=study_plan.language
+                    )
+                    first_chapter.content = teaching_content
+                except Exception as ex:
+                    logger.warning(f"⚠️ Failed to pre-generate first chapter content (will generate on-demand): {ex}")
                 
             await db.commit()
             await db.refresh(study_plan)
+            
+            # Trigger background generation for remaining chapters!
+            background_tasks.add_task(pregenerate_remaining_chapters, study_plan.id)
             
             # (Course recommendations are fetched asynchronously by the frontend when needed)
             
@@ -327,6 +511,7 @@ async def list_study_plans(
 @router.get("/{plan_id}", response_model=StudyPlanResponse)
 async def get_study_plan(
     plan_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     current_user: TokenData = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -350,6 +535,9 @@ async def get_study_plan(
         
         # Run smart sync for this single plan
         await smart_sync_plans(db, current_user.user_id, [plan])
+        
+        # Trigger background generation to backfill any missing chapter contents!
+        background_tasks.add_task(pregenerate_remaining_chapters, plan.id)
         
         return plan
     
@@ -392,7 +580,8 @@ async def get_plan_courses(
                 from agents.course_recommendation_agent import course_recommendation_agent
                 recommendations = await course_recommendation_agent.recommend_courses(
                     exam_type=plan.exam_type,
-                    current_knowledge=plan.current_knowledge
+                    current_knowledge=plan.current_knowledge,
+                    language=getattr(plan, "language", "English") or "English"
                 )
                 
                 # Update database

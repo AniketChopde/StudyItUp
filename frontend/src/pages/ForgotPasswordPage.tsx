@@ -97,6 +97,7 @@ export const ForgotPasswordPage: React.FC = () => {
                         <Input
                             label="Email Address"
                             type="email"
+                            autoComplete="email"
                             placeholder="you@example.com"
                             error={errors.email?.message}
                             icon={<Mail className="h-4 w-4" />}

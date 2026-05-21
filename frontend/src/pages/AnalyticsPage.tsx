@@ -11,7 +11,7 @@ import {
     TrendingUp, Award, AlertTriangle, CheckCircle, 
     BookOpen, Zap
 } from 'lucide-react';
-import { Loading } from '../components/ui/Loading';
+import { Skeleton } from '../components/ui/Skeleton';
 
 export const AnalyticsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -45,8 +45,19 @@ export const AnalyticsPage: React.FC = () => {
 
     if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loading size="lg" text="Analyzing your performance..." />
+            <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <Skeleton className="h-10 w-64 mb-2" />
+                        <Skeleton className="h-5 w-96" />
+                    </div>
+                    <Skeleton className="h-10 w-24" />
+                </div>
+                <Skeleton className="h-10 w-64" /> {/* Tabs */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <Skeleton className="lg:col-span-2 h-[500px] rounded-xl" />
+                    <Skeleton className="h-[500px] rounded-xl" />
+                </div>
             </div>
         );
     }

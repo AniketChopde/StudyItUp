@@ -134,6 +134,7 @@ export const ResetPasswordPage: React.FC = () => {
                         <Input
                             label="New Password"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="••••••••"
                             error={errors.password?.message}
                             icon={<Lock className="h-4 w-4" />}
@@ -142,6 +143,7 @@ export const ResetPasswordPage: React.FC = () => {
                         <Input
                             label="Confirm Password"
                             type="password"
+                            autoComplete="new-password"
                             placeholder="••••••••"
                             error={errors.confirmPassword?.message}
                             icon={<Lock className="h-4 w-4" />}

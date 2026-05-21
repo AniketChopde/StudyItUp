@@ -6,7 +6,7 @@ import asyncio
 import mlflow
 from typing import List, Dict, Any
 from loguru import logger
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from agents.search_agent import search_agent
 from agents.planning_agent import planning_agent
@@ -51,6 +51,7 @@ class AgentOrchestrator:
         exam_type: str,
         target_date: str,
         daily_hours: int,
+        start_date: Any = None,
         user_goal: str = None,
         current_knowledge: Dict[str, Any] = None,
         fast_learn: bool = False,
@@ -73,6 +74,7 @@ class AgentOrchestrator:
                 goal=user_goal or f"Learn {exam_type} by {target_date} with {daily_hours} hours daily",
                 exam_type=exam_type,
                 target_date=target_date,
+                start_date=start_date,
                 daily_hours=daily_hours,
                 current_knowledge=current_knowledge or {},
                 user_profile=user_profile
@@ -84,6 +86,7 @@ class AgentOrchestrator:
                 exam_type=exam_type,
                 target_date=target_date,
                 daily_hours=daily_hours,
+                start_date=start_date,
                 syllabus_data=exam_info,
                 current_knowledge=current_knowledge,
                 goal=user_goal,
@@ -103,7 +106,7 @@ class AgentOrchestrator:
                 "goal_analysis": goal_analysis,
                 "study_plan": study_plan,
                 "immediate_actions": immediate_actions,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             
             logger.info("Study plan workflow completed successfully")
@@ -195,7 +198,7 @@ class AgentOrchestrator:
             result.update({
                 "quiz": quiz_questions,
                 "source_grounded": True,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             })
             # Ensure topic is strictly set from the loop variable
             result["topic"] = topic
@@ -255,7 +258,7 @@ class AgentOrchestrator:
                 "weak_areas": weak_areas,
                 "focus_plan": focus_plan,
                 "personalized_guidance": guidance,
-                "created_at": datetime.utcnow().isoformat()
+                "created_at": datetime.now(timezone.utc).isoformat()
             }
             
             logger.info("Performance review completed successfully")
@@ -284,69 +287,89 @@ class AgentOrchestrator:
         try:
             logger.info(f"🚀 Starting OPTIMIZED teaching workflow for: {chapter_name} (RAG={enable_rag})")
             
-            # Generate teaching content for all topics in parallel
-            # WITHOUT quiz generation and WITHOUT RAG (unless explicitly requested)
-            async def generate_topic_explanation(topic: str):
-                """Generate explanation for a single topic."""
-                # Cache lookup
-                cache_key = f"{topic}|{exam_type}|{language}|rag:{enable_rag}"
-                from services.cache import cache_service
-                cached_data = await cache_service.db_get(db, "explanation", cache_key)
-                if cached_data and cached_data.get("main_explanation"):
-                    cached_data["cache_hit"] = True
-                    return cached_data
-
-                module_id = f"{chapter_id}_{topic.replace(' ', '_')}"
-                
-                # Optional: Do RAG only if enabled
-                if enable_rag:
-                    logger.info(f"🔍 RAG enabled for: {topic}")
-                    await self.ensure_topic_indexed(
-                        module_id=module_id,
-                        topic=topic,
-                        exam_type=exam_type,
-                        module_name=chapter_name
-                    )
-                    # Generate grounded explanation
-                    explanation = await content_agent.explain_concept(
-                        module_id=module_id,
-                        topic=topic,
-                        module_name=chapter_name
-                    )
-                else:
-                    # Fast path: Direct LLM explanation without RAG
-                    logger.info(f"⚡ Fast explanation (no RAG) for: {topic}")
-                    explanation = await content_agent.explain_concept_fast(
-                        topic=topic,
-                        exam_type=exam_type,
-                        context=chapter_name
-                    )
-                
-                
-                # Return complete explanation with all fields
-                result = explanation
-                result.update({
-                    "topic": topic,
-                    "source_grounded": enable_rag,
-                    "created_at": datetime.utcnow().isoformat()
-                })
-                
-                # Save to cache
-                result["cache_hit"] = False
-                await cache_service.db_set(db, "explanation", cache_key, result)
-                
-                return result
+            from services.cache import cache_service
             
-            # Execute all topics in parallel
-            tasks = [generate_topic_explanation(topic) for topic in topics]
-            topic_lessons = await asyncio.gather(*tasks)
+            topic_lessons_map = {}
+            topics_to_generate = []
+            
+            # Step 1: Sequential Cache Lookup (100% Safe)
+            for topic in topics:
+                cache_key = f"{topic}|{exam_type}|{language}|rag:{enable_rag}"
+                try:
+                    cached_data = await cache_service.db_get(db, "explanation", cache_key)
+                except Exception as ex:
+                    logger.warning(f"Error checking cache for '{topic}': {ex}")
+                    cached_data = None
+                
+                if cached_data and cached_data.get("main_explanation"):
+                    logger.info(f"🎯 Cache HIT for topic: '{topic}'")
+                    cached_data["cache_hit"] = True
+                    # Make sure the topic key is strictly set
+                    cached_data["topic"] = topic
+                    topic_lessons_map[topic] = cached_data
+                else:
+                    logger.info(f"🎯 Cache MISS for topic: '{topic}'")
+                    topics_to_generate.append(topic)
+            
+            # Step 2: Parallel LLM Generation (Fast & Parallel)
+            if topics_to_generate:
+                async def generate_explanation_for_topic(topic: str):
+                    module_id = f"{chapter_id}_{topic.replace(' ', '_')}"
+                    
+                    if enable_rag:
+                        logger.info(f"🔍 RAG enabled for: {topic}")
+                        await self.ensure_topic_indexed(
+                            module_id=module_id,
+                            topic=topic,
+                            exam_type=exam_type,
+                            module_name=chapter_name
+                        )
+                        # Generate grounded explanation
+                        explanation = await content_agent.explain_concept(
+                            module_id=module_id,
+                            topic=topic,
+                            module_name=chapter_name
+                        )
+                    else:
+                        # Fast path: Direct LLM explanation without RAG
+                        logger.info(f"⚡ Fast explanation (no RAG) for: {topic}")
+                        explanation = await content_agent.explain_concept_fast(
+                            topic=topic,
+                            exam_type=exam_type,
+                            context=chapter_name
+                        )
+                    
+                    result = explanation
+                    result.update({
+                        "topic": topic,
+                        "source_grounded": enable_rag,
+                        "created_at": datetime.now(timezone.utc).isoformat(),
+                        "cache_hit": False
+                    })
+                    return topic, result
+
+                logger.info(f"Generating explanations in parallel for: {topics_to_generate}")
+                tasks = [generate_explanation_for_topic(topic) for topic in topics_to_generate]
+                generated_results = await asyncio.gather(*tasks)
+                
+                # Step 3: Sequential Cache Saving (100% Safe)
+                for topic, result in generated_results:
+                    topic_lessons_map[topic] = result
+                    cache_key = f"{topic}|{exam_type}|{language}|rag:{enable_rag}"
+                    try:
+                        await cache_service.db_set(db, "explanation", cache_key, result)
+                    except Exception as ex:
+                        logger.warning(f"Error setting cache for '{topic}': {ex}")
+            
+            # Step 4: Re-assemble in original order
+            topic_lessons = [topic_lessons_map[topic] for topic in topics]
             
             logger.info(f"✅ Teaching content generated for {len(topics)} topics in chapter '{chapter_name}'")
-                
+            
             return {
                 "chapter_name": chapter_name,
                 "topic_lessons": topic_lessons,
-                "teaching_completed_at": datetime.utcnow().isoformat(),
+                "teaching_completed_at": datetime.now(timezone.utc).isoformat(),
                 "source_grounded": enable_rag,
                 "quiz_note": "Quiz generation moved to separate endpoint - click 'Generate Quiz' button"
             }

@@ -15,7 +15,7 @@ export const ChatPage: React.FC = () => {
     const [input, setInput] = React.useState('');
     const planId = searchParams.get('planId');
     const chapter = searchParams.get('chapter');
-    const messagesEndRef = React.useRef<HTMLDivElement>(null);
+    const chatContainerRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         const initChat = async () => {
@@ -54,8 +54,13 @@ export const ChatPage: React.FC = () => {
     }, [searchParams, setChatContext]);
 
     React.useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages]);
+        if (chatContainerRef.current) {
+            chatContainerRef.current.scrollTo({
+                top: chatContainerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, [messages, isTyping]);
 
     const handleSend = async () => {
         if (!input.trim() || isTyping) return;
@@ -114,7 +119,7 @@ export const ChatPage: React.FC = () => {
             </div>
 
             <Card className="flex-1 flex flex-col overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-card/50 backdrop-blur-md relative min-h-0">
-                <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent min-h-0">
+                <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent min-h-0">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
                             <div className="h-20 w-20 bg-primary/10 rounded-[2rem] flex items-center justify-center animate-bounce duration-1000">
@@ -214,7 +219,7 @@ export const ChatPage: React.FC = () => {
                         </div>
                     )}
 
-                    <div ref={messagesEndRef} />
+                    {/* Message list end boundary */}
                 </div>
 
                 {/* Input Area */}

@@ -7,7 +7,7 @@ import { Trash2, Video, X, PlayCircle, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { contentService } from '../api/services';
 import type { UserAnimationType } from '../types';
-import { Loading } from '../components/ui/Loading';
+import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -81,8 +81,22 @@ export default function MyAnimationsPage() {
 
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-full min-h-[400px]">
-                <Loading size="lg" text="Loading your vault..." />
+            <div className="space-y-6 max-w-7xl mx-auto">
+                <div>
+                    <Skeleton className="h-10 w-64 mb-2" />
+                    <Skeleton className="h-5 w-96" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <div key={i} className="flex flex-col rounded-xl overflow-hidden shadow-sm border border-border">
+                            <Skeleton className="w-full h-40 rounded-none" />
+                            <div className="p-4 flex justify-between items-center bg-card">
+                                <Skeleton className="h-4 w-24" />
+                                <Skeleton className="h-8 w-8 rounded-md" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         );
     }

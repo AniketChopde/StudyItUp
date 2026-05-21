@@ -458,37 +458,38 @@ export const QuizPage: React.FC = () => {
                             })}
                         </div>
                     </CardContent>
-                </Card>
 
-                {/* Navigation */}
-                <div className="flex items-center justify-between px-4">
-                    <Button
-                        variant="ghost"
-                        onClick={previousQuestion}
-                        disabled={currentQuestion === 0}
-                        className="rounded-xl h-12 font-bold px-6"
-                    >
-                        Previous
-                    </Button>
-                    {currentQuestion < activeQuiz.questions.length - 1 ? (
+                    {/* Navigation inside Card footer for vertical fold optimization */}
+                    <div className="p-6 border-t bg-muted/10 flex items-center justify-between">
                         <Button
-                            onClick={nextQuestion}
-                            disabled={!selectedAnswer}
-                            className="rounded-2xl h-14 px-10 font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                            variant="ghost"
+                            onClick={previousQuestion}
+                            disabled={currentQuestion === 0}
+                            className="rounded-xl h-10 font-bold px-6 text-xs"
                         >
-                            Next Question <ArrowRight size={18} className="ml-2" />
+                            Previous
                         </Button>
-                    ) : (
-                        <Button
-                            onClick={handleSubmitQuiz}
-                            isLoading={isLoading}
-                            disabled={!selectedAnswer}
-                            className="rounded-2xl h-14 px-10 font-black uppercase tracking-widest bg-green-600 hover:bg-green-700 shadow-xl shadow-green-500/20"
-                        >
-                            Submit Validation <Award size={18} className="ml-2" />
-                        </Button>
-                    )}
-                </div>
+
+                        {currentQuestion < activeQuiz.questions.length - 1 ? (
+                            <Button
+                                onClick={nextQuestion}
+                                disabled={!selectedAnswer}
+                                className="rounded-xl h-10 px-8 font-bold uppercase text-xs tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                            >
+                                Next Question <ArrowRight size={16} className="ml-2" />
+                            </Button>
+                        ) : (
+                            <Button
+                                onClick={handleSubmitQuiz}
+                                isLoading={isLoading}
+                                disabled={!selectedAnswer}
+                                className="rounded-xl h-10 px-8 font-bold uppercase text-xs tracking-wide bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transition-all"
+                            >
+                                Submit Validation <Award size={16} className="ml-2" />
+                            </Button>
+                        )}
+                    </div>
+                </Card>
             </div >
         );
     }

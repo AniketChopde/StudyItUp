@@ -7,6 +7,7 @@ const TopicVisualizer3D = lazy(() => import('../components/3d/TopicVisualizer3D'
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Loading } from '../components/ui/Loading';
+import { Skeleton } from '../components/ui/Skeleton';
 import {
     Calendar, Clock, BookOpen, CheckCircle2,
     Layout, Sparkles,
@@ -14,7 +15,8 @@ import {
     ArrowLeft, GraduationCap, ChevronRight,
     PlayCircle,
     ListChecks, Target as TargetIcon,
-    AlertTriangle, Lightbulb, Archive, Zap, Terminal, RefreshCw
+    AlertTriangle, Lightbulb, Archive, Zap, Terminal, RefreshCw,
+    ArrowUp
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Mermaid } from '../components/ui/Mermaid';
@@ -22,6 +24,7 @@ import { TopicMindmap } from '../components/TopicMindmap';
 import { ResourcesTab } from '../components/ResourcesTab';
 import { FeedbackModal } from '../components/FeedbackModal';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
+import { TextSelectionAsk } from '../components/TextSelectionAsk';
 
 export const StudyPlanDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -37,6 +40,33 @@ export const StudyPlanDetailPage: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [sortByWeightage, setSortByWeightage] = useState(false);
     const { isCreating, createPlan } = useStudyPlanStore();
+    const contentAreaRef = React.useRef<HTMLDivElement>(null);
+
+    const selectedChapter = activePlan?.chapters.find(
+        (c) => c.id.toString() === selectedChapterId
+    );
+
+    const scrollToTopGlobal = (behavior: 'instant' | 'smooth' = 'instant') => {
+        if (contentAreaRef.current) {
+            try {
+                contentAreaRef.current.scrollTo({ top: 0, behavior });
+                contentAreaRef.current.scrollTop = 0;
+            } catch (e) {
+                contentAreaRef.current.scrollTop = 0;
+            }
+        }
+        window.scrollTo({ top: 0, behavior });
+        document.documentElement.scrollTo({ top: 0, behavior });
+        document.body.scrollTo({ top: 0, behavior });
+        
+        const scrollContainers = document.querySelectorAll('main, .overflow-y-auto, #root');
+        scrollContainers.forEach(container => {
+            try {
+                container.scrollTo({ top: 0, behavior });
+                (container as HTMLElement).scrollTop = 0;
+            } catch (e) {}
+        });
+    };
 
     const handleRegenerate = async () => {
         if (!activePlan) return;
@@ -108,18 +138,54 @@ export const StudyPlanDetailPage: React.FC = () => {
             }
         }
     }, [activePlan, urlChapterId, selectedChapterId, viewMode, isTeaching, teachChapter]);
+    useEffect(() => {
+        scrollToTopGlobal('instant');
+        const timers = [
+            setTimeout(() => scrollToTopGlobal('instant'), 50),
+            setTimeout(() => scrollToTopGlobal('instant'), 150),
+            setTimeout(() => scrollToTopGlobal('instant'), 300),
+            setTimeout(() => scrollToTopGlobal('instant'), 500),
+            setTimeout(() => scrollToTopGlobal('instant'), 800),
+            setTimeout(() => scrollToTopGlobal('instant'), 1200),
+        ];
+        return () => timers.forEach(clearTimeout);
+    }, [viewMode, selectedChapterId, selectedChapter?.content, isTeaching]);
 
-    const selectedChapter = activePlan?.chapters.find(
-        (c) => c.id.toString() === selectedChapterId
-    );
+    // Calculate plan duration to dynamically display Day / Week / Module
+    const getChapterLabel = (index: number) => {
+        if (sortByWeightage) return `Impact #${index + 1}`;
+        if (!activePlan) return `Week ${index + 1}`;
+        
+        try {
+            const start = new Date(activePlan.start_date || activePlan.created_at);
+            const target = new Date(activePlan.target_date);
+            start.setHours(0, 0, 0, 0);
+            target.setHours(0, 0, 0, 0);
+            const diffTime = target.getTime() - start.getTime();
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            
+            if (diffDays <= 7) {
+                return `Day ${index + 1}`;
+            } else if (diffDays <= 21) {
+                return `Module ${index + 1}`;
+            } else {
+                return `Week ${index + 1}`;
+            }
+        } catch (e) {
+            return `Week ${index + 1}`;
+        }
+    };
 
-    const handleStartLesson = async () => {
+    const handleStartLesson = () => {
         if (!selectedChapter) return;
 
-        if (!selectedChapter.content || !selectedChapter.content.topic_lessons) {
-            await teachChapter(selectedChapter.id.toString());
-        }
         setViewMode('lesson');
+        if (!selectedChapter.content || !selectedChapter.content.topic_lessons) {
+            teachChapter(selectedChapter.id.toString());
+        }
+        scrollToTopGlobal('instant');
+        setTimeout(() => scrollToTopGlobal('instant'), 50);
+        setTimeout(() => scrollToTopGlobal('instant'), 150);
     };
 
     // const handleDownloadPdf = () => {
@@ -129,8 +195,17 @@ export const StudyPlanDetailPage: React.FC = () => {
 
     if (isLoading && !activePlan) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loading size="lg" text="Loading study plan details..." />
+            <div className="space-y-8 animate-in fade-in pb-20">
+                <Skeleton className="h-[250px] rounded-3xl w-full" />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-4 space-y-4">
+                        <Skeleton className="h-12 rounded-2xl w-full" />
+                        <Skeleton className="h-[500px] rounded-2xl w-full" />
+                    </div>
+                    <div className="lg:col-span-8">
+                        <Skeleton className="h-[600px] rounded-[2.5rem] w-full" />
+                    </div>
+                </div>
             </div>
         );
     }
@@ -319,7 +394,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-0.5">
                                             <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-tighter">
-                                                {sortByWeightage ? `Impact #${index + 1}` : `Week ${index + 1}`}
+                                                {getChapterLabel(index)}
                                             </span>
                                             {chapter.weightage_percent > 0 && (
                                                 <div className="flex items-center gap-1 bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
@@ -344,7 +419,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                 </div>
 
                 {/* Main Content Area - scrollable so long lesson content doesn't push the page */}
-                <div className="lg:col-span-8 max-h-[calc(100vh-11rem)] overflow-y-auto overscroll-behavior-contain custom-scrollbar">
+                <div ref={contentAreaRef} className="lg:col-span-8 max-h-[calc(100vh-11rem)] overflow-y-auto overscroll-behavior-contain custom-scrollbar">
                     {viewMode === 'syllabus' ? (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-6">
                             <Card className="rounded-[2.5rem] border-none shadow-xl overflow-hidden bg-card">
@@ -556,7 +631,6 @@ export const StudyPlanDetailPage: React.FC = () => {
                                         <div className="pt-6 border-t border-border flex flex-col md:flex-row gap-4">
                                             <Button
                                                 onClick={handleStartLesson}
-                                                isLoading={isTeaching}
                                                 className="flex-1 rounded-2xl h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 shadow-xl shadow-primary/20"
                                             >
                                                 <GraduationCap className="mr-2 h-5 w-5" />
@@ -598,6 +672,14 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     </div>
 
                                     {selectedChapter.content ? (
+                                        <TextSelectionAsk
+                                            context={{
+                                                topic: selectedChapter.chapter_name,
+                                                chapter: selectedChapter.chapter_name,
+                                                exam_type: activePlan.exam_type,
+                                                subject: selectedChapter.subject,
+                                            }}
+                                        >
                                         <Card className="border-none shadow-2xl bg-card rounded-[2.5rem] overflow-hidden">
                                             <div className="p-8 md:p-12 space-y-12">
                                                 <div className="space-y-4">
@@ -880,14 +962,127 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                     >
                                                         Take Knowledge Check 🚀
                                                     </Button>
+
+                                                    {/* Premium Navigation Footer */}
+                                                    <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 mt-6 border-t border-slate-100/80">
+                                                        <Button
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                const scrollToTopGlobal = (behavior: ScrollBehavior = 'smooth') => {
+                                                                    if (contentAreaRef.current) contentAreaRef.current.scrollTo({ top: 0, behavior });
+                                                                    window.scrollTo({ top: 0, behavior });
+                                                                };
+                                                                scrollToTopGlobal('smooth');
+                                                            }}
+                                                            className="w-full sm:w-auto rounded-full px-6 h-12 font-bold flex items-center justify-center gap-2 border-slate-200 hover:bg-slate-50 transition-all text-slate-700"
+                                                        >
+                                                            <ArrowUp size={16} />
+                                                            Go to Top
+                                                        </Button>
+
+                                                        {(() => {
+                                                            const sortedChapters = [...activePlan.chapters].sort((a, b) => 
+                                                                sortByWeightage ? (b.weightage_percent - a.weightage_percent) : (a.order_index - b.order_index)
+                                                            );
+                                                            const currentIndex = sortedChapters.findIndex(c => c.id.toString() === selectedChapterId);
+                                                            const nextChapter = currentIndex !== -1 && currentIndex < sortedChapters.length - 1 ? sortedChapters[currentIndex + 1] : null;
+
+                                                            if (nextChapter) {
+                                                                return (
+                                                                    <Button
+                                                                        variant="default"
+                                                                        onClick={() => {
+                                                                            const scrollToTopGlobal = (behavior: ScrollBehavior = 'instant') => {
+                                                                                if (contentAreaRef.current) contentAreaRef.current.scrollTop = 0;
+                                                                                window.scrollTo({ top: 0, behavior });
+                                                                            };
+                                                                            setSelectedChapterId(nextChapter.id.toString());
+                                                                            setViewMode('lesson'); // Stay in lesson mode!
+                                                                            if (!nextChapter.content || !nextChapter.content.topic_lessons) {
+                                                                                teachChapter(nextChapter.id.toString());
+                                                                            }
+                                                                            scrollToTopGlobal('instant');
+                                                                            setTimeout(() => scrollToTopGlobal('instant'), 50);
+                                                                            setTimeout(() => scrollToTopGlobal('instant'), 150);
+                                                                            setTimeout(() => scrollToTopGlobal('instant'), 300);
+                                                                        }}
+                                                                        className="w-full sm:w-auto rounded-full px-8 h-12 font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                                                    >
+                                                                        Next Chapter: {nextChapter.chapter_name.length > 25 ? nextChapter.chapter_name.slice(0, 25) + '...' : nextChapter.chapter_name}
+                                                                        <ChevronRight size={16} />
+                                                                    </Button>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </Card>
+                                        </TextSelectionAsk>
                                     ) : (
-                                        <div className="h-96 flex flex-col items-center justify-center space-y-4">
-                                            <Loading size="lg" text="Synthesizing deep knowledge..." />
-                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Generating diagrams • Building examples • Mapping path</p>
-                                        </div>
+                                        <Card className="border-none shadow-2xl bg-card rounded-[2.5rem] overflow-hidden">
+                                            <div className="p-8 md:p-12 space-y-12 animate-pulse">
+                                                {/* Header Section Skeleton */}
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center justify-between">
+                                                        <Skeleton className="h-10 w-2/3 rounded-xl" />
+                                                        <Skeleton className="h-6 w-24 rounded-full" />
+                                                    </div>
+                                                    <div className="flex items-start gap-4 border-l-4 border-primary/20 pl-6">
+                                                        <div className="flex-1 space-y-2 py-1">
+                                                            <Skeleton className="h-4 w-full rounded" />
+                                                            <Skeleton className="h-4 w-5/6 rounded" />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-16">
+                                                    {/* Concept Skeletons */}
+                                                    {[1, 2].map((i) => (
+                                                        <div key={i} className="space-y-8">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-3">
+                                                                    <Skeleton className="h-6 w-20 rounded-lg" />
+                                                                    <Skeleton className="h-8 w-64 rounded-xl" />
+                                                                </div>
+                                                                <Skeleton className="h-8 w-24 rounded-full" />
+                                                            </div>
+
+                                                            <div className="space-y-3">
+                                                                <Skeleton className="h-4 w-full rounded" />
+                                                                <Skeleton className="h-4 w-full rounded" />
+                                                                <Skeleton className="h-4 w-3/4 rounded" />
+                                                            </div>
+
+                                                            {/* Grounded Explanation Box Skeleton */}
+                                                            <div className="p-8 bg-muted/30 rounded-[2rem] border border-border/50 space-y-4">
+                                                                <div className="flex items-center justify-between">
+                                                                    <Skeleton className="h-4 w-36 rounded" />
+                                                                    <Skeleton className="h-4 w-12 rounded" />
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    <Skeleton className="h-4 w-full rounded" />
+                                                                    <Skeleton className="h-4 w-full rounded" />
+                                                                    <Skeleton className="h-4 w-5/6 rounded" />
+                                                                    <Skeleton className="h-4 w-full rounded" />
+                                                                    <Skeleton className="h-4 w-4/5 rounded" />
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Visual Study Guide Box Skeleton */}
+                                                            <div className="space-y-4">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Skeleton className="h-5 w-5 rounded-lg" />
+                                                                    <Skeleton className="h-4 w-32 rounded" />
+                                                                </div>
+                                                                <Skeleton className="h-[200px] w-full rounded-[2rem]" />
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </Card>
                                     )}
                                 </div>
                             )}

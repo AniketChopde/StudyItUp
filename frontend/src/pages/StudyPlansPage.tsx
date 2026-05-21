@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
-import { Loading } from '../components/ui/Loading';
+import { Skeleton } from '../components/ui/Skeleton';
 import { Plus, Calendar, Clock, BookOpen, ChevronRight, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -30,8 +30,16 @@ export const StudyPlansPage: React.FC = () => {
 
     if (isLoading && plans.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loading size="lg" text="Fetching your study plans..." />
+            <div className="space-y-12 animate-in fade-in max-w-7xl mx-auto">
+                {/* Header Skeleton */}
+                <Skeleton className="h-[120px] rounded-[2.5rem] w-full" />
+                
+                {/* Cards Skeleton */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-[340px] rounded-[2.5rem] w-full" />
+                    ))}
+                </div>
             </div>
         );
     }

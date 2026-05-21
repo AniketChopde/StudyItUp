@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
-import { Loading } from '../components/ui/Loading';
+import { Skeleton } from '../components/ui/Skeleton';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -41,8 +41,37 @@ export const DashboardPage: React.FC = () => {
 
     if (loading && plans.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[400px]">
-                <Loading size="lg" text="Loading your personal dashboard..." />
+            <div className="space-y-10 pb-20 animate-in fade-in duration-700">
+                {/* Hero Skeleton */}
+                <div className="rounded-[2.5rem] bg-slate-900/50 p-8 md:p-12 shadow-2xl border border-white/5 h-[300px] flex flex-col justify-center gap-6">
+                    <Skeleton className="h-6 w-32 bg-slate-800" />
+                    <Skeleton className="h-12 w-3/4 max-w-xl bg-slate-800" />
+                    <Skeleton className="h-4 w-1/2 max-w-md bg-slate-800" />
+                    <div className="flex gap-4 pt-4">
+                        <Skeleton className="h-14 w-40 rounded-2xl bg-slate-800" />
+                        <Skeleton className="h-14 w-48 rounded-2xl bg-slate-800" />
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    <div className="lg:col-span-8 space-y-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <Skeleton className="h-64 rounded-[2rem]" />
+                            <Skeleton className="h-64 rounded-[2rem]" />
+                        </div>
+                        <div>
+                            <Skeleton className="h-8 w-48 mb-6" />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Skeleton className="h-32 rounded-3xl" />
+                                <Skeleton className="h-32 rounded-3xl" />
+                            </div>
+                        </div>
+                    </div>
+                    <div className="lg:col-span-4 space-y-8">
+                        <Skeleton className="h-64 rounded-[2rem]" />
+                        <Skeleton className="h-64 rounded-[2.5rem]" />
+                    </div>
+                </div>
             </div>
         );
     }

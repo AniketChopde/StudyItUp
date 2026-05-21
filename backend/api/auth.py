@@ -146,7 +146,7 @@ async def login(
             }
         
         # Create tokens
-        tokens = create_token_pair(str(user.id), user.email)
+        tokens = create_token_pair(str(user.id), user.email, remember_me=credentials.remember_me)
         
         logger.info(f"User logged in: {user.email}")
         return tokens

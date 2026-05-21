@@ -33,8 +33,9 @@ export const useAuthStore = create<AuthState>()(
                 try {
                     set({ isLoading: true });
                     const { rememberMe, ...apiCredentials } = credentials as any; // Cast to allow extra prop
+                    const payload = { ...apiCredentials, remember_me: rememberMe };
 
-                    const response = await authService.login(apiCredentials);
+                    const response = await authService.login(payload);
                     const { access_token, refresh_token, mfa_required, temp_token } = response.data;
 
                     if (mfa_required) {

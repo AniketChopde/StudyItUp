@@ -21,7 +21,7 @@ import { AdminForgotPasswordPage } from './pages/AdminForgotPasswordPage';
 import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import AdminPage from './pages/AdminPage';
 import { SettingsPage } from './pages/SettingsPage';
-
+import { Box } from 'lucide-react';
 // Lazy-load 3D Visualize page — keeps main bundle size unchanged
 const VisualizePage = React.lazy(() => import('./pages/VisualizePage'));
 const MyAnimationsPage = React.lazy(() => import('./pages/MyAnimationsPage'));
@@ -50,9 +50,20 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const ResourcesPage = () => (
-  <div className="p-8">
-    <h1 className="text-3xl font-black mb-4 uppercase tracking-tight">Resources Vault</h1>
-    <p className="text-muted-foreground font-medium">Coming soon: A collection of all your saved study materials, PDF notes, and external links.</p>
+  <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-500">
+    <div className="relative mb-8 group">
+      <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 group-hover:scale-175 transition-transform duration-700"></div>
+      <div className="relative h-32 w-32 bg-card border shadow-2xl rounded-3xl flex items-center justify-center group-hover:-translate-y-2 transition-transform duration-500">
+         <Box className="h-16 w-16 text-primary" />
+      </div>
+    </div>
+    <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+      Resources Vault
+    </h1>
+    <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-2xl leading-relaxed">
+      We're building a powerful new space for all your saved study materials, PDF notes, and external links. 
+      Check back soon for an upgraded learning experience!
+    </p>
   </div>
 );
 

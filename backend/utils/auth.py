@@ -87,20 +87,25 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def create_refresh_token(data: dict) -> str:
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
     Create a JWT refresh token.
     
     Args:
         data: Data to encode in token
+        expires_delta: Optional expiration time delta
     
     Returns:
         Encoded JWT refresh token
     """
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(
-        seconds=settings.jwt_refresh_token_expire_seconds
-    )
+    
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(
+            seconds=settings.jwt_refresh_token_expire_seconds
+        )
     
     to_encode.update({"exp": expire, "type": "refresh"})
     
@@ -179,13 +184,14 @@ async def get_current_refresh_user(
     return decode_token(token, required_type="refresh")
 
 
-def create_token_pair(user_id: uuid.UUID, email: str) -> dict:
+def create_token_pair(user_id: uuid.UUID, email: str, remember_me: bool = False) -> dict:
     """
     Create both access and refresh tokens.
     
     Args:
         user_id: User UUID
         email: User email
+        remember_me: If True, issue longer-lived tokens
     
     Returns:
         Dictionary with access and refresh tokens
@@ -195,8 +201,15 @@ def create_token_pair(user_id: uuid.UUID, email: str) -> dict:
         "email": email
     }
     
-    access_token = create_access_token(token_data)
-    refresh_token = create_refresh_token(token_data)
+    if remember_me:
+        access_expires = timedelta(days=settings.jwt_remember_access_expire_days)
+        refresh_expires = timedelta(days=settings.jwt_remember_refresh_expire_days)
+    else:
+        access_expires = None  # uses default from create_access_token
+        refresh_expires = None  # uses default from create_refresh_token
+    
+    access_token = create_access_token(token_data, expires_delta=access_expires)
+    refresh_token = create_refresh_token(token_data, expires_delta=refresh_expires)
     
     return {
         "access_token": access_token,

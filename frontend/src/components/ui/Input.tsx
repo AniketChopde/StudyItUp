@@ -12,6 +12,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, label, error, icon, ...props }, ref) => {
         const [showPassword, setShowPassword] = useState(false);
         const isPasswordType = type === 'password';
+        const inputId = props.id || React.useId();
+        const errorId = `${inputId}-error`;
 
         const togglePasswordVisibility = () => {
             setShowPassword(!showPassword);
@@ -22,7 +24,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         return (
             <div className="w-full">
                 {label && (
-                    <label className="block text-sm font-medium mb-2">
+                    <label htmlFor={inputId} className="block text-sm font-medium mb-2">
                         {label}
                     </label>
                 )}
@@ -33,7 +35,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                         </div>
                     )}
                     <input
+                        id={inputId}
                         type={inputType}
+                        aria-invalid={!!error}
+                        aria-describedby={error ? errorId : undefined}
                         className={cn(
                             'flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
                             icon && 'pl-10',
@@ -61,7 +66,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                     )}
                 </div>
                 {error && (
-                    <p className="mt-1 text-sm text-destructive">{error}</p>
+                    <p id={errorId} className="mt-1 text-sm text-destructive">{error}</p>
                 )}
             </div>
         );

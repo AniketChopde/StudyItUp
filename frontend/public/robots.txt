@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /study-plan/
+Disallow: /quiz/
+Disallow: /analytics/
+
+Sitemap: https://studyitup.com/sitemap.xml

@@ -94,6 +94,12 @@ UPSC / IAS:
   - "Drishti IAS YouTube Channel" → https://www.youtube.com/@DrishtiIASvideos
   - "Vision IAS Current Affairs" → https://www.youtube.com/@VisionIAS
 
+MPSC / MARATHI EXAMS:
+  - "Unacademy MPSC (Maharashtra Public Service Commission)" → https://www.youtube.com/@UnacademyMPSC
+  - "eMPSC Katta (Marathi)" → https://www.youtube.com/@eMPSCKatta
+  - "Preeti Raut MPSC Preparation" → https://www.youtube.com/@PreetiRaut
+  - "MPSC Toppers Katta" → https://www.youtube.com/results?search_query=mpsc+preparation+marathi
+
 LANGCHAIN / LLM DEVELOPMENT:
   - "LangChain Full Course – freeCodeCamp" → https://www.youtube.com/watch?v=lG7Uxts9SXs
   - "LangChain Crash Course – James Briggs" → https://www.youtube.com/playlist?list=PLIUOU7oqGTLieV9uTIFMm6_4PXg-hlN6G
@@ -154,8 +160,8 @@ CRITICAL RULES — YOU MUST FOLLOW ALL OF THEM:
 2. **PINPOINT, EXACT, WORKING URLs**:
    - Every URL MUST point directly to the specific course, playlist, or lecture page.
    - DO NOT use generic homepages like `https://youtube.com`, `https://coursera.org`, or `https://udemy.com`.
-   - DO NOT use search result pages like `https://youtube.com/results?search_query=...`.
-   - For YouTube: use exact playlist URLs (`https://www.youtube.com/playlist?list=PLxxx...`) or specific video URLs.
+   - IMPORTANT FALLBACK: For ANY topic not explicitly listed in the seed URLs, DO NOT guess or hallucinate a `@channelname` or `playlist?list=ID`. Instead, YOU MUST use a YouTube search query URL which is guaranteed to work: `https://www.youtube.com/results?search_query=your+topic+here`.
+   - ONLY use exact playlist URLs or channel URLs if they are directly copied from the SEED list below. NEVER make up a playlist ID.
    - For Coursera: use specialization/course URLs (`https://www.coursera.org/specializations/xxx` or `https://www.coursera.org/learn/xxx`).
    - For NPTEL: use exact NPTEL course or YouTube playlist URLs.
    - For Udemy: use exact course URLs (`https://www.udemy.com/course/xxx`).

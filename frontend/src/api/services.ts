@@ -138,8 +138,11 @@ export const chatService = {
     sendMessage: (request: ChatRequest) =>
         apiClient.post<ChatResponse>('/chat/message', request),
 
-    getHistory: (sessionId: string) =>
-        apiClient.get(`/chat/history/${sessionId}`),
+    getChatHistory: () =>
+        apiClient.get<any[]>('/chat/history'),
+
+    getChatSession: (sessionId: string) =>
+        apiClient.get<any>(`/chat/session/${sessionId}`),
 
     deleteSession: (sessionId: string) =>
         apiClient.delete(`/chat/session/${sessionId}`),

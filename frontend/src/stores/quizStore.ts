@@ -34,7 +34,7 @@ interface QuizState {
     resetQuiz: () => void;
     startTestCenter: (examName: string, planId?: string, language?: string) => Promise<void>;
     generateChapterQuiz: (chapterId: string) => Promise<void>;
-    loadQuizResult: (id: string) => Promise<void>;
+    loadQuizResult: (id: string, source?: QuizSource) => Promise<void>;
 }
 
 export const useQuizStore = create<QuizState>((set, get) => ({
@@ -71,7 +71,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
         }
     },
 
-    loadQuizResult: async (id) => {
+    loadQuizResult: async (id, source = 'quiz') => {
         try {
             set({ isLoading: true });
             const response = await quizService.getResult(id);
@@ -79,7 +79,7 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                 results: response.data,
                 activeQuiz: null, // Ensure we are not in "taking quiz" mode
                 isLoading: false,
-                quizSource: 'quiz',
+                quizSource: source,
             });
         } catch (error) {
             set({ isLoading: false });

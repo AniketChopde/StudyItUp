@@ -10,6 +10,8 @@ from loguru import logger
 import uuid
 from datetime import datetime, UTC
 from typing import List, Dict, Any, Optional
+import hashlib
+import json
 
 from langfuse import observe, propagate_attributes
 
@@ -18,6 +20,7 @@ from models.quiz import ChatSession, ChatRequest, ChatResponse, ChatMessage, Cha
 from utils.auth import get_current_user, TokenData
 from services.azure_openai import azure_openai_service
 from services.vector_store import vector_store_service
+from services.cache import cache_service
 from agents.safety_agent import safety_agent
 from agents.orchestrator import orchestrator
 
@@ -123,12 +126,33 @@ async def send_message(
             # We pass the full session messages and the RAG context
             history = chat_session.messages[:-1] # Exclude the user message we just added
             
-            ai_response = await orchestrator.handle_chat(
-                user_message=request.message,
-                history=history,
-                rag_context=rag_context,
-                user_context=req_ctx
-            )
+            # Generate a cross-user cache key based ONLY on conversation content, not user identity
+            cache_payload = {
+                "message": request.message,
+                "history": [
+                    {"role": m.get("role"), "content": m.get("content")} 
+                    for m in history if isinstance(m, dict)
+                ],
+                "context": req_ctx,
+                "rag_context": rag_context
+            }
+            cache_key = f"chat_resp:{hashlib.md5(json.dumps(cache_payload, sort_keys=True).encode()).hexdigest()}"
+            
+            # Check Cache First
+            ai_response = await cache_service.get(cache_key)
+            
+            if ai_response:
+                logger.info(f"⚡ Cross-User Cache HIT for chat query. Saving tokens!")
+            else:
+                logger.info(f"🧠 Cache MISS. Calling Orchestrator...")
+                ai_response = await orchestrator.handle_chat(
+                    user_message=request.message,
+                    history=history,
+                    rag_context=rag_context,
+                    user_context=req_ctx
+                )
+                # Store response in cache for 7 days
+                await cache_service.set(cache_key, ai_response, ttl=604800)
 
             # Add AI message to session
             assistant_message = ChatMessage(

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { formatTime } from '../lib/utils';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
+import { EngagementButtons } from '../components/EngagementButtons';
 
 export const QuizPage: React.FC = () => {
     const navigate = useNavigate();
@@ -103,7 +104,11 @@ export const QuizPage: React.FC = () => {
     const selectedAnswer = currentQ ? answers[currentQ.question_id] : undefined;
 
     // Fetch quiz history when we're showing the config view (including when results are from Test Center)
-    const showQuizConfig = (!activeQuiz && !results) || quizSource === 'test_center';
+    const showQuizConfig = (!activeQuiz && (!results || quizSource !== 'quiz')) || (activeQuiz && quizSource !== 'quiz');
+
+    const standardQuizHistory = quizHistory.filter(item => item.subject !== 'General');
+
+    // Fetch history when entering config screen
     React.useEffect(() => {
         if (showQuizConfig) {
             fetchHistory();
@@ -139,6 +144,7 @@ export const QuizPage: React.FC = () => {
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
                                 className="h-14 rounded-2xl"
+                                disabled={isLoading}
                             />
                             <Input
                                 label="Subject"
@@ -146,6 +152,7 @@ export const QuizPage: React.FC = () => {
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
                                 className="h-14 rounded-2xl"
+                                disabled={isLoading}
                             />
                         </div>
                         
@@ -156,11 +163,12 @@ export const QuizPage: React.FC = () => {
                                     <button
                                         key={lvl}
                                         onClick={() => setDifficulty(lvl.toLowerCase())}
+                                        disabled={isLoading}
                                         className={`h-12 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${
                                             difficulty === lvl.toLowerCase() 
                                                 ? 'border-primary bg-primary/5 text-primary shadow-lg shadow-primary/5' 
                                                 : 'border-border hover:border-primary/20 text-muted-foreground'
-                                        }`}
+                                        } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                                     >
                                         {lvl}
                                     </button>
@@ -191,17 +199,15 @@ export const QuizPage: React.FC = () => {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="p-6 pt-4">
-                        {quizHistory.length === 0 ? (
-                            <p className="text-sm text-muted-foreground py-6 text-center">
-                                No quizzes yet. Complete a quiz to see it here.
-                            </p>
+                        {standardQuizHistory.length === 0 ? (
+                            <p className="text-sm text-slate-500 italic mt-4 text-center p-4 bg-slate-50 rounded-xl">No quiz history available yet.</p>
                         ) : (
-                            <ul className="space-y-3 max-h-64 overflow-y-auto">
-                                {quizHistory.map((entry) => (
-                                    <li
-                                        key={entry.id}
-                                        onClick={() => loadQuizResult(entry.id)}
-                                        className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border/50 hover:bg-muted/50 transition-colors cursor-pointer"
+                            <div className="space-y-4 mt-6">
+                                {standardQuizHistory.map((entry) => (
+                                    <div 
+                                        key={entry.id} 
+                                        onClick={() => loadQuizResult(entry.id, 'quiz')}
+                                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-slate-100 hover:border-blue-100 hover:bg-slate-50/50 transition-colors cursor-pointer"
                                     >
                                         <div className="min-w-0">
                                             <p className="font-bold text-foreground truncate">{entry.topic}</p>
@@ -219,9 +225,9 @@ export const QuizPage: React.FC = () => {
                                                     : new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                             </span>
                                         </div>
-                                    </li>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         )}
                     </CardContent>
                 </Card>
@@ -249,7 +255,7 @@ export const QuizPage: React.FC = () => {
                     <h1 className="text-4xl font-black">{results.topic}</h1>
                 </div>
 
-                <Card className={`mb-8 border-none shadow-2xl rounded-[3rem] overflow-hidden ${isSuccess ? 'bg-green-500/5' : 'bg-orange-500/5'}`}>
+                <Card className={`mb-8 border-none shadow-2xl rounded-[3rem] ${isSuccess ? 'bg-green-500/5' : 'bg-orange-500/5'}`}>
                     <CardContent className="p-10 md:p-14">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                             <div className="text-center lg:text-left space-y-6">
@@ -280,6 +286,9 @@ export const QuizPage: React.FC = () => {
                                     <Button variant="outline" onClick={() => navigate('/analytics')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest border-2">
                                         View Breakdown
                                     </Button>
+                                    <div className="ml-auto flex items-center">
+                                        <EngagementButtons contentType="quiz" contentId={results.id} />
+                                    </div>
                                 </div>
                             </div>
 

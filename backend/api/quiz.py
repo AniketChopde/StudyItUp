@@ -70,8 +70,6 @@ async def generate_quiz(
 
 # Fast path: 20 questions, one LLM call, no search/PYQ — target <10s
 TEST_CENTER_QUESTION_COUNT = 20
-TEST_CENTER_DURATION_MINUTES = 60
-
 
 @router.post("/test-center", response_model=QuizResponse, status_code=status.HTTP_201_CREATED)
 @observe()
@@ -91,7 +89,6 @@ async def start_test_center(
                 select(QuizSession)
                 .where(
                     func.lower(QuizSession.topic) == test_data.exam_name.lower(),
-                    QuizSession.time_limit_minutes == TEST_CENTER_DURATION_MINUTES,
                     QuizSession.questions != [],
                     QuizSession.total_questions > 0
                 )
@@ -108,7 +105,7 @@ async def start_test_center(
                     difficulty=cached_test.difficulty,
                     questions=cached_test.questions,
                     total_questions=cached_test.total_questions,
-                    time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
+                    time_limit_minutes=None,
                     status="in_progress",
                 )
                 db.add(quiz_session)
@@ -125,7 +122,7 @@ async def start_test_center(
                 difficulty="hard",
                 questions=[],
                 total_questions=0,
-                time_limit_minutes=TEST_CENTER_DURATION_MINUTES,
+                time_limit_minutes=None,
                 status="pending",
             )
             db.add(quiz_session)

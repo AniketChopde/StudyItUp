@@ -133,26 +133,9 @@ export const EngagementButtons: React.FC<EngagementButtonsProps> = ({
             return;
         }
 
-        const prevAction = action;
-        setAction('dislike');
-
-        try {
-            setLoading(true);
-            await submitEngagement({
-                content_type: contentType,
-                content_id: contentId,
-                action: 'dislike',
-                value: -1,
-            });
-            // Open feedback box after dislike is registered
-            setShowFeedback(true);
-        } catch (error) {
-            console.error('Failed to submit dislike:', error);
-            toast.error('Failed to submit. Please try again.');
-            setAction(prevAction);
-        } finally {
-            setLoading(false);
-        }
+        // Just open the feedback box for a required comment.
+        // We do NOT set action to 'dislike' yet or submit to the backend.
+        setShowFeedback(true);
     };
 
     const handleReasonSelect = (reason: string) => {
@@ -177,6 +160,7 @@ export const EngagementButtons: React.FC<EngagementButtonsProps> = ({
                 comment: finalComment,
             });
             setExistingDislikeComment(finalComment);
+            setAction('dislike');
             toast.success('Feedback submitted! We\'ll use it to improve. 🙏', { duration: 3000 });
             setShowFeedback(false);
         } catch (error) {
@@ -246,8 +230,8 @@ export const EngagementButtons: React.FC<EngagementButtonsProps> = ({
             <div
                 ref={feedbackBoxRef}
                 className={cn(
-                    'absolute left-0 z-50 mt-2 w-80 sm:w-96',
-                    'transition-all duration-300 ease-out origin-top-left',
+                    'absolute right-0 z-[100] mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm',
+                    'transition-all duration-300 ease-out origin-top-right',
                     showFeedback
                         ? 'opacity-100 scale-y-100 translate-y-0 pointer-events-auto'
                         : 'opacity-0 scale-y-90 -translate-y-2 pointer-events-none'
@@ -307,7 +291,7 @@ export const EngagementButtons: React.FC<EngagementButtonsProps> = ({
                                 id={`dislike-comment-${contentId}`}
                                 rows={3}
                                 maxLength={500}
-                                placeholder="Tell us more (optional)..."
+                                placeholder="Tell us more (required)..."
                                 value={feedbackComment}
                                 onChange={(e) => setFeedbackComment(e.target.value)}
                                 disabled={submittingFeedback}
@@ -334,16 +318,9 @@ export const EngagementButtons: React.FC<EngagementButtonsProps> = ({
                             </p>
                             <div className="flex gap-2">
                                 <button
-                                    onClick={handleDismissFeedback}
-                                    disabled={submittingFeedback}
-                                    className="px-3 py-1.5 text-xs font-medium rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                >
-                                    Skip
-                                </button>
-                                <button
                                     id={`dislike-submit-${contentId}`}
                                     onClick={handleFeedbackSubmit}
-                                    disabled={submittingFeedback || (!feedbackComment.trim() && !selectedReason)}
+                                    disabled={submittingFeedback || !feedbackComment.trim()}
                                     className={cn(
                                         'flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg',
                                         'bg-red-500 text-white transition-all duration-150',

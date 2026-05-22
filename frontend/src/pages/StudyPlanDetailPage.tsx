@@ -22,6 +22,7 @@ import { Mermaid } from '../components/ui/Mermaid';
 import { TopicMindmap } from '../components/TopicMindmap';
 import { ResourcesTab } from '../components/ResourcesTab';
 import { FeedbackModal } from '../components/FeedbackModal';
+import { EngagementButtons } from '../components/EngagementButtons';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
 import { TextSelectionAsk } from '../components/TextSelectionAsk';
 
@@ -38,7 +39,7 @@ export const StudyPlanDetailPage: React.FC = () => {
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [sortByWeightage, setSortByWeightage] = useState(false);
-    const { isCreating, createPlan } = useStudyPlanStore();
+    const { isCreating, createPlan, deletePlan } = useStudyPlanStore();
     const contentAreaRef = React.useRef<HTMLDivElement>(null);
 
     const selectedChapter = activePlan?.chapters.find(
@@ -69,6 +70,7 @@ export const StudyPlanDetailPage: React.FC = () => {
 
     const handleRegenerate = async () => {
         if (!activePlan) return;
+        const oldPlanId = activePlan.id;
         try {
             const data: {
                 exam_type: string;
@@ -89,6 +91,8 @@ export const StudyPlanDetailPage: React.FC = () => {
             };
             const result = await createPlan(data);
             if (result && result.study_plan) {
+                // Remove the old plan to prevent duplicates after re-optimizing
+                await deletePlan(oldPlanId.toString());
                 navigate(`/study-plans/${result.study_plan.id}`);
             }
         } catch (error) {
@@ -224,7 +228,7 @@ export const StudyPlanDetailPage: React.FC = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-700 pb-20">
             {/* Header section */}
-            <div className="relative overflow-hidden rounded-3xl bg-slate-50 border border-slate-200 p-8 md:p-12 shadow-sm">
+            <div className="relative rounded-3xl bg-slate-50 border border-slate-200 p-8 md:p-12 shadow-sm">
                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                     <BookOpen className="h-32 w-32 text-slate-400" />
                 </div>
@@ -265,7 +269,12 @@ export const StudyPlanDetailPage: React.FC = () => {
                         </h1>
                     </div>
                     <div className="flex flex-col items-end gap-4 w-full md:w-auto">
-                        <div className="flex flex-wrap justify-end gap-2">
+                        <div className="flex flex-wrap justify-end gap-2 items-center">
+                            <EngagementButtons 
+                                contentType="plan" 
+                                contentId={activePlan.id.toString()} 
+                                className="mr-2"
+                            />
                             <Button
                                 variant="outline"
                                 size="sm"

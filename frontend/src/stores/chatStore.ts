@@ -27,6 +27,7 @@ interface ChatState {
     // Actions
     sendMessage: (message: string, context?: Record<string, any>) => Promise<void>;
     createSession: () => void;
+    fetchSessions: () => Promise<void>;
     loadHistory: (sessionId: string) => Promise<void>;
     deleteSession: (sessionId: string) => Promise<void>;
     setActiveSession: (session: ChatSession | null) => void;
@@ -70,7 +71,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 context: mergedContext,
             });
 
-            // Add AI response
             const aiMessage: ChatMessage = {
                 role: 'assistant',
                 content: response.data.message,
@@ -113,14 +113,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ chatContext: context || {} });
     },
 
+    fetchSessions: async () => {
+        try {
+            const response = await chatService.getChatHistory();
+            set({ sessions: response.data });
+        } catch (error) {
+            console.error('Failed to fetch sessions:', error);
+        }
+    },
+
     loadHistory: async (sessionId) => {
         try {
-            const response = await chatService.getHistory(sessionId);
+            const response = await chatService.getChatSession(sessionId);
             const session = response.data;
 
             set({
                 activeSession: session,
-                messages: session.messages,
+                messages: session.messages || [],
             });
         } catch (error) {
             toast.error('Failed to load chat history');

@@ -5,14 +5,14 @@ import { Card, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Loading } from '../components/ui/Loading';
-import {
-    Brain, Clock, CheckCircle, XCircle,
-    ArrowRight,
-    Target, Award, AlertTriangle, Play, ShieldCheck, Timer
-} from 'lucide-react';
+import { Play, Timer, CheckCircle, XCircle, Award, AlertTriangle, Clock, ArrowRight, Brain, Target, ShieldCheck } from 'lucide-react';
 import { formatTime } from '../lib/utils';
 import toast from 'react-hot-toast';
 import { ReadAloudButton } from '../components/voice/VoiceButton';
+import { EngagementButtons } from '../components/EngagementButtons';
+import { KnowledgeGapAnalysis } from '../components/KnowledgeGapAnalysis';
+import { quizService } from '../api/services';
+import type { QuizHistoryItem } from '../types';
 
 export const TestCenterPage: React.FC = () => {
     const {
@@ -29,6 +29,7 @@ export const TestCenterPage: React.FC = () => {
         nextQuestion,
         previousQuestion,
         resetQuiz,
+        loadQuizResult,
         isLoading,
     } = useQuizStore();
 
@@ -38,6 +39,34 @@ export const TestCenterPage: React.FC = () => {
     const [language, setLanguage] = React.useState('English');
     const [timeLeft, setTimeLeft] = React.useState<number | null>(null);
     const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
+    const [visitedQuestions, setVisitedQuestions] = React.useState<Set<number>>(new Set([0]));
+    const [showSubmitModal, setShowSubmitModal] = React.useState(false);
+
+    // History State
+    const [history, setHistory] = React.useState<QuizHistoryItem[]>([]);
+    const [, setLoadingHistory] = React.useState(false);
+
+    React.useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setVisitedQuestions(prev => new Set(prev).add(currentQuestion));
+    }, [currentQuestion]);
+
+    const showQuizConfig = !activeQuiz && !results;
+
+    // Fetch history when on the config view
+    React.useEffect(() => {
+        if (showQuizConfig) {
+            setLoadingHistory(true);
+            quizService.getHistory()
+                .then(response => {
+                    const data = response.data;
+                    const testCenterHistory = data.filter(item => item.subject === 'General' || item.topic === examName);
+                    setHistory(testCenterHistory.slice(0, 5));
+                })
+                .catch(err => console.error("Failed to load history", err))
+                .finally(() => setLoadingHistory(false));
+        }
+    }, [showQuizConfig, examName]);
 
     // Initialization: If we come back and there's no active quiz and no pending session, reset
     React.useEffect(() => {
@@ -50,26 +79,19 @@ export const TestCenterPage: React.FC = () => {
     React.useEffect(() => {
         if (!activeQuiz || !timeStarted || results) return;
 
-        const totalMinutes = activeQuiz.time_limit_minutes ?? 60; // test center default 60 min
+        const totalMinutes = activeQuiz.time_limit_minutes ?? Math.max(10, Math.ceil(activeQuiz.questions.length * 1.5));
         const totalSeconds = totalMinutes * 60;
 
-        const tick = () => {
+        const intervalId = setInterval(() => {
             const elapsed = Math.floor((Date.now() - timeStarted) / 1000);
             setElapsedSeconds(elapsed);
-            const remaining = totalSeconds - elapsed;
-
-            if (remaining <= 0) {
-                setTimeLeft(0);
-                handleAutoSubmit();
-                return true;
-            }
+            const remaining = Math.max(0, totalSeconds - elapsed);
             setTimeLeft(remaining);
-            return false;
-        };
 
-        if (tick()) return; // time already up on mount
-        const intervalId = setInterval(() => {
-            if (tick()) clearInterval(intervalId);
+            if (remaining === 0) {
+                clearInterval(intervalId);
+                handleAutoSubmit();
+            }
         }, 1000);
 
         return () => clearInterval(intervalId);
@@ -88,10 +110,8 @@ export const TestCenterPage: React.FC = () => {
         await submitQuiz();
     };
 
-    const handleManualSubmit = async () => {
-        if (window.confirm("Are you sure you want to submit your exam now?")) {
-            await submitQuiz();
-        }
+    const handleManualSubmit = () => {
+        setShowSubmitModal(true);
     };
 
     const currentQ = activeQuiz?.questions[currentQuestion];
@@ -106,9 +126,8 @@ export const TestCenterPage: React.FC = () => {
         );
     }
 
-    // 1. Landing / Entry View (also when results or active quiz are from Take Quiz – don't show those here)
-    const showTestCenterLanding = (!activeQuiz && (!results || quizSource !== 'test_center')) || (activeQuiz && quizSource !== 'test_center');
-    if (showTestCenterLanding) {
+    // 1. Landing / Entry View
+    if (showQuizConfig) {
         return (
             <div className="max-w-3xl mx-auto px-4 animate-in fade-in duration-700">
                 <div className="text-center mb-8 space-y-4">
@@ -129,7 +148,7 @@ export const TestCenterPage: React.FC = () => {
                         <div>
                             <h3 className="text-lg font-black">Simulation Engine</h3>
                             <p className="text-xs font-medium text-muted-foreground mt-1">
-                                One quick generation, 60-min timer. Test auto-closes when time is up.
+                                One quick generation, dynamic timer. Test auto-closes when time is up.
                             </p>
                         </div>
                     </div>
@@ -156,7 +175,7 @@ export const TestCenterPage: React.FC = () => {
                                 onChange={(e) => setExamName(e.target.value)}
                                 className="h-14 text-lg font-bold text-center rounded-xl border-2 focus:ring-4 transition-all"
                             />
-                            
+
                             <p className="font-black text-[10px] uppercase tracking-[0.2em] text-primary mt-4">Preferred Language</p>
                             <select
                                 className="w-full h-14 text-lg font-bold text-center rounded-xl border-2 border-input bg-background focus:ring-4 focus:ring-primary/20 transition-all outline-none"
@@ -178,6 +197,41 @@ export const TestCenterPage: React.FC = () => {
                         </Button>
                     </CardContent>
                 </Card>
+
+                {/* History Section */}
+                {history.length > 0 && (
+                    <div className="mt-12 animate-in slide-in-from-bottom-4 duration-700">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Clock className="text-primary" size={20} />
+                            <h3 className="text-xl font-black">Simulation History</h3>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {history.map((item) => (
+                                <Card
+                                    key={item.id}
+                                    onClick={() => loadQuizResult(item.id, 'test_center')}
+                                    className="border-border/50 bg-card/50 hover:bg-card hover:border-primary/50 transition-all cursor-pointer"
+                                >
+                                    <CardContent className="p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h4 className="font-bold truncate" title={item.topic}>{item.topic}</h4>
+                                            {item.score != null ? (
+                                                <span className={`text-xs font-black px-2 py-1 rounded-md ${item.score >= 50 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {Math.round(item.score as number)}%
+                                                </span>
+                                            ) : (
+                                                <span className="text-xs font-bold px-2 py-1 bg-muted text-muted-foreground rounded-md">Incomplete</span>
+                                            )}
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs text-muted-foreground">
+                                            <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -185,7 +239,7 @@ export const TestCenterPage: React.FC = () => {
     // 2. Results View
     const handleDownloadReview = () => {
         if (!results) return;
-        
+
         const content = [
             `Test Center Result: ${results.topic}`,
             `Score: ${Math.round(results.score)}%`,
@@ -212,17 +266,16 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
         URL.revokeObjectURL(url);
     };
 
-    // 2. Results View – only for Test Center simulations
     if (results && quizSource === 'test_center') {
         const isSuccess = results.score >= 50;
         return (
-            <div className="max-w-4xl mx-auto py-8 px-4">
+            <div className="max-w-7xl mx-auto px-4">
                 <div className="text-center mb-6">
                     <h1 className="text-2xl font-black tracking-tight">{results.topic} Result</h1>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-                    <Card className={`lg:col-span-2 rounded-2xl shadow-sm border-2 overflow-hidden ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                    <Card className={`lg:col-span-2 rounded-2xl shadow-sm border-2 ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
                         <CardContent className="p-6 h-full flex flex-col justify-center">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
@@ -237,6 +290,7 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                                                 : "This was a high-difficulty simulation. Review the analysis below."}
                                         </p>
                                     </div>
+                                    <EngagementButtons contentType="quiz" contentId={results.id} />
                                 </div>
                                 <div className="h-16 w-16 bg-white/50 rounded-xl flex items-center justify-center backdrop-blur-sm">
                                     {isSuccess ? <Award size={32} /> : <AlertTriangle size={32} />}
@@ -267,13 +321,17 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                     </div>
                 </div>
 
-                <div className="space-y-4">
+                <KnowledgeGapAnalysis 
+                    results={results.detailed_results} 
+                />
+
+                <div className="space-y-4 mt-8">
                     <h2 className="text-lg font-black uppercase tracking-tight px-2 flex items-center gap-2">
                         <Brain className="text-primary h-4 w-4" />
                         Detailed Analysis
                     </h2>
                     {results.detailed_results.map((result, idx) => (
-                        <Card key={idx} className="border-none shadow-sm rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-card/50">
+                        <Card key={idx} className="border-none shadow-sm rounded-xl transition-shadow bg-card/50">
                             <CardContent className="p-4 flex items-start gap-4">
                                 <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${result.is_correct ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
                                     {result.is_correct ? <CheckCircle size={16} /> : <XCircle size={16} />}
@@ -310,76 +368,45 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
 
     // 3. Active Test View – only when this session is from Test Center
     if (activeQuiz && currentQ && quizSource === 'test_center') {
-        const showCountdown = activeQuiz.time_limit_minutes != null;
+        const showCountdown = true;
         const timerValue = showCountdown && timeLeft !== null ? formatTime(timeLeft) : formatTime(elapsedSeconds);
         const timerLabel = showCountdown ? 'Time left' : 'Elapsed';
 
         return (
-            <div className="max-w-5xl mx-auto py-6 px-4 animate-in fade-in duration-700">
-                {/* Fixed Timer Header - always visible below app top bar */}
-                <div className="fixed left-0 right-0 top-16 z-50 px-4 lg:px-8">
-                    <div className="mx-auto max-w-5xl p-4 bg-card/95 backdrop-blur-md border border-primary/10 rounded-2xl shadow-lg flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="text-center bg-primary text-primary-foreground p-2 rounded-lg h-10 w-10 flex items-center justify-center text-lg font-bold shrink-0">
-                                {currentQuestion + 1}
-                            </div>
-                            <div className="min-w-0">
-                                <h3 className="font-bold uppercase tracking-tight text-xs">Question {currentQuestion + 1} of {activeQuiz.questions.length}</h3>
-                                <p className="text-[10px] font-medium text-muted-foreground uppercase truncate">{activeQuiz.topic}</p>
+            <div className="max-w-7xl mx-auto px-4 animate-in fade-in duration-700">
+                {/* Clean Sticky Header */}
+                <div className="sticky top-16 md:top-20 z-40 bg-background/95 backdrop-blur pt-4 flex items-center justify-between mb-8 pb-4 border-b border-border/50">
+                    <div className="space-y-1">
+                        <p className="text-[10px] font-black tracking-widest text-primary uppercase">Test Center Simulation</p>
+                        <h1 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-gray-100">{activeQuiz.topic}</h1>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm transition-colors ${showCountdown && timeLeft !== null && timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse dark:bg-red-900/20 dark:border-red-900/50' : 'bg-card border-border/50'}`}>
+                            <Timer className={`h-5 w-5 ${showCountdown && timeLeft !== null && timeLeft < 300 ? 'text-red-500' : 'text-primary'}`} aria-hidden />
+                            <div className="text-right leading-none">
+                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">{timerLabel}</p>
+                                <span className="font-black tabular-nums tracking-tight">{timerValue}</span>
                             </div>
                         </div>
 
-                        <div className={`flex items-center gap-3 px-5 py-2.5 rounded-xl border transition-colors shrink-0 ${showCountdown && timeLeft !== null && timeLeft < 300 ? 'bg-red-500/10 border-red-500 text-red-600 animate-pulse' : 'bg-muted/30 border-border/50'}`}>
-                            <Timer className="h-5 w-5 text-primary" aria-hidden />
-                            <div className="text-right">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{timerLabel}</p>
-                                <span className="text-xl font-bold tabular-nums">{timerValue}</span>
-                            </div>
-                        </div>
-
-                        <Button onClick={handleManualSubmit} variant="ghost" size="sm" className="rounded-lg font-bold uppercase text-[10px] hover:bg-destructive/10 hover:text-destructive shrink-0">
+                        <Button onClick={handleManualSubmit} variant="ghost" size="sm" className="rounded-lg font-bold uppercase text-[10px] bg-muted/50 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 shrink-0 h-[42px] px-5 border border-border/50">
                             Early Exit
                         </Button>
                     </div>
                 </div>
 
-                {/* Spacer so content starts below the fixed timer bar */}
-                <div className="h-20 shrink-0" aria-hidden />
-
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Progress Sidebar */}
-                    <div className="hidden lg:block lg:col-span-3 space-y-4">
-                        <Card className="rounded-2xl border-none shadow-sm bg-card/50 p-4">
-                            <h4 className="font-bold uppercase text-[10px] mb-3 text-center text-muted-foreground">Navigator</h4>
-                            <div className="grid grid-cols-5 gap-2">
-                                {activeQuiz.questions.map((q, idx) => (
-                                    <button
-                                        key={q.question_id}
-                                        onClick={() => useQuizStore.getState().goToQuestion(idx)}
-                                        className={`h-8 w-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${idx === currentQuestion
-                                            ? 'bg-primary text-primary-foreground shadow-md scale-110'
-                                            : answers[q.question_id]
-                                                ? 'bg-green-500/10 text-green-700 border border-green-500/20'
-                                                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                                            }`}
-                                    >
-                                        {idx + 1}
-                                    </button>
-                                ))}
-                            </div>
-                        </Card>
-                    </div>
-
                     {/* Main Question Card */}
-                    <div className="lg:col-span-9 space-y-6">
+                    <div className="lg:col-span-9 space-y-6 order-1">
                         <Card className="border-none shadow-xl bg-card rounded-[2rem] overflow-hidden min-h-[400px] flex flex-col">
                             <CardContent className="p-6 md:p-10 flex-1 space-y-6">
                                 <div className="space-y-4">
                                     <p className="text-xl md:text-2xl font-bold leading-snug tracking-tight text-foreground/90">
                                         {currentQ.question_text || currentQ.question}
                                     </p>
-                                    <ReadAloudButton 
-                                        text={(currentQ.question_text || currentQ.question) + '. Options: ' + currentQ.options.join(', ')} 
+                                    <ReadAloudButton
+                                        text={(currentQ.question_text || currentQ.question) + '. Options: ' + currentQ.options.join(', ')}
                                     />
                                 </div>
 
@@ -399,14 +426,14 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                                                     : 'border-transparent bg-muted/30 hover:bg-muted/60'
                                                     }`}
                                             >
-                                                <div className="flex items-center gap-4">
-                                                    <div className={`h-8 w-8 rounded-lg flex items-center justify-center font-bold text-sm transition-colors ${isSelected
+                                                <div className="flex items-center">
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mr-4 font-bold text-sm transition-colors ${isSelected
                                                         ? 'bg-primary text-primary-foreground'
-                                                        : 'bg-background text-muted-foreground border shadow-sm'
+                                                        : 'bg-background text-muted-foreground group-hover:bg-background/80'
                                                         }`}>
                                                         {optionLetter}
                                                     </div>
-                                                    <span className={`text-base font-medium leading-normal flex-1 ${isSelected ? 'text-primary font-bold' : 'text-foreground/80'}`}>
+                                                    <span className={`font-medium ${isSelected ? 'text-foreground font-semibold' : 'text-foreground/80'}`}>
                                                         {optionText}
                                                     </span>
                                                 </div>
@@ -415,37 +442,97 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                                     })}
                                 </div>
                             </CardContent>
-
-                            <div className="p-6 border-t bg-muted/10 flex items-center justify-between">
+                            
+                            {/* Card Footer Navigation */}
+                            <div className="p-4 bg-muted/20 border-t border-border/50 flex items-center justify-between">
                                 <Button
                                     variant="ghost"
                                     onClick={previousQuestion}
                                     disabled={currentQuestion === 0}
-                                    className="rounded-xl h-10 font-bold px-6 text-xs"
+                                    className="font-bold text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground"
                                 >
                                     Previous
                                 </Button>
-
-                                {currentQuestion < activeQuiz.questions.length - 1 ? (
+                                {currentQuestion === activeQuiz.questions.length - 1 ? (
                                     <Button
-                                        onClick={nextQuestion}
-                                        className="rounded-xl h-10 px-8 font-bold uppercase text-xs tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                                        onClick={() => setShowSubmitModal(true)}
+                                        className="rounded-xl px-6 font-bold uppercase text-[10px] tracking-widest bg-primary text-primary-foreground hover:bg-primary/90"
                                     >
-                                        Next <ArrowRight size={16} className="ml-2" />
+                                        Submit Exam
                                     </Button>
                                 ) : (
                                     <Button
-                                        onClick={handleManualSubmit}
-                                        isLoading={isLoading}
-                                        className="rounded-xl h-10 px-8 font-bold uppercase text-xs tracking-wide bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transition-all"
+                                        onClick={nextQuestion}
+                                        className="rounded-xl px-6 font-bold uppercase text-[10px] tracking-widest bg-foreground text-background hover:bg-foreground/90"
                                     >
-                                        Submit <Award size={16} className="ml-2" />
+                                        Next
+                                        <ArrowRight size={14} className="ml-2" />
                                     </Button>
                                 )}
                             </div>
                         </Card>
                     </div>
+
+                    {/* Progress Sidebar */}
+                    <div className="hidden lg:block lg:col-span-3 space-y-4 order-2">
+                        <Card className="rounded-2xl border-none shadow-sm bg-card/50 p-4">
+                            <h4 className="font-bold uppercase text-[10px] mb-3 text-center text-muted-foreground">Navigator</h4>
+                            <div className="grid grid-cols-5 gap-2">
+                                {activeQuiz.questions.map((q, idx) => (
+                                    <button
+                                        key={q.question_id}
+                                        onClick={() => useQuizStore.getState().goToQuestion(idx)}
+                                        className={`h-8 w-8 rounded-lg font-bold text-xs flex items-center justify-center transition-all ${
+                                            idx === currentQuestion
+                                                ? 'bg-primary text-primary-foreground shadow-md scale-110'
+                                                : answers[q.question_id]
+                                                    ? 'bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:border-green-900/50 dark:text-green-400'
+                                                    : visitedQuestions.has(idx)
+                                                        ? 'bg-red-50 text-red-700 border border-red-200 dark:bg-red-900/20 dark:border-red-900/50 dark:text-red-400'
+                                                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                                        }`}
+                                    >
+                                        {idx + 1}
+                                    </button>
+                                ))}
+                            </div>
+                        </Card>
+                    </div>
                 </div>
+
+                {/* Submit Confirmation Modal */}
+                {showSubmitModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in">
+                        <div className="bg-card border border-border/50 shadow-2xl rounded-3xl max-w-sm w-full p-6 animate-in zoom-in-95">
+                            <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                                <AlertTriangle className="h-6 w-6 text-primary" />
+                            </div>
+                            <h3 className="text-xl font-black text-center mb-2">Submit Simulation?</h3>
+                            <p className="text-sm text-center text-muted-foreground font-medium mb-6">
+                                Are you sure you want to submit your exam now? You will not be able to change your answers after submission.
+                            </p>
+                            <div className="flex gap-3">
+                                <Button 
+                                    variant="outline" 
+                                    className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] h-12"
+                                    onClick={() => setShowSubmitModal(false)}
+                                >
+                                    Cancel
+                                </Button>
+                                <Button 
+                                    className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] h-12"
+                                    isLoading={isLoading}
+                                    onClick={async () => {
+                                        setShowSubmitModal(false);
+                                        await submitQuiz();
+                                    }}
+                                >
+                                    Submit
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }

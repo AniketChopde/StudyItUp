@@ -2,23 +2,25 @@ import React from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { Send, Bot, User, ArrowLeft, RotateCcw, Sparkles, Layers } from 'lucide-react';
+import { Send, Bot, User, ArrowLeft, RotateCcw, Sparkles, Layers, History, Plus, X, MessageSquare, Trash2 } from 'lucide-react';
 import { VoiceInputButton, ReadAloudButton } from '../components/voice/VoiceButton';
 import { formatDate } from '../lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
 export const ChatPage: React.FC = () => {
-    const { messages, isTyping, sendMessage, createSession, activeSession, setChatContext } = useChatStore();
+    const { messages, isTyping, sendMessage, createSession, activeSession, setChatContext, sessions, fetchSessions, loadHistory, deleteSession } = useChatStore();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [input, setInput] = React.useState('');
+    const [isSidebarOpen, setIsSidebarOpen] = React.useState(true);
     const planId = searchParams.get('planId');
     const chapter = searchParams.get('chapter');
     const chatContainerRef = React.useRef<HTMLDivElement>(null);
 
     React.useEffect(() => {
         const initChat = async () => {
+            await fetchSessions();
             if (!activeSession) {
                 await createSession();
             }
@@ -88,6 +90,12 @@ export const ChatPage: React.FC = () => {
         <div className="h-[calc(100vh-6rem)] flex flex-col w-full max-w-6xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-0">
             <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-4">
+                    <button
+                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                        className="p-2 hover:bg-accent rounded-xl transition-colors"
+                    >
+                        <History className="h-5 w-5" />
+                    </button>
                     {planId && (
                         <button 
                             onClick={() => navigate(`/study-plans/${planId}`)}
@@ -118,7 +126,63 @@ export const ChatPage: React.FC = () => {
                 </div>
             </div>
 
-            <Card className="flex-1 flex flex-col overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-card/50 backdrop-blur-md relative min-h-0">
+            <div className="flex-1 flex gap-4 min-h-0 w-full overflow-hidden">
+                {/* Inline Sidebar for Chat History */}
+                {isSidebarOpen && (
+                    <Card className="w-72 flex-shrink-0 flex flex-col overflow-hidden rounded-[2.5rem] border-none shadow-xl bg-card/80 backdrop-blur-md animate-in slide-in-from-left-4 duration-300 hidden md:flex">
+                        <div className="flex items-center justify-between p-6 border-b border-border/50">
+                            <h2 className="font-black text-lg">Chat History</h2>
+                            <button onClick={() => setIsSidebarOpen(false)} className="p-2 hover:bg-muted rounded-full transition-colors">
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="p-4 border-b border-border/50">
+                            <Button 
+                                onClick={() => createSession()} 
+                                className="w-full flex items-center gap-2 rounded-xl h-11 shadow-md shadow-primary/10"
+                                variant="default"
+                            >
+                                <Plus className="h-4 w-4" /> New Chat
+                            </Button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-1 scrollbar-thin scrollbar-thumb-primary/10">
+                            {sessions.length === 0 ? (
+                                <div className="p-4 text-center text-sm text-muted-foreground font-medium">
+                                    No recent chats.
+                                </div>
+                            ) : (
+                                sessions.map((session) => (
+                                    <div 
+                                        key={session.id}
+                                        onClick={() => loadHistory(session.id)}
+                                        className={`flex items-center justify-between group p-3 rounded-xl cursor-pointer hover:bg-muted transition-colors ${activeSession?.id === session.id ? 'bg-primary/10 hover:bg-primary/15' : ''}`}
+                                    >
+                                        <div className="flex items-center gap-3 overflow-hidden">
+                                            <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                            <div className="flex flex-col overflow-hidden">
+                                                <span className="text-sm font-semibold truncate">{session.title || 'New Chat'}</span>
+                                                <span className="text-[10px] text-muted-foreground font-medium">{new Date(session.updated_at || session.created_at || '').toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                deleteSession(session.id);
+                                            }}
+                                            className="p-1.5 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive rounded-md transition-all shrink-0"
+                                            title="Delete chat"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </Card>
+                )}
+
+                {/* Main Chat Area */}
+                <Card className="flex-1 flex flex-col overflow-hidden rounded-[2.5rem] border-none shadow-2xl bg-card/50 backdrop-blur-md relative min-h-0">
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent min-h-0">
                     {messages.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-full text-center space-y-6">
@@ -174,25 +238,23 @@ export const ChatPage: React.FC = () => {
                                         <ReactMarkdown>{message.content}</ReactMarkdown>
                                     </div>
                                     
-                                    <div className="flex items-center justify-between mt-4 pt-2">
-                                        <div className="flex items-center gap-3">
-                                            {message.role === 'assistant' && (
-                                                <>
-                                                    <ReadAloudButton text={message.content} className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary" />
-                                                    <button 
-                                                        onClick={handleRetry}
-                                                        className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary transition-colors"
-                                                        title="Retry response"
-                                                    >
-                                                        <RotateCcw size={14} />
-                                                    </button>
-                                                </>
-                                            )}
+                                    {message.role === 'assistant' && (
+                                        <div className="flex items-center justify-between mt-4 pt-2">
+                                            <div className="flex items-center gap-3">
+                                                <ReadAloudButton text={message.content} className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary" />
+                                                <button 
+                                                    onClick={handleRetry}
+                                                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary transition-colors"
+                                                    title="Retry response"
+                                                >
+                                                    <RotateCcw size={14} />
+                                                </button>
+                                            </div>
+                                            <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">
+                                                {formatDate(message.timestamp)}
+                                            </span>
                                         </div>
-                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">
-                                            {formatDate(message.timestamp)}
-                                        </span>
-                                    </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -249,8 +311,8 @@ export const ChatPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
-            </Card>
-
+                </Card>
+            </div>
         </div>
     );
 };

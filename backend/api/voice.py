@@ -14,8 +14,14 @@ import hashlib
 
 router = APIRouter()
 
-# In-memory global cache to ensure repeat TTS requests (like replaying animations) are instant
-_tts_cache = {}
+import shelve
+import os
+
+# Persistent global cache to ensure repeat TTS requests (like replaying animations) are instant
+# and survive uvicorn reloads
+CACHE_DIR = ".cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+_tts_cache = shelve.open(os.path.join(CACHE_DIR, "tts_cache.db"))
 
 class TTSRequest(BaseModel):
     text: str

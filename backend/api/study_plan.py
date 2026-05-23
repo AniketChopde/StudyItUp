@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from typing import List, Dict, Any
 from loguru import logger
 import uuid
+from datetime import datetime, date
 from langfuse import observe, propagate_attributes
 
 from database.connection import get_db
@@ -469,6 +470,14 @@ async def update_study_plan(
             
             for key, value in plan_data.items():
                 if hasattr(plan, key):
+                    if key in ['target_date', 'start_date'] and isinstance(value, str):
+                        try:
+                            if 'T' in value:
+                                value = datetime.fromisoformat(value.replace('Z', '+00:00')).date()
+                            else:
+                                value = datetime.strptime(value, "%Y-%m-%d").date()
+                        except ValueError:
+                            pass
                     setattr(plan, key, value)
             
             await db.commit()

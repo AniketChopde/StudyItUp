@@ -262,30 +262,7 @@ export const DashboardPage: React.FC = () => {
 
                 {/* Right Column: Quick Actions & Reminders */}
                 <div className="lg:col-span-4 space-y-8">
-                    {/* Quick Actions */}
-                    <Card className="rounded-[2rem] border-none shadow-xl bg-card overflow-hidden">
-                        <div className="p-8 space-y-6">
-                            <h3 className="text-xl font-black">Quick Toolbox</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <Link to="/chat" className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/10 hover:border-blue-500/30 transition-all flex flex-col items-center gap-3 group text-center">
-                                    <MessageSquare className="h-6 w-6 text-blue-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-600/70 group-hover:text-blue-600 transition-colors">Chat</span>
-                                </Link>
-                                <Link to="/quiz" className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/10 hover:border-purple-500/30 transition-all flex flex-col items-center gap-3 group text-center">
-                                    <Brain className="h-6 w-6 text-purple-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-600/70 group-hover:text-purple-600 transition-colors">Quiz</span>
-                                </Link>
-                                <Link to="/analytics" className="p-4 rounded-2xl bg-orange-500/10 border border-orange-500/10 hover:border-orange-500/30 transition-all flex flex-col items-center gap-3 group text-center">
-                                    <Layout className="h-6 w-6 text-orange-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-orange-600/70 group-hover:text-orange-600 transition-colors">Stats</span>
-                                </Link>
-                                <Link to="/study-plans/create" className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 hover:border-emerald-500/30 transition-all flex flex-col items-center gap-3 group text-center">
-                                    <Target className="h-6 w-6 text-emerald-500 group-hover:scale-110 transition-transform" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600/70 group-hover:text-emerald-600 transition-colors">New Plan</span>
-                                </Link>
-                            </div>
-                        </div>
-                    </Card>
+
 
                     {/* Daily Reminders */}
                     <Card className="rounded-[2.5rem] border-none shadow-xl bg-primary text-primary-foreground overflow-hidden">

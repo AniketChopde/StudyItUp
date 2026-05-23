@@ -93,25 +93,31 @@ export const StudyPlansPage: React.FC = () => {
                             <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-purple-600 rounded-[2.5rem] blur opacity-0 group-hover:opacity-20 transition duration-500"></div>
                             
                             <Card className="relative h-full flex flex-col overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/60 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-500">
-                                <div className="absolute top-4 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-10 w-10 rounded-full bg-background/50 hover:bg-destructive text-destructive hover:text-white backdrop-blur-md shadow-sm border border-border/50"
-                                        onClick={(e) => handleDeleteClick(e, plan.id.toString())}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
+
 
                                 <CardHeader className="pb-4 relative z-10 pt-8 px-8">
-                                    <div className="flex justify-between items-center mb-4">
+                                    <div className="flex justify-between items-center mb-4 relative h-7">
                                         <div className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm">
                                             {plan.exam_type}
                                         </div>
-                                        <div className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center gap-1.5 transition-colors ${plan.status === 'completed' ? 'bg-green-500/10 text-green-600' : 'bg-blue-500/10 text-blue-600'}`}>
-                                            {plan.status === 'completed' && <CheckCircle size={10} />}
-                                            {plan.status}
+                                        <div className="relative flex items-center h-full">
+                                            {/* Status Badge - Fades out on hover */}
+                                            <div className={`absolute right-0 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm flex items-center gap-1.5 transition-all duration-300 group-hover:opacity-0 group-hover:scale-95 ${plan.status === 'completed' ? 'bg-green-500/10 text-green-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                                                {plan.status === 'completed' && <CheckCircle size={10} />}
+                                                {plan.status}
+                                            </div>
+                                            
+                                            {/* Delete Button - Fades in on hover */}
+                                            <div className="absolute right-0 opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-7 w-7 rounded-full bg-destructive/10 hover:bg-destructive text-destructive hover:text-white shadow-sm transition-colors"
+                                                    onClick={(e) => handleDeleteClick(e, plan.id.toString())}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                     <CardTitle className="text-2xl font-black leading-tight group-hover:text-primary transition-colors duration-300 line-clamp-2">

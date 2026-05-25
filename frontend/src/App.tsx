@@ -22,9 +22,7 @@ import { AdminResetPasswordPage } from './pages/AdminResetPasswordPage';
 import AdminPage from './pages/AdminPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { Box } from 'lucide-react';
-// Lazy-load 3D Visualize page — keeps main bundle size unchanged
-const VisualizePage = React.lazy(() => import('./pages/VisualizePage'));
-const MyAnimationsPage = React.lazy(() => import('./pages/MyAnimationsPage'));
+
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -57,7 +55,7 @@ const ResourcesPage = () => (
          <Box className="h-16 w-16 text-primary" />
       </div>
     </div>
-    <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+    <h1 className="text-3xl md:text-3xl font-black mb-4 tracking-tight bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
       Resources Vault
     </h1>
     <p className="text-lg md:text-xl text-muted-foreground font-medium max-w-2xl leading-relaxed">
@@ -132,9 +130,7 @@ function App() {
         <Route path="/analytics" element={<ProtectedRoute><Layout><AnalyticsPage /></Layout></ProtectedRoute>} />
         <Route path="/resources" element={<ProtectedRoute><Layout><ResourcesPage /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><SettingsPage /></Layout></ProtectedRoute>} />
-        <Route path="/visualize" element={<ProtectedRoute><Layout><React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading visualizer..." /></div>}><VisualizePage /></React.Suspense></Layout></ProtectedRoute>} />
-        <Route path="/my-animations" element={<ProtectedRoute><Layout><React.Suspense fallback={<div className="flex items-center justify-center min-h-[400px]"><Loading size="lg" text="Loading vault..." /></div>}><MyAnimationsPage /></React.Suspense></Layout></ProtectedRoute>} />
-        
+
         <Route path="/admin" element={<ProtectedRoute><AdminLayout><AdminPage /></AdminLayout></ProtectedRoute>} />
 
         {/* Default redirect */}

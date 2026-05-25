@@ -13,9 +13,7 @@ import { Lock, AlertCircle, CheckCircle } from 'lucide-react';
 const resetPasswordSchema = z.object({
     password: z
         .string()
-        .min(8, 'Password must be at least 8 characters')
-        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-        .regex(/[0-9]/, 'Password must contain at least one number'),
+        .min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -126,7 +124,7 @@ export const ResetPasswordPage: React.FC = () => {
                     </div>
                     <CardTitle className="text-2xl font-bold text-center">Reset Password</CardTitle>
                     <CardDescription className="text-center">
-                        Enter your new password below. Must be 8+ characters with an uppercase letter and a number.
+                        Enter your new password below. Must be at least 6 characters.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

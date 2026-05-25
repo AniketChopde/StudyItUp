@@ -49,7 +49,7 @@ export const StudyPlansPage: React.FC = () => {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 p-8 bg-gradient-to-br from-primary/10 via-purple-500/5 to-blue-500/10 rounded-[2.5rem] border border-primary/10 shadow-sm relative overflow-hidden">
                 <div className="absolute inset-0 bg-grid-white/10 [mask-image:linear-gradient(0deg,transparent,black)] pointer-events-none" />
                 <div className="relative z-10">
-                    <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
+                    <h1 className="text-3xl md:text-3xl font-black tracking-tight uppercase bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
                         Study Plans
                     </h1>
                     <p className="text-muted-foreground mt-2 font-medium max-w-lg text-sm md:text-base">
@@ -59,7 +59,7 @@ export const StudyPlansPage: React.FC = () => {
                 <Button
                     onClick={() => navigate('/study-plans/create')}
                     size="lg"
-                    className="relative z-10 rounded-2xl group transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 active:scale-95 font-black uppercase tracking-wider h-14 px-8"
+                    className="relative z-10 rounded-2xl group transition-all duration-300 hover:shadow-xl hover:shadow-primary/20 active:scale-95 font-black uppercase tracking-wider h-10 px-4"
                 >
                     <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
                     New Path
@@ -95,7 +95,7 @@ export const StudyPlansPage: React.FC = () => {
                             <Card className="relative h-full flex flex-col overflow-hidden rounded-[2.5rem] border border-border/50 bg-card/60 backdrop-blur-xl shadow-lg hover:shadow-2xl transition-all duration-500">
 
 
-                                <CardHeader className="pb-4 relative z-10 pt-8 px-8">
+                                <CardHeader className="pb-4 relative z-10 pt-8 px-4">
                                     <div className="flex justify-between items-center mb-4 relative h-7">
                                         <div className="bg-primary/10 text-primary px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-sm">
                                             {plan.exam_type}
@@ -129,7 +129,7 @@ export const StudyPlansPage: React.FC = () => {
                                     </CardDescription>
                                 </CardHeader>
 
-                                <CardContent className="mt-auto px-8 pb-8 relative z-10">
+                                <CardContent className="mt-auto px-4 pb-8 relative z-10">
                                     <div className={`grid grid-cols-2 gap-3 mb-6 transition-opacity duration-300 ${plan.status === 'completed' ? 'opacity-50' : ''}`}>
                                         <div className="flex flex-col bg-muted/40 hover:bg-muted/60 transition-colors p-4 rounded-2xl border border-border/30">
                                             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">

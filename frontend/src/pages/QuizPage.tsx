@@ -118,12 +118,12 @@ export const QuizPage: React.FC = () => {
     // Quiz Generation Form (also when results/active are from Test Center – don't show those here)
     if (showQuizConfig) {
         return (
-            <div className="max-w-2xl mx-auto px-4 animate-in fade-in duration-700 space-y-10">
-                <div className="text-center mb-10 space-y-4">
+            <div className="max-w-3xl mx-auto px-4 animate-in fade-in duration-700 space-y-10">
+                <div className="text-center mb-5 space-y-4">
                     <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Brain className="h-10 w-10 text-primary" />
                     </div>
-                    <h1 className="text-4xl font-black tracking-tight uppercase">Knowledge Validator</h1>
+                    <h1 className="text-3xl font-black tracking-tight uppercase">Knowledge Validator</h1>
                     <p className="text-muted-foreground font-medium max-w-sm mx-auto">
                         Ready to prove your mastery? Generate an AI-powered quiz tailored to your current study topic.
                     </p>
@@ -143,7 +143,7 @@ export const QuizPage: React.FC = () => {
                                 placeholder="e.g., Quantum Mechanics"
                                 value={topic}
                                 onChange={(e) => setTopic(e.target.value)}
-                                className="h-14 rounded-2xl"
+                                className="h-10 rounded-2xl"
                                 disabled={isLoading}
                             />
                             <Input
@@ -151,7 +151,7 @@ export const QuizPage: React.FC = () => {
                                 placeholder="e.g., Physics"
                                 value={subject}
                                 onChange={(e) => setSubject(e.target.value)}
-                                className="h-14 rounded-2xl"
+                                className="h-10 rounded-2xl"
                                 disabled={isLoading}
                             />
                         </div>
@@ -178,7 +178,7 @@ export const QuizPage: React.FC = () => {
 
                         <Button
                             onClick={handleGenerateQuiz}
-                            className="w-full h-16 rounded-[1.5rem] text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 mt-4 bg-foreground text-background hover:scale-[1.02] transition-transform"
+                            className="w-full h-12 rounded-xl text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20 mt-4 bg-foreground text-background hover:scale-[1.02] transition-transform"
                             isLoading={isLoading}
                             disabled={!topic || !subject}
                         >
@@ -239,8 +239,8 @@ export const QuizPage: React.FC = () => {
     if (results && (quizSource === 'quiz' || quizSource === null)) {
         const isSuccess = results.score >= 70;
         return (
-            <div className="max-w-4xl mx-auto py-12 px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="mb-10 text-center space-y-2 relative">
+            <div className="max-w-7xl mx-auto px-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                <div className="mb-4 text-center space-y-2 relative">
                     {/* <Button
                         variant="ghost" 
                         onClick={() => {
@@ -252,11 +252,11 @@ export const QuizPage: React.FC = () => {
                         <ArrowRight className="h-4 w-4 mr-2 rotate-180" /> Back
                     </Button> */}
                     <span className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">Performance Report</span>
-                    <h1 className="text-4xl font-black">{results.topic}</h1>
+                    <h1 className="text-3xl font-black">{results.topic}</h1>
                 </div>
 
-                <Card className={`mb-8 border-none shadow-2xl rounded-[3rem] ${isSuccess ? 'bg-green-500/5' : 'bg-orange-500/5'}`}>
-                    <CardContent className="p-10 md:p-14">
+                <Card className={`mb-8 border-none shadow-2xl rounded-[1rem] ${isSuccess ? 'bg-green-500/5' : 'bg-orange-500/5'}`}>
+                    <CardContent className="p-6 md:p-8">
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                             <div className="text-center lg:text-left space-y-6">
                                 <div className="space-y-2">
@@ -275,15 +275,15 @@ export const QuizPage: React.FC = () => {
                                 </p>
                                 <div className="flex flex-wrap gap-4 pt-4">
                                     {isSuccess ? (
-                                        <Button onClick={() => navigate('/study-plans')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest shadow-lg shadow-primary/20">
+                                        <Button onClick={() => navigate('/study-plans')} className="rounded-2xl h-10 px-4 font-black uppercase tracking-widest shadow-lg shadow-primary/20">
                                             Continue Journey <ArrowRight size={18} className="ml-2" />
                                         </Button>
                                     ) : (
-                                        <Button onClick={resetQuiz} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest bg-orange-600 hover:bg-orange-700">
+                                        <Button onClick={resetQuiz} className="rounded-2xl h-10 px-4 font-black uppercase tracking-widest bg-orange-600 hover:bg-orange-700">
                                             Try Again <RefreshCcw size={18} className="ml-2" />
                                         </Button>
                                     )}
-                                    <Button variant="outline" onClick={() => navigate('/analytics')} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest border-2">
+                                    <Button variant="outline" onClick={() => navigate('/analytics')} className="rounded-2xl h-10 px-4 font-black uppercase tracking-widest border-2">
                                         View Breakdown
                                     </Button>
                                     <div className="ml-auto flex items-center">
@@ -293,17 +293,17 @@ export const QuizPage: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="p-8 bg-background rounded-[2rem] border border-border/50 text-center space-y-2">
+                                <div className="p-2 bg-background rounded-[2rem] border border-border/50 text-center space-y-2">
                                     <CheckCircle className="h-8 w-8 text-green-500 mx-auto" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Correct</p>
                                     <p className="text-3xl font-black">{results.correct_answers}</p>
                                 </div>
-                                <div className="p-8 bg-background rounded-[2rem] border border-border/50 text-center space-y-2">
+                                <div className="p-2 bg-background rounded-[2rem] border border-border/50 text-center space-y-2">
                                     <XCircle className="h-8 w-8 text-red-500 mx-auto" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Wrong</p>
                                     <p className="text-3xl font-black">{results.total_questions - results.correct_answers}</p>
                                 </div>
-                                <div className="p-8 bg-background rounded-[2rem] border border-border/50 text-center col-span-2 space-y-2">
+                                <div className="p-2 bg-background rounded-[2rem] border border-border/50 text-center col-span-2 space-y-2">
                                     <Clock className="h-8 w-8 text-blue-500 mx-auto" />
                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Time Invested</p>
                                     <p className="text-2xl font-black">{formatTime(results.time_taken_seconds)}</p>
@@ -376,7 +376,7 @@ export const QuizPage: React.FC = () => {
         const progress = ((currentQuestion + 1) / activeQuiz.questions.length) * 100;
 
         return (
-            <div className="max-w-4xl mx-auto py-6 md:py-10 px-4 animate-in fade-in duration-700">
+            <div className="max-w-7xl px-4 animate-in fade-in duration-700">
                 {/* Header */}
                 <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div className="space-y-1">
@@ -483,7 +483,7 @@ export const QuizPage: React.FC = () => {
                             <Button
                                 onClick={nextQuestion}
                                 disabled={!selectedAnswer}
-                                className="rounded-xl h-10 px-8 font-bold uppercase text-xs tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                                className="rounded-xl h-10 px-4 font-bold uppercase text-xs tracking-wide shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
                             >
                                 Next Question <ArrowRight size={16} className="ml-2" />
                             </Button>
@@ -492,7 +492,7 @@ export const QuizPage: React.FC = () => {
                                 onClick={handleSubmitQuiz}
                                 isLoading={isLoading}
                                 disabled={!selectedAnswer}
-                                className="rounded-xl h-10 px-8 font-bold uppercase text-xs tracking-wide bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transition-all"
+                                className="rounded-xl h-10 px-4 font-bold uppercase text-xs tracking-wide bg-green-600 hover:bg-green-700 shadow-lg shadow-green-500/20 hover:shadow-green-500/30 transition-all"
                             >
                                 Submit Validation <Award size={16} className="ml-2" />
                             </Button>

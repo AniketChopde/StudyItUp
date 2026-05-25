@@ -6,13 +6,20 @@ import { z } from 'zod';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
-import { Target, Calendar, Clock, Sparkles, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '../components/ui/Card';
+import { 
+    Target, Calendar, Clock, Sparkles, AlertTriangle, 
+    Brain, Zap, Wrench, Monitor, BarChart, Database, 
+    Cloud, Server, Layout, Shield, CheckCircle2, ChevronRight, ChevronLeft,
+    BookOpen
+} from 'lucide-react';
 
 const today = new Date().toISOString().split('T')[0];
 
 const createPlanSchema = z.object({
     exam_type: z.string().min(2, 'Learning goal or topic is required'),
+    measurable_target: z.string().optional(),
+    current_level: z.string().default('Beginner'),
     start_date: z.string().min(1, 'Start date is required'),
     target_date: z.string().min(1, 'Target completion date is required'),
     daily_hours: z.number().min(1).max(24),
@@ -25,6 +32,19 @@ const createPlanSchema = z.object({
 
 type CreatePlanFormData = z.infer<typeof createPlanSchema>;
 
+const TRENDING_ROLES = [
+    { title: "AI Engineer", durationDays: 90, hoursPerDay: 3, level: "Intermediate", icon: <Brain className="h-6 w-6 text-purple-500" />, bg: "bg-purple-100" },
+    { title: "Forward Deployed Eng", durationDays: 60, hoursPerDay: 3, level: "Intermediate", icon: <Zap className="h-6 w-6 text-orange-500" />, bg: "bg-orange-100" },
+    { title: "DevOps Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Wrench className="h-6 w-6 text-blue-500" />, bg: "bg-blue-100" },
+    { title: "Full Stack Engineer", durationDays: 120, hoursPerDay: 3, level: "Beginner", icon: <Monitor className="h-6 w-6 text-emerald-500" />, bg: "bg-emerald-100" },
+    { title: "Data Scientist", durationDays: 120, hoursPerDay: 2, level: "Beginner", icon: <BarChart className="h-6 w-6 text-amber-500" />, bg: "bg-amber-100" },
+    { title: "ML Engineer", durationDays: 90, hoursPerDay: 3, level: "Intermediate", icon: <Database className="h-6 w-6 text-pink-500" />, bg: "bg-pink-100" },
+    { title: "Cloud Architect", durationDays: 60, hoursPerDay: 2, level: "Intermediate", icon: <Cloud className="h-6 w-6 text-cyan-500" />, bg: "bg-cyan-100" },
+    { title: "Backend Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Server className="h-6 w-6 text-indigo-500" />, bg: "bg-indigo-100" },
+    { title: "Frontend Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Layout className="h-6 w-6 text-rose-500" />, bg: "bg-rose-100" },
+    { title: "Security Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Shield className="h-6 w-6 text-red-500" />, bg: "bg-red-100" },
+];
+
 export const CreateStudyPlanPage: React.FC = () => {
     const navigate = useNavigate();
     const { createPlan } = useStudyPlanStore();
@@ -35,20 +55,39 @@ export const CreateStudyPlanPage: React.FC = () => {
         register,
         handleSubmit,
         watch,
+        setValue,
         formState: { errors },
     } = useForm<CreatePlanFormData>({
         resolver: zodResolver(createPlanSchema),
         defaultValues: {
             start_date: today,
-            daily_hours: 4,
+            daily_hours: 2,
             fast_learn: false,
             language: 'English',
+            current_level: 'Beginner'
         }
     });
 
     const isFastLearn = watch('fast_learn');
+    const examType = watch('exam_type');
+    const targetDate = watch('target_date');
+    const startDate = watch('start_date');
+    const dailyHours = watch('daily_hours');
+    const currentLevel = watch('current_level');
+    const measurableTarget = watch('measurable_target');
 
-    // Use isCreating for the local state of this operation
+    // Calculate duration
+    let daysDiff = 0;
+    if (startDate && targetDate) {
+        const start = new Date(startDate);
+        const end = new Date(targetDate);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+            daysDiff = Math.max(0, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
+        }
+    }
+
+    const totalHours = daysDiff * (dailyHours || 0);
+
     const isCreatingLocal = useStudyPlanStore(state => state.isCreating);
 
     const onSubmit = async (data: CreatePlanFormData) => {
@@ -59,9 +98,13 @@ export const CreateStudyPlanPage: React.FC = () => {
         }
         
         try {
+            // Append target if provided
+            const fullExamType = data.measurable_target ? `${data.exam_type} (Target: ${data.measurable_target})` : data.exam_type;
+            
             const response = await createPlan({
                 ...data,
-                current_knowledge: {},
+                exam_type: fullExamType,
+                current_knowledge: { level: data.current_level },
             });
             if (response.study_plan?.id) {
                 navigate(`/study-plans/${response.study_plan.id}`);
@@ -80,152 +123,322 @@ export const CreateStudyPlanPage: React.FC = () => {
         }
     };
 
+    const handleRoleSelect = (role: typeof TRENDING_ROLES[0]) => {
+        setValue('exam_type', role.title, { shouldValidate: true });
+        setValue('daily_hours', role.hoursPerDay, { shouldValidate: true });
+        setValue('current_level', role.level, { shouldValidate: true });
+        
+        // Calculate future date
+        const start = new Date(watch('start_date') || today);
+        start.setDate(start.getDate() + role.durationDays);
+        setValue('target_date', start.toISOString().split('T')[0], { shouldValidate: true });
+    };
+
+    // Auto-scroll functionality for carousel
+    const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+    
+    const scrollLeft = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+        }
+    };
+    
+    const scrollRight = () => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+        }
+    };
+
     return (
-        <div className="max-w-2xl mx-auto py-8 px-4">
-            <div className="flex items-center gap-3 mb-8">
-                <div className="p-3 bg-primary/10 rounded-xl">
-                    <Sparkles className="h-8 w-8 text-primary" />
-                </div>
+        <div className="max-w-6xl mx-auto py-8 px-4 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
                 <div>
-                    <h1 className="text-3xl font-bold">Create Study Plan</h1>
-                    <p className="text-muted-foreground">Our AI will generate a personalized learning path for you</p>
+                    <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-3">
+                        <Sparkles className="h-4 w-4" /> Smart Planner
+                    </div>
+                    <h1 className="text-3xl md:text-3xl font-black tracking-tight mb-2">Create Study Plan</h1>
+                    <p className="text-muted-foreground text-sm">Pick a trending role below or fill in your own goal.</p>
+                </div>
+                
+                <div className="flex gap-8 text-center pb-2">
+                    <div>
+                        <div className="text-2xl font-black">{daysDiff || 0}</div>
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">days</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-black">{totalHours || 0}</div>
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">hours</div>
+                    </div>
+                    <div>
+                        <div className="text-2xl font-black">{dailyHours <= 2 ? 'Light' : dailyHours <= 4 ? 'Steady' : 'Intense'}</div>
+                        <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest">pace</div>
+                    </div>
                 </div>
             </div>
 
-            <Card className="border-2 border-primary/20 shadow-xl relative">
-                <CardHeader>
-                    <CardTitle>Plan Details</CardTitle>
-                    <CardDescription>Tell us about your goal and schedule</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        <div className="space-y-4">
-                            <Input
-                                label="What do you want to learn?"
-                                placeholder="e.g. Machine Learning, LangChain, UPSC, GATE CS, React"
-                                icon={<Target className="h-4 w-4" />}
-                                error={errors.exam_type?.message}
-                                {...register('exam_type')}
-                            />
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1">
-                                    <label className="text-sm font-medium leading-none">
-                                        Preferred Language
-                                    </label>
-                                    <select
-                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                        {...register('language')}
-                                    >
-                                        <option value="English">English</option>
-                                        <option value="Hindi">Hindi (हिंदी)</option>
-                                        <option value="Marathi">Marathi (मराठी)</option>
-                                    </select>
-                                </div>
-
-                                <Input
-                                    label="Daily study hours"
-                                    type="number"
-                                    min="1"
-                                    max="24"
-                                    icon={<Clock className="h-4 w-4" />}
-                                    error={errors.daily_hours?.message}
-                                    {...register('daily_hours', { valueAsNumber: true })}
-                                />
+            {/* Quick Start Carousel */}
+            <div className="mb-4 relative group">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Quick Start — Trending Roles</h3>
+                    <div className="flex gap-2">
+                        <button onClick={scrollLeft} type="button" className="p-1.5 rounded-full bg-muted text-muted-foreground hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                            <ChevronLeft size={16} />
+                        </button>
+                        <button onClick={scrollRight} type="button" className="p-1.5 rounded-full bg-muted text-muted-foreground hover:bg-slate-200 hover:text-slate-900 transition-colors">
+                            <ChevronRight size={16} />
+                        </button>
+                    </div>
+                </div>
+                
+                <div 
+                    ref={scrollContainerRef}
+                    className="flex overflow-x-auto gap-4 pb-4 custom-scrollbar snap-x snap-mandatory"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    {TRENDING_ROLES.map((role, idx) => (
+                        <div 
+                            key={idx} 
+                            onClick={() => handleRoleSelect(role)}
+                            className={`min-w-[200px] flex-shrink-0 cursor-pointer snap-start p-5 rounded-2xl border-2 transition-all hover:shadow-md ${examType === role.title ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card hover:border-primary/30'}`}
+                        >
+                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-4 ${role.bg}`}>
+                                {role.icon}
                             </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <Input
-                                    label="Start Date"
-                                    type="date"
-                                    min={today}
-                                    icon={<Calendar className="h-4 w-4" />}
-                                    error={errors.start_date?.message}
-                                    {...register('start_date')}
-                                />
-                                <Input
-                                    label="Target completion date"
-                                    type="date"
-                                    min={watch('start_date') || today}
-                                    icon={<Calendar className="h-4 w-4" />}
-                                    error={errors.target_date?.message}
-                                    {...register('target_date')}
-                                />
+                            <h4 className="font-bold text-sm mb-1">{role.title}</h4>
+                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground mb-1">
+                                <span>{role.durationDays}d</span>
+                                <span>·</span>
+                                <span>{role.hoursPerDay}h/day</span>
                             </div>
+                            <div className="text-[11px] font-medium text-slate-500">
+                                {role.level}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
-                            <div className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${isFastLearn ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20' : 'border-border bg-card hover:bg-muted/50'}`}>
-                                <label className="flex items-start gap-3 cursor-pointer">
-                                    <div className="flex items-center h-5 mt-1">
-                                        <input
-                                            type="checkbox"
-                                            className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                                            {...register('fast_learn')}
+            {/* Form Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Main Form */}
+                <div className="lg:col-span-8">
+                    <Card className="border-none shadow-xl bg-card rounded-[2rem] overflow-hidden">
+                        <CardContent className="p-6 md:p-8">
+                            <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+                                
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold">Specific goal</label>
+                                        <Input
+                                            placeholder="e.g. GATE CS data structures, React interview prep"
+                                            icon={<Target className="h-4 w-4" />}
+                                            error={errors.exam_type?.message}
+                                            {...register('exam_type')}
+                                            className="h-12 rounded-xl"
                                         />
                                     </div>
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <span className="font-black text-sm uppercase tracking-tight">Fast Learn Mode 🚀</span>
-                                            {isFastLearn && <span className="text-[10px] font-bold bg-primary text-primary-foreground px-2 py-0.5 rounded-full uppercase">Enabled</span>}
-                                        </div>
-                                        <p className="text-xs text-muted-foreground font-medium mt-1">
-                                            Focus on core and foundational topics first. Skip optional or advanced content to cover essentials in less time.
-                                        </p>
+
+                                    <div className="space-y-3">
+                                        <label className="text-sm font-bold">Measurable target</label>
+                                        <Input
+                                            placeholder="e.g. score 80% in mocks, build 3 portfolio projects"
+                                            icon={<CheckCircle2 className="h-4 w-4" />}
+                                            error={errors.measurable_target?.message}
+                                            {...register('measurable_target')}
+                                            className="h-12 rounded-xl"
+                                        />
                                     </div>
-                                </label>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-bold">Current level</label>
+                                            <select
+                                                className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                {...register('current_level')}
+                                            >
+                                                <option value="Beginner">Beginner</option>
+                                                <option value="Intermediate">Intermediate</option>
+                                                <option value="Advanced">Advanced</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-bold">Language</label>
+                                            <select
+                                                className="flex h-12 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                {...register('language')}
+                                            >
+                                                <option value="English">English</option>
+                                                <option value="Hindi">Hindi</option>
+                                                <option value="Marathi">Marathi</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-bold">Daily hours</label>
+                                            <Input
+                                                type="number"
+                                                min="1"
+                                                max="24"
+                                                icon={<Clock className="h-4 w-4" />}
+                                                error={errors.daily_hours?.message}
+                                                {...register('daily_hours', { valueAsNumber: true })}
+                                                className="h-12 rounded-xl"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-bold">Start date</label>
+                                            <Input
+                                                type="date"
+                                                min={today}
+                                                icon={<Calendar className="h-4 w-4" />}
+                                                error={errors.start_date?.message}
+                                                {...register('start_date')}
+                                                className="h-12 rounded-xl"
+                                            />
+                                        </div>
+                                        <div className="space-y-3">
+                                            <label className="text-sm font-bold">Target date</label>
+                                            <Input
+                                                type="date"
+                                                min={watch('start_date') || today}
+                                                icon={<Calendar className="h-4 w-4" />}
+                                                error={errors.target_date?.message}
+                                                {...register('target_date')}
+                                                className="h-12 rounded-xl"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${isFastLearn ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/20' : 'border-border bg-muted/30 hover:bg-muted/50'}`}>
+                                        <label className="flex items-start gap-3 cursor-pointer">
+                                            <div className="flex items-center h-5 mt-1">
+                                                <input
+                                                    type="checkbox"
+                                                    className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                                                    {...register('fast_learn')}
+                                                />
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm">Fast learn mode</span>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground font-medium mt-1">
+                                                    Core topics first, optional material later.
+                                                </p>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <Button type="submit" className="w-full h-14 rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-primary/20" isLoading={isCreatingLocal}>
+                                    <Sparkles className="mr-2 h-4 w-4" /> Generate plan
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Right Sidebar - Plan Check */}
+                <div className="lg:col-span-4">
+                    <div className="p-8 rounded-[2rem] bg-blue-50/50 border border-blue-100 space-y-8 sticky top-24">
+                        <h3 className="font-bold flex items-center gap-2 text-sm">
+                            <Target className="h-4 w-4 text-primary" />
+                            Plan check
+                        </h3>
+                        
+                        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+                            <div className="relative flex items-start gap-4">
+                                <div className={`flex items-center justify-center w-6 h-6 rounded-full bg-white border ${examType ? 'border-green-500 text-green-500' : 'border-slate-300 text-slate-300'}`}>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className={`text-sm font-bold ${examType ? 'text-slate-900' : 'text-slate-500'}`}>Specific</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{examType ? examType : 'Add a focused topic'}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="relative flex items-start gap-4">
+                                <div className={`flex items-center justify-center w-6 h-6 rounded-full bg-white border ${measurableTarget ? 'border-green-500 text-green-500' : 'border-slate-300 text-slate-300'}`}>
+                                    <CheckCircle2 className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className={`text-sm font-bold ${measurableTarget ? 'text-slate-900' : 'text-slate-500'}`}>Measurable</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{measurableTarget ? measurableTarget : 'Add a result you can verify'}</p>
+                                </div>
+                            </div>
+
+                            <div className="relative flex items-start gap-4">
+                                <div className="flex items-center justify-center z-10 w-6 h-6 rounded-full bg-white border border-primary text-primary">
+                                    <Clock className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900">Achievable</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{dailyHours} hours per day, {dailyHours <= 2 ? 'light' : dailyHours <= 4 ? 'steady' : 'intense'} pace</p>
+                                </div>
+                            </div>
+
+                            <div className="relative flex items-start gap-4">
+                                <div className="flex items-center justify-center z-10 w-6 h-6 rounded-full bg-white border border-primary text-primary">
+                                    <BookOpen className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900">Level</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{currentLevel}</p>
+                                </div>
+                            </div>
+
+                            <div className="relative flex items-start gap-4">
+                                <div className="flex items-center justify-center z-10 w-6 h-6 rounded-full bg-white border border-primary text-primary">
+                                    <Calendar className="w-4 h-4" />
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900">Time bound</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5">{daysDiff} days, {totalHours} total hours</p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="p-4 bg-muted/50 rounded-lg border border-border">
-                            <h4 className="font-semibold flex items-center gap-2 mb-2 text-sm">
-                                <Sparkles className="h-4 w-4 text-primary" />
-                                {isFastLearn ? 'Fast Learn Optimization' : 'AI Engine Features'}
-                            </h4>
-                            <ul className="text-[11px] space-y-1 text-muted-foreground font-medium">
-                                {isFastLearn ? (
-                                    <>
-                                        <li>• Core-first topic prioritization</li>
-                                        <li>• Compressed timeline for quick coverage</li>
-                                    </>
-                                ) : (
-                                    <>
-                                        <li>• Personalized topic breakdown and learning path</li>
-                                        <li>• Smart resource discovery (videos, notes, articles)</li>
-                                    </>
-                                )}
-                            </ul>
-                        </div>
-
-                        <Button type="submit" className="w-full h-12 text-lg font-bold" isLoading={isCreatingLocal}>
-                            {isFastLearn ? 'Generate Fast Plan ⚡' : 'Generate My Plan 🚀'}
-                        </Button>
-                    </form>
-                </CardContent>
-
-                {/* Hours Warning Modal */}
-                {showHoursWarning && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm rounded-3xl animate-in fade-in duration-300">
-                        <div className="bg-card border-2 border-primary/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
-                            <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
-                                <AlertTriangle size={32} />
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-black">Intensive Schedule!</h3>
-                                <p className="text-sm text-muted-foreground font-medium">
-                                    You've selected <span className="text-primary font-bold">{pendingData?.daily_hours} hours</span> per day. This is a very intense commitment. Are you sure you can maintain this pace?
-                                </p>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Button onClick={confirmHighHours} className="w-full h-12 font-black uppercase tracking-widest">
-                                    Yes, I'm Committed 🚀
-                                </Button>
-                                <Button variant="outline" onClick={() => {setShowHoursWarning(false); setPendingData(null);}} className="w-full h-12 font-black uppercase tracking-widest border-slate-200">
-                                    Let Me Reconsider
-                                </Button>
-                            </div>
+                        <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm mt-8">
+                            <h4 className="text-xs font-bold text-slate-900 mb-1">{isFastLearn ? 'Fast mode active' : 'Standard mode'}</h4>
+                            <p className="text-[11px] text-muted-foreground">
+                                {isFastLearn 
+                                    ? 'The generated path will focus on core topics first.'
+                                    : 'The generated path will include foundations, practice, and review milestones.'}
+                            </p>
                         </div>
                     </div>
-                )}
-            </Card>
+                </div>
+            </div>
+
+            {/* Hours Warning Modal */}
+            {showHoursWarning && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="bg-card border-2 border-primary/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
+                        <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
+                            <AlertTriangle size={32} />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-xl font-black">Intensive Schedule!</h3>
+                            <p className="text-sm text-muted-foreground font-medium">
+                                You've selected <span className="text-primary font-bold">{pendingData?.daily_hours} hours</span> per day. This is a very intense commitment. Are you sure you can maintain this pace?
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Button onClick={confirmHighHours} className="w-full h-12 font-black uppercase tracking-widest">
+                                Yes, I'm Committed 🚀
+                            </Button>
+                            <Button variant="outline" onClick={() => {setShowHoursWarning(false); setPendingData(null);}} className="w-full h-12 font-black uppercase tracking-widest border-slate-200">
+                                Let Me Reconsider
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

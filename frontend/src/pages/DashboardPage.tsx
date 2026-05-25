@@ -6,9 +6,9 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
-    BookOpen, Brain, MessageSquare, TrendingUp, 
+    BookOpen, TrendingUp, 
     Clock, Target, CheckCircle2, ChevronRight, 
-    AlertTriangle, Layout, GraduationCap
+    AlertTriangle, GraduationCap
 } from 'lucide-react';
 import { analyticsService } from '../api/services';
 
@@ -83,7 +83,7 @@ export const DashboardPage: React.FC = () => {
     return (
         <div className="space-y-10 pb-20 animate-in fade-in duration-700">
             {/* Hero Section - Today's Task */}
-            <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 text-white p-8 md:p-12 shadow-2xl border border-white/5">
+            <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 text-white p-6 md:p-8 shadow-2xl border border-white/5">
                 <div className="absolute top-0 right-0 w-1/3 h-full opacity-5 pointer-events-none">
                     <BookOpen className="h-64 w-64 absolute -top-10 -right-10 text-white" />
                 </div>
@@ -96,10 +96,10 @@ export const DashboardPage: React.FC = () => {
                         </div>
                         
                         <div className="space-y-2">
-                            <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
+                            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
                                 {nextChapter ? `Next Chapter: ${nextChapter.chapter_name}` : `Welcome, ${user?.full_name || 'Student'}`}
                             </h1>
-                            <p className="text-lg text-slate-400 font-medium max-w-lg">
+                            <p className="text-base text-slate-400 font-medium max-w-lg">
                                 {nextChapter 
                                     ? `You have reached ${progress}% of your ${activePlan?.exam_type} curriculum. Focus on mastering this module today.`
                                     : "Curriculum complete. You may review existing materials or initialize a new study trajectory."}
@@ -109,20 +109,20 @@ export const DashboardPage: React.FC = () => {
                         <div className="flex flex-wrap gap-4 pt-4">
                             {activePlan && nextChapter ? (
                                 <Link to={`/study-plans/${activePlan.id}?chapterId=${nextChapter.id}`}>
-                                    <Button className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-lg shadow-primary/20">
+                                    <Button className="rounded-2xl px-4 h-10 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition-all shadow-lg shadow-primary/20">
                                         Resume Study
                                         <ChevronRight className="ml-2 h-5 w-5" />
                                     </Button>
                                 </Link>
                             ) : (
                                 <Link to="/study-plans/create">
-                                    <Button className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition-all">
+                                    <Button className="rounded-2xl px-4 h-10 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 transition-all">
                                         Initialize New Plan
                                     </Button>
                                 </Link>
                             )}
                             <Link to="/chat">
-                                <Button variant="outline" className="rounded-2xl px-8 h-14 text-sm font-black uppercase tracking-widest border-white/10 hover:bg-white/5 text-white">
+                                <Button variant="outline" className="rounded-2xl px-4 h-10 text-sm font-black uppercase tracking-widest border-white/10 hover:opacity-90 text-white">
                                     Consult AI Assistant
                                 </Button>
                             </Link>
@@ -154,6 +154,72 @@ export const DashboardPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Today's Game Plan */}
+            {activePlan && nextChapter && (
+                <div className="rounded-[2rem] border-none shadow-xl bg-card p-8">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                                <Target className="h-5 w-5 text-primary" />
+                            </div>
+                            <h2 className="text-xl font-black uppercase tracking-tight">Today's Game Plan — {nextChapter.chapter_name}</h2>
+                        </div>
+                        <Link to={`/study-plans/${activePlan.id}?chapterId=${nextChapter.id}`} className="text-sm font-bold text-primary hover:underline">
+                            Open Chapter →
+                        </Link>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {[
+                            {
+                                step: 1,
+                                title: 'Read & Understand',
+                                desc: `Study the ${nextChapter.chapter_name} material. Take notes on key concepts.`,
+                                color: 'bg-blue-500/10 border-blue-500/20 text-blue-600',
+                                link: `/study-plans/${activePlan.id}?chapterId=${nextChapter.id}`,
+                                cta: 'Open Chapter',
+                            },
+                            {
+                                step: 2,
+                                title: 'Ask & Clarify',
+                                desc: 'Use the AI tutor to explain anything unclear. Ask for examples and analogies.',
+                                color: 'bg-violet-500/10 border-violet-500/20 text-violet-600',
+                                link: `/chat?planId=${activePlan.id}&chapter=${encodeURIComponent(nextChapter.chapter_name)}`,
+                                cta: 'Open Chat',
+                            },
+                            {
+                                step: 3,
+                                title: 'Practice Problems',
+                                desc: 'Get hands-on practice problems from AI. Build or implement what you learned.',
+                                color: 'bg-amber-500/10 border-amber-500/20 text-amber-600',
+                                link: `/chat?planId=${activePlan.id}&chapter=${encodeURIComponent(nextChapter.chapter_name)}&query=Give me 5 practical implementation exercises for ${encodeURIComponent(nextChapter.chapter_name)}`,
+                                cta: 'Get Exercises',
+                            },
+                            {
+                                step: 4,
+                                title: 'Test Yourself',
+                                desc: 'Take a quiz on this chapter to verify your understanding and identify gaps.',
+                                color: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600',
+                                link: `/quiz?topic=${encodeURIComponent(nextChapter.chapter_name)}&subject=${encodeURIComponent(activePlan.exam_type)}&autoStart=true`,
+                                cta: 'Start Quiz',
+                            },
+                        ].map(({ step, title, desc, color, link, cta }) => (
+                            <Link key={step} to={link} className="group">
+                                <div className={`h-full p-5 rounded-2xl border ${color} hover:shadow-md transition-all flex flex-col justify-between`}>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <span className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-black border ${color}`}>{step}</span>
+                                            <span className="text-base font-bold">{title}</span>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground leading-relaxed mb-4">{desc}</p>
+                                    </div>
+                                    <span className="text-sm font-bold group-hover:underline">{cta} →</span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Grid Layout for Analytics and Actions */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

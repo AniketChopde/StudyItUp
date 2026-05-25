@@ -13,8 +13,6 @@ import {
     ShieldAlert,
     Brain,
     BarChart,
-    Box,
-    Video,
     PanelLeftClose,
     PanelLeftOpen,
     Settings
@@ -26,8 +24,6 @@ const navigation = [
     { name: 'Learning Chat', href: '/chat', icon: MessageSquare },
     { name: 'Take Quiz', href: '/quiz', icon: Brain },
     { name: 'View Analytics', href: '/analytics', icon: BarChart },
-    { name: '3D Visualize', href: '/visualize', icon: Box },
-    { name: 'My Animations', href: '/my-animations', icon: Video },
     { name: 'Test Center', href: '/test-center', icon: ShieldCheck },
     { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -41,6 +37,7 @@ interface LayoutProps {
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+    const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
     const [isCollapsed, setIsCollapsed] = React.useState(() => {
         const saved = localStorage.getItem('sidebar_collapsed');
@@ -48,7 +45,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     });
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
-    const location = useLocation();
     const [isHidden] = React.useState(false);
 
     React.useEffect(() => {
@@ -228,7 +224,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Main content */}
             <div className={`flex-1 flex flex-col transition-all duration-300 ${isHidden ? 'lg:pl-0' : isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
                 {/* Top bar */}
-                <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-8">
+                <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-4">
                     <Button
                         variant="ghost"
                         size="icon"
@@ -262,8 +258,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </header>
 
                 {/* Page content */}
-                <main className="flex-1 p-4 lg:p-8">
-                    <div className="max-w-7xl mx-auto">
+                <main className={`flex-1 ${location.pathname.startsWith('/chat') ? 'p-0' : 'p-4 lg:p-8'}`}>
+                    <div className="max-w-7xl mx-auto h-full">
                         {children}
                     </div>
                 </main>

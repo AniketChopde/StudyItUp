@@ -69,7 +69,7 @@ export const SettingsPage: React.FC = () => {
                     {getInitials(user?.full_name || user?.email || '')}
                 </div>
                 <div>
-                    <h1 className="text-3xl font-black tracking-tight uppercase">Profile</h1>
+                    <h1 className="text-2xl font-black tracking-tight uppercase">Profile</h1>
                     <p className="text-muted-foreground mt-1 font-medium">
                         Customize your profile to help our AI generate perfectly tailored study plans.
                     </p>
@@ -261,7 +261,7 @@ export const SettingsPage: React.FC = () => {
                         type="submit" 
                         size="lg" 
                         disabled={isLoading}
-                        className="rounded-xl px-8 font-black tracking-wider uppercase shadow-xl shadow-primary/20 flex items-center gap-2"
+                        className="rounded-xl px-4 font-black tracking-wider uppercase shadow-xl shadow-primary/20 flex items-center gap-2"
                     >
                         {isLoading ? (
                             <span className="animate-pulse">Saving...</span>

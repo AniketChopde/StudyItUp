@@ -134,7 +134,7 @@ export const TestCenterPage: React.FC = () => {
                     <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 transform rotate-3 shadow-inner">
                         <ShieldCheck className="h-8 w-8 text-primary" />
                     </div>
-                    <h1 className="text-4xl font-black tracking-tighter uppercase mb-2">Exam Test Center</h1>
+                    <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Exam Test Center</h1>
                     <p className="text-muted-foreground font-medium max-w-lg mx-auto text-base">
                         20-question exam simulations with timer. Starts in under 10 seconds.
                     </p>
@@ -173,12 +173,12 @@ export const TestCenterPage: React.FC = () => {
                                 placeholder="e.g. UPSC, GATE 2024, JEE Main, NEET"
                                 value={examName}
                                 onChange={(e) => setExamName(e.target.value)}
-                                className="h-14 text-lg font-bold text-center rounded-xl border-2 focus:ring-4 transition-all"
+                                className="h-12 text-base font-bold text-center rounded-xl border-2 focus:ring-4 transition-all"
                             />
 
                             <p className="font-black text-[10px] uppercase tracking-[0.2em] text-primary mt-4">Preferred Language</p>
-                            <select
-                                className="w-full h-14 text-lg font-bold text-center rounded-xl border-2 border-input bg-background focus:ring-4 focus:ring-primary/20 transition-all outline-none"
+                                <select
+                                    className="w-full h-12 text-base font-bold text-center rounded-xl border-2 border-input bg-background focus:ring-4 focus:ring-primary/20 transition-all outline-none"
                                 value={language}
                                 onChange={(e) => setLanguage(e.target.value)}
                             >
@@ -189,7 +189,7 @@ export const TestCenterPage: React.FC = () => {
                         </div>
                         <Button
                             onClick={handleStartTest}
-                            className="w-full h-14 rounded-xl text-lg font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
+                            className="w-full h-12 rounded-xl text-base font-black uppercase tracking-widest shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all"
                             isLoading={isLoading}
                         >
                             <Play size={20} className="mr-2 fill-current" />

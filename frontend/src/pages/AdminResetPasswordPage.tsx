@@ -13,9 +13,7 @@ import { ShieldAlert, Lock, AlertCircle, CheckCircle } from 'lucide-react';
 const schema = z.object({
     password: z
         .string()
-        .min(8, 'Password must be at least 8 characters')
-        .regex(/[A-Z]/, 'Must contain at least one uppercase letter')
-        .regex(/[0-9]/, 'Must contain at least one number'),
+        .min(6, 'Password must be at least 6 characters'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((d) => d.password === d.confirmPassword, {
     message: "Passwords don't match",
@@ -121,7 +119,7 @@ export const AdminResetPasswordPage: React.FC = () => {
                     </div>
                     <CardTitle className="text-2xl font-bold text-center">Reset Admin Password</CardTitle>
                     <CardDescription className="text-center">
-                        Enter your new admin password. Must be 8+ characters with an uppercase letter and number.
+                        Enter your new admin password. Must be at least 6 characters.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>

@@ -1,9 +1,8 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStudyPlanStore } from '../stores/studyPlanStore';
 
-// Lazy-load 3D visualizer — app works fine even if this fails to load
-const TopicVisualizer3D = lazy(() => import('../components/3d/TopicVisualizer3D'));
+
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -35,7 +34,7 @@ export const StudyPlanDetailPage: React.FC = () => {
     const urlChapterId = searchParams.get('chapterId');
     const [viewMode, setViewMode] = useState<'overview' | 'lesson' | 'syllabus' | 'courses' | 'resources'>('overview');
     const [expandedMindmaps, setExpandedMindmaps] = useState<Record<string, boolean>>({});
-    const [expanded3D, setExpanded3D] = useState<Record<string, boolean>>({});
+
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [sortByWeightage, setSortByWeightage] = useState(false);
@@ -218,11 +217,13 @@ export const StudyPlanDetailPage: React.FC = () => {
 
     const completedChapters = activePlan.chapters.filter((c) => c.status === 'completed').length;
     const progress = Math.round((completedChapters / activePlan.chapters.length) * 100) || 0;
+    const isDeepLessonMode = Boolean(selectedChapter && viewMode === 'lesson');
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
+        <div className="space-y-6 animate-in fade-in duration-700">
             {/* Header section */}
-            <div className="relative rounded-3xl bg-slate-50 border border-slate-200 p-8 md:p-12 shadow-sm">
+            {!isDeepLessonMode && (
+            <div className="relative rounded-3xl bg-slate-50 border border-slate-200 p-6 md:p-8 shadow-sm">
                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                     <BookOpen className="h-32 w-32 text-slate-400" />
                 </div>
@@ -253,14 +254,40 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     Certification Eligible
                                 </span>
                             ) : (
-                                <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-blue-200">
+                                <span className="bg-blue-100 text-blue-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-blue-200">
                                     Course in Progress
                                 </span>
                             )}
                         </div>
-                        <h1 className="text-5xl font-black tracking-tight text-slate-900">
-                            {activePlan.exam_type} Curriculum
+                        <h1 className="text-3xl md:text-3xl font-black uppercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                            {activePlan.exam_type} Masterclass
                         </h1>
+                        <p className="text-base md:text-lg text-slate-500 font-medium max-w-2xl leading-relaxed">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <Button
+                                    className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+                                    onClick={() => {
+                                        const nextChapter = activePlan.chapters.find((c) => c.status !== 'completed');
+                                        if (nextChapter) {
+                                            setSelectedChapterId(nextChapter.id.toString());
+                                            setViewMode('overview');
+                                            setTimeout(() => {
+                                                contentAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                            }, 100);
+                                        }
+                                    }}
+                                >
+                                    <PlayCircle className="mr-2 h-4 w-4" /> Resume Learning
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-xs bg-white border-slate-200 hover:bg-slate-100"
+                                    onClick={() => setViewMode('syllabus')}
+                                >
+                                    <ListChecks className="mr-2 h-4 w-4 text-slate-500" /> Syllabus
+                                </Button>
+                            </div>
+                        </p>
                     </div>
                     <div className="flex flex-col items-end gap-4 w-full md:w-auto">
                         <div className="flex flex-wrap justify-end gap-2 items-center">
@@ -272,49 +299,39 @@ export const StudyPlanDetailPage: React.FC = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-2xl border-slate-200 hover:bg-slate-50 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-xl border-slate-200 hover:bg-slate-50 h-10 px-4 font-bold flex items-center gap-2 shadow-sm"
                                 onClick={() => setIsFeedbackModalOpen(true)}
                             >
-                                <TargetIcon size={16} className="text-slate-500" />
+                                <TargetIcon size={14} className="text-slate-500" />
                                 Feedback
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-2xl border-slate-200 hover:bg-slate-50 h-11 px-5 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-xl border-slate-200 hover:bg-slate-50 h-10 px-4 font-bold flex items-center gap-2 shadow-sm"
                                 onClick={() => setIsEditModalOpen(true)}
                             >
-                                <Layout size={16} className="text-slate-500" />
-                                Adjust Plan
+                                <Layout size={14} className="text-slate-500" />
+                                Adjust
                             </Button>
                             <Button
                                 variant="secondary"
                                 size="sm"
-                                className="rounded-2xl h-11 px-5 font-bold flex items-center gap-2 shadow-sm bg-slate-900 text-white hover:bg-slate-800"
+                                className="rounded-xl h-10 px-4 font-bold flex items-center gap-2 shadow-sm bg-slate-900 text-white hover:bg-slate-800"
                                 onClick={handleRegenerate}
                                 isLoading={isCreating}
                             >
-                                <RefreshCw size={16} />
+                                <RefreshCw size={14} />
                                 Re-optimize
                             </Button>
-                            {/* currently not implemented to use it */}
-                            {/* <Button
-                                variant="default"
-                                size="sm"
-                                className="rounded-2xl h-11 px-5 font-bold flex items-center gap-2 shadow-lg shadow-primary/20"
-                                onClick={handleDownloadPdf}
-                            >
-                                <Download size={16} />
-                                Export PDF
-                            </Button> */}
                         </div>
 
                         <div className="w-full md:w-72 space-y-2">
                             <div className="flex justify-between mb-1">
-                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Syllabus Mastery</span>
-                                <span className="text-sm font-black text-slate-900">{progress}%</span>
+                                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Syllabus Mastery</span>
+                                <span className="text-xs font-black text-slate-900">{progress}%</span>
                             </div>
-                            <div className="w-full h-2.5 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
                                 <div
                                     className="h-full bg-slate-900 transition-all duration-1000 ease-out"
                                     style={{ width: `${progress}%` }}
@@ -324,48 +341,50 @@ export const StudyPlanDetailPage: React.FC = () => {
                     </div>
                 </div>
             </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Chapter List (Sidebar) */}
+                {!isDeepLessonMode && (
                 <div className="lg:col-span-4 space-y-4 sticky top-24 self-start max-h-[calc(100vh-6rem)] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                     <div className="flex flex-col space-y-4">
-                        <div className="flex p-1.5 bg-muted/50 rounded-2xl border border-border/50">
+                        <div className="flex p-1 bg-muted/50 rounded-2xl border border-border/50">
                             <button
                                 onClick={() => setViewMode('overview')}
-                                className={`flex-1 flex items-center justify-center py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'overview' || viewMode === 'lesson' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                className={`flex-1 flex items-center justify-center py-2 rounded-xl text-[10px] font-bold transition-all ${viewMode === 'overview' || viewMode === 'lesson' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                             >
-                                <Layout className="h-3.5 w-3.5 mr-2" />
+                                <Layout className="h-3 w-3 mr-1.5" />
                                 Planning
                             </button>
                             <button
                                 onClick={() => setViewMode('syllabus')}
-                                className={`flex-1 flex items-center justify-center py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'syllabus' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                className={`flex-1 flex items-center justify-center py-2 rounded-xl text-[10px] font-bold transition-all ${viewMode === 'syllabus' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                             >
-                                <ListChecks className="h-3.5 w-3.5 mr-2" />
+                                <ListChecks className="h-3 w-3 mr-1.5" />
                                 Syllabus
                             </button>
                             <button
                                 onClick={() => setViewMode('courses')}
-                                className={`flex-1 flex items-center justify-center py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'courses' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                className={`flex-1 flex items-center justify-center py-2 rounded-xl text-[10px] font-bold transition-all ${viewMode === 'courses' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                             >
-                                <Video className="h-3.5 w-3.5 mr-2" />
+                                <Video className="h-3 w-3 mr-1.5" />
                                 Courses
                             </button>
                             <button
                                 onClick={() => setViewMode('resources')}
-                                className={`flex-1 flex items-center justify-center py-2.5 rounded-xl text-xs font-bold transition-all ${viewMode === 'resources' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
+                                className={`flex-1 flex items-center justify-center py-2 rounded-xl text-[10px] font-bold transition-all ${viewMode === 'resources' ? 'bg-background shadow-sm text-primary' : 'text-muted-foreground hover:bg-muted'}`}
                             >
-                                <Archive className="h-3.5 w-3.5 mr-2" />
+                                <Archive className="h-3 w-3 mr-1.5" />
                                 Resources
                             </button>
                         </div>
                     </div>
 
                     <div className="flex items-center justify-between px-2">
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Learning Path</h3>
+                        <h3 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Learning Path</h3>
                         <button
                             onClick={() => setSortByWeightage(!sortByWeightage)}
-                            className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${sortByWeightage ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-muted text-muted-foreground border-border'}`}
+                            className={`text-[9px] font-bold px-2 py-0.5 rounded-lg border transition-all ${sortByWeightage ? 'bg-indigo-500 text-white border-indigo-600' : 'bg-muted text-muted-foreground border-border'}`}
                         >
                             {sortByWeightage ? 'Sorted by Weight' : 'Sort by Weight'}
                         </button>
@@ -381,36 +400,36 @@ export const StudyPlanDetailPage: React.FC = () => {
                                         setSelectedChapterId(chapter.id.toString());
                                         setViewMode('overview');
                                     }}
-                                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-300 group relative ${selectedChapterId === chapter.id.toString()
+                                    className={`w-full text-left p-3 rounded-2xl border transition-all duration-300 group relative ${selectedChapterId === chapter.id.toString()
                                         ? 'border-primary bg-primary/5 shadow-lg shadow-primary/5 ring-1 ring-primary/20'
                                         : 'border-transparent bg-muted/30 hover:bg-muted/50'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className={`mt-1 h-5 w-5 rounded-full flex items-center justify-center ${chapter.status === 'completed'
+                                        <div className={`mt-1 h-4 w-4 rounded-full flex items-center justify-center ${chapter.status === 'completed'
                                             ? 'bg-green-500/20 text-green-500'
                                             : 'bg-muted text-muted-foreground/30'
                                             }`}>
-                                            {chapter.status === 'completed' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <div className="h-1.5 w-1.5 rounded-full bg-current" />}
+                                            {chapter.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : <div className="h-1 w-1 rounded-full bg-current" />}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-0.5">
-                                                <span className="text-[9px] font-black uppercase text-muted-foreground/60 tracking-tighter">
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground/60 tracking-tighter">
                                                     {getChapterLabel(index)}
                                                 </span>
                                                 {chapter.weightage_percent > 0 && (
-                                                    <div className="flex items-center gap-1 bg-indigo-500/10 text-indigo-600 px-2 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
-                                                        <Zap className="h-2.5 w-2.5" />
-                                                        <span className="text-[10px] font-black uppercase tracking-tighter">
-                                                            {chapter.weightage_percent}% Weight
+                                                    <div className="flex items-center gap-1 bg-indigo-500/10 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
+                                                        <Zap className="h-2 w-2" />
+                                                        <span className="text-[8px] font-black uppercase tracking-tighter">
+                                                            {chapter.weightage_percent}%
                                                         </span>
                                                     </div>
                                                 )}
                                             </div>
-                                            <h4 className={`font-bold text-sm truncate leading-tight ${selectedChapterId === chapter.id.toString() ? 'text-primary' : ''}`}>
+                                            <h4 className={`font-bold text-xs truncate leading-tight ${selectedChapterId === chapter.id.toString() ? 'text-primary' : ''}`}>
                                                 {chapter.chapter_name}
                                             </h4>
-                                            <p className="text-[10px] text-muted-foreground font-semibold uppercase mt-1">
+                                            <p className="text-[9px] text-muted-foreground font-semibold uppercase mt-0.5">
                                                 {chapter.subject} • {chapter.estimated_hours} Hours
                                             </p>
                                         </div>
@@ -419,9 +438,10 @@ export const StudyPlanDetailPage: React.FC = () => {
                             ))}
                     </div>
                 </div>
+                )}
 
                 {/* Main Content Area */}
-                <div ref={contentAreaRef} className="lg:col-span-8">
+                <div ref={contentAreaRef} className={isDeepLessonMode ? 'lg:col-span-12' : 'lg:col-span-8'}>
                     {viewMode === 'syllabus' ? (
                         <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-6">
                             <Card className="rounded-[2.5rem] border-none shadow-xl overflow-hidden bg-card">
@@ -632,14 +652,14 @@ export const StudyPlanDetailPage: React.FC = () => {
                                         <div className="pt-6 border-t border-border flex flex-col md:flex-row gap-4">
                                             <Button
                                                 onClick={handleStartLesson}
-                                                className="flex-1 rounded-2xl h-14 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 shadow-xl shadow-primary/20"
+                                                className="flex-1 rounded-2xl h-10 text-sm font-black uppercase tracking-widest bg-primary text-primary-foreground hover:opacity-90 shadow-xl shadow-primary/20"
                                             >
                                                 <GraduationCap className="mr-2 h-5 w-5" />
                                                 Start Deep Lesson
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                className="px-8 rounded-2xl h-14 text-sm font-black uppercase tracking-widest border-slate-200"
+                                                className="px-4 rounded-2xl h-10 text-sm font-black uppercase tracking-widest border-slate-200"
                                                 onClick={() => navigate(`/quiz?topic=${encodeURIComponent(selectedChapter.chapter_name)}&subject=${encodeURIComponent(selectedChapter.subject)}&chapterId=${selectedChapter.id.toString()}&examType=${encodeURIComponent(activePlan.exam_type)}&autoStart=true`)}
                                             >
                                                 Assessment
@@ -685,7 +705,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                 <div className="p-8 md:p-12 space-y-12">
                                                     <div className="space-y-4">
                                                         <div className="flex items-center justify-between">
-                                                            <h2 className="text-4xl font-black tracking-tight">{selectedChapter.chapter_name}</h2>
+                                                            <h2 className="text-3xl font-black tracking-tight">{selectedChapter.chapter_name}</h2>
                                                             {selectedChapter.weightage_percent > 0 && (
                                                                 <div className="flex items-center gap-2 bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full border border-indigo-500/20">
                                                                     <Zap className="h-4 w-4" />
@@ -772,44 +792,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                     </div>
                                                                 )}
 
-                                                                {/* 3D Visualization (lazy-loaded, non-breaking) */}
-                                                                <div className="pt-2">
-                                                                    <div className="flex items-center justify-between">
-                                                                        <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                                                            3D Visualization
-                                                                            <span className="text-[8px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded uppercase">AI-Powered</span>
-                                                                        </h4>
-                                                                        <Button
-                                                                            variant="outline"
-                                                                            size="sm"
-                                                                            className="rounded-full"
-                                                                            onClick={() => {
-                                                                                const key = String(lesson.topic || i);
-                                                                                setExpanded3D((prev) => ({
-                                                                                    ...prev,
-                                                                                    [key]: !prev[key],
-                                                                                }));
-                                                                            }}
-                                                                        >
-                                                                            {expanded3D[String(lesson.topic || i)] ? 'Close 3D' : 'Visualize in 3D'}
-                                                                        </Button>
-                                                                    </div>
 
-                                                                    {expanded3D[String(lesson.topic || i)] && (
-                                                                        <div className="mt-4">
-                                                                            <Suspense fallback={
-                                                                                <div className="h-[350px] flex items-center justify-center bg-muted/20 rounded-[2rem] border border-border/50">
-                                                                                    <div className="text-center">
-                                                                                        <div className="h-10 w-10 rounded-full border-4 border-primary/30 border-t-primary animate-spin mx-auto mb-3" />
-                                                                                        <p className="text-xs font-bold text-muted-foreground">Loading 3D engine...</p>
-                                                                                    </div>
-                                                                                </div>
-                                                                            }>
-                                                                                <TopicVisualizer3D topic={String(lesson.topic || '')} compact />
-                                                                            </Suspense>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
 
                                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                     {lesson.key_points?.map((point: string, k: number) => (
@@ -1007,7 +990,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                                 setTimeout(() => scrollToTopGlobal('instant'), 150);
                                                                                 setTimeout(() => scrollToTopGlobal('instant'), 300);
                                                                             }}
-                                                                            className="w-full sm:w-auto rounded-full px-8 h-12 font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                                                            className="w-full sm:w-auto rounded-full px-4 h-12 font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"
                                                                         >
                                                                             Next Chapter: {nextChapter.chapter_name.length > 25 ? nextChapter.chapter_name.slice(0, 25) + '...' : nextChapter.chapter_name}
                                                                             <ChevronRight size={16} />

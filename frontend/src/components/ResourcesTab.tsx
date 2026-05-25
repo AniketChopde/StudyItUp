@@ -305,7 +305,7 @@ export const ResourcesTab: React.FC<ResourcesTabProps> = ({ planId, resources = 
                         <Button 
                             onClick={handleUpload} 
                             disabled={isUploading || (!selectedFile && !url)}
-                            className="h-12 px-8 rounded-2xl font-bold"
+                            className="h-12 px-4 rounded-2xl font-bold"
                             isLoading={isUploading}
                         >
                             {isUploading ? 'Processing...' : 'Add to Plan'}

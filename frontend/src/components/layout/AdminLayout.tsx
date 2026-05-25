@@ -21,7 +21,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
             {/* Admin Top Bar */}
             <header className="bg-white dark:bg-gray-800 shadow">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-4 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <ShieldAlert className="h-8 w-8 text-purple-600" />
                         <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">StudyItUp Admin Panel</h1>
@@ -40,7 +40,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             </header>
 
             {/* Main Content */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-4 py-8">
                 {children}
             </main>
         </div>

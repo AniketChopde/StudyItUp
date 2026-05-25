@@ -113,6 +113,15 @@ export const useQuizStore = create<QuizState>((set, get) => ({
                     try {
                         const statusRes = await quizService.getTestCenterStatus(sessionId);
                         const session = statusRes.data;
+                        
+                        if (session.status === 'failed') {
+                            if (pollIntervalId != null) clearInterval(pollIntervalId);
+                            pollIntervalId = null;
+                            set({ pendingSessionId: null, isLoading: false });
+                            toast.error('Failed to generate test. The AI might have timed out or hit a limit.');
+                            return;
+                        }
+
                         const ready = session.status !== 'pending' && session.questions && session.questions.length > 0;
                         if (ready) {
                             if (pollIntervalId != null) clearInterval(pollIntervalId);

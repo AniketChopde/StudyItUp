@@ -64,6 +64,8 @@ async def _generate_and_update_session(session_id: str, exam_name: str, plan_id:
             logger.info(f"Test Center ready: session {session_id}, {len(all_questions)} questions")
         except Exception as e:
             await db.rollback()
+            session.status = "failed"
+            await db.commit()
             logger.error(f"Test Center task failed for session {session_id}: {e}")
             raise
 

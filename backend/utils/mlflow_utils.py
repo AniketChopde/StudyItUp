@@ -52,10 +52,7 @@ class MLFlowService:
         try:
             import mlflow
             import mlflow.langchain
-            mlflow.langchain.autolog(
-                log_traces=True,
-                log_models=True
-            )
+            mlflow.langchain.autolog()
             logger.info("✅ MLflow Langchain autologging initialized")
         except Exception as e:
             logger.error(f"Failed to initialize MLflow Langchain autologging: {e}")

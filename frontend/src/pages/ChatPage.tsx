@@ -1,6 +1,5 @@
 import React from 'react';
 import { useChatStore } from '../stores/chatStore';
-import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Send, Bot, User, ArrowLeft, RotateCcw, Sparkles, Layers } from 'lucide-react';
 import { VoiceInputButton, ReadAloudButton } from '../components/voice/VoiceButton';

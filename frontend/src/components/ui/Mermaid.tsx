@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import mermaid from 'mermaid';
 
 let initialized = false;
@@ -39,7 +39,6 @@ function ensureInit() {
     });
 }
 
-let idCounter = 0;
 
 interface MermaidProps {
     chart: string;
@@ -48,7 +47,6 @@ interface MermaidProps {
 export const Mermaid: React.FC<MermaidProps> = ({ chart }) => {
     const [svg, setSvg] = useState<string>('');
     const [error, setError] = useState<string | null>(null);
-    const idRef = useRef(`mermaid-d${++idCounter}`);
 
     useEffect(() => {
         if (!chart?.trim()) return;

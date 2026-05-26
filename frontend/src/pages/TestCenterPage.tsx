@@ -41,6 +41,7 @@ export const TestCenterPage: React.FC = () => {
     const [elapsedSeconds, setElapsedSeconds] = React.useState(0);
     const [visitedQuestions, setVisitedQuestions] = React.useState<Set<number>>(new Set([0]));
     const [showSubmitModal, setShowSubmitModal] = React.useState(false);
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     // History State
     const [history, setHistory] = React.useState<QuizHistoryItem[]>([]);
@@ -70,7 +71,7 @@ export const TestCenterPage: React.FC = () => {
 
     // Initialization: If we come back and there's no active quiz and no pending session, reset
     React.useEffect(() => {
-        if (!activeQuiz && !results && !pendingSessionId) {
+        if (!activeQuiz && !results && !pendingSessionId && !isLoading) {
             resetQuiz();
         }
     }, []);
@@ -134,7 +135,7 @@ export const TestCenterPage: React.FC = () => {
                     <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 transform rotate-3 shadow-inner">
                         <ShieldCheck className="h-8 w-8 text-primary" />
                     </div>
-                    <h1 className="text-3xl font-black tracking-tighter uppercase mb-2">Exam Test Center</h1>
+                    <h1 className="text-xl font-bold text-white uppercase tracking-wide mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>Exam Test Center</h1>
                     <p className="text-muted-foreground font-medium max-w-lg mx-auto text-base">
                         20-question exam simulations with timer. Starts in under 10 seconds.
                     </p>
@@ -275,16 +276,24 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-                    <Card className={`lg:col-span-2 rounded-2xl shadow-sm border-2 ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
+                    <Card className={`lg:col-span-2 rounded-2xl shadow-lg border ${
+                        isSuccess 
+                            ? 'bg-emerald-500/10 border-emerald-500/25' 
+                            : 'bg-red-500/10 border-red-500/25'
+                    }`}>
                         <CardContent className="p-6 h-full flex flex-col justify-center">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
-                                    <h2 className="text-6xl font-black leading-none tracking-tighter tabular-nums">
+                                    <h2 className={`text-6xl font-black leading-none tracking-tighter tabular-nums ${
+                                        isSuccess ? 'text-emerald-400' : 'text-red-400'
+                                    }`}>
                                         {Math.round(results.score)}<span className="text-3xl opacity-50">%</span>
                                     </h2>
                                     <div className="space-y-1">
-                                        <p className="text-lg font-black uppercase">Simulation {isSuccess ? 'Passed' : 'Failed'}</p>
-                                        <p className="font-medium text-sm max-w-sm opacity-80">
+                                        <p className={`text-lg font-black uppercase ${
+                                            isSuccess ? 'text-emerald-300' : 'text-red-300'
+                                        }`}>Simulation {isSuccess ? 'Passed' : 'Failed'}</p>
+                                        <p className="font-medium text-sm max-w-sm text-slate-400">
                                             {isSuccess
                                                 ? "You have demonstrated professional competency in this exam simulation."
                                                 : "This was a high-difficulty simulation. Review the analysis below."}
@@ -292,15 +301,17 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                                     </div>
                                     <EngagementButtons contentType="quiz" contentId={results.id} />
                                 </div>
-                                <div className="h-16 w-16 bg-white/50 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                                <div className={`h-16 w-16 rounded-xl flex items-center justify-center ${
+                                    isSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                                }`}>
                                     {isSuccess ? <Award size={32} /> : <AlertTriangle size={32} />}
                                 </div>
                             </div>
                             <div className="mt-6 flex gap-3">
-                                <Button onClick={resetQuiz} className="bg-foreground text-background hover:bg-foreground/90 rounded-lg h-10 px-5 font-bold uppercase text-[10px] tracking-widest shadow-sm">
+                                <Button onClick={resetQuiz} className="gradient-primary text-white rounded-lg h-10 px-5 font-bold uppercase text-[10px] tracking-widest shadow-sm">
                                     New Simulation
                                 </Button>
-                                <Button onClick={handleDownloadReview} variant="outline" className="bg-transparent border-current hover:bg-black/5 rounded-lg h-10 px-5 font-bold uppercase text-[10px] tracking-widest">
+                                <Button onClick={handleDownloadReview} variant="outline" className="glass border-white/10 text-slate-300 hover:bg-white/8 rounded-lg h-10 px-5 font-bold uppercase text-[10px] tracking-widest">
                                     Download Review
                                 </Button>
                             </div>
@@ -308,15 +319,15 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                     </Card>
 
                     <div className="grid grid-cols-2 lg:grid-cols-1 gap-4">
-                        <div className="p-4 bg-card rounded-2xl shadow-sm border text-center flex flex-col items-center justify-center">
-                            <CheckCircle className="h-6 w-6 text-green-500 mb-2" />
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Accuracy</p>
-                            <p className="text-2xl font-black">{results.correct_answers}/{results.total_questions}</p>
+                        <div className="p-4 glass-card rounded-2xl border border-emerald-500/15 text-center flex flex-col items-center justify-center">
+                            <CheckCircle className="h-6 w-6 text-emerald-400 mb-2" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Accuracy</p>
+                            <p className="text-2xl font-black text-white">{results.correct_answers}/{results.total_questions}</p>
                         </div>
-                        <div className="p-4 bg-card rounded-2xl shadow-sm border text-center flex flex-col items-center justify-center">
-                            <Timer className="h-6 w-6 text-blue-500 mb-2" />
-                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-40">Time Taken</p>
-                            <p className="text-2xl font-black">{formatTime(results.time_taken_seconds)}</p>
+                        <div className="p-4 glass-card rounded-2xl border border-blue-500/15 text-center flex flex-col items-center justify-center">
+                            <Timer className="h-6 w-6 text-blue-400 mb-2" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Time Taken</p>
+                            <p className="text-2xl font-black text-white">{formatTime(results.time_taken_seconds)}</p>
                         </div>
                     </div>
                 </div>
@@ -331,29 +342,41 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                         Detailed Analysis
                     </h2>
                     {results.detailed_results.map((result, idx) => (
-                        <Card key={idx} className="border-none shadow-sm rounded-xl transition-shadow bg-card/50">
+                        <Card key={idx} className="border border-white/6 shadow-sm rounded-xl transition-shadow glass-card">
                             <CardContent className="p-4 flex items-start gap-4">
-                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${result.is_correct ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ${result.is_correct ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
                                     {result.is_correct ? <CheckCircle size={16} /> : <XCircle size={16} />}
                                 </div>
                                 <div className="space-y-2 flex-1">
                                     <div className="flex items-center gap-2">
                                         <ReadAloudButton text={result.explanation} className="text-[10px]" />
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${result.is_correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                                            result.is_correct 
+                                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' 
+                                                : 'bg-red-500/15 text-red-400 border border-red-500/25'
+                                        }`}>
                                             {result.is_correct ? 'Verified' : 'Incorrect'}
                                         </span>
-                                        <span className="text-[10px] font-bold text-muted-foreground uppercase">Item {idx + 1}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Item {idx + 1}</span>
                                     </div>
-                                    <p className="text-sm font-bold leading-relaxed">{result.explanation}</p>
+                                    <p className="text-sm font-semibold leading-relaxed text-slate-200">{result.explanation}</p>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-1">
-                                        <div className={`p-2 rounded-lg border ${result.is_correct ? 'bg-green-50/50 border-green-100' : 'bg-red-50/50 border-red-100'}`}>
-                                            <p className="text-[10px] uppercase font-black opacity-40 mb-1">Your Submission</p>
-                                            <p className={`font-bold text-xs ${result.is_correct ? 'text-green-600' : 'text-red-500'}`}>{result.user_answer}</p>
+                                        {/* Your Submission box */}
+                                        <div className={`p-3 rounded-xl border ${
+                                            result.is_correct 
+                                                ? 'bg-emerald-500/8 border-emerald-500/20' 
+                                                : 'bg-red-500/8 border-red-500/20'
+                                        }`}>
+                                            <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1.5">Your Submission</p>
+                                            <p className={`font-bold text-sm ${
+                                                result.is_correct ? 'text-emerald-400' : 'text-red-400'
+                                            }`}>{result.user_answer || 'No answer'}</p>
                                         </div>
+                                        {/* Official Solution box - always shown when wrong */}
                                         {!result.is_correct && (
-                                            <div className="p-2 bg-green-50/50 rounded-lg border border-green-100">
-                                                <p className="text-[10px] uppercase font-black opacity-40 mb-1">Official Solution</p>
-                                                <p className="font-bold text-xs text-green-600">{result.correct_answer}</p>
+                                            <div className="p-3 bg-emerald-500/8 rounded-xl border border-emerald-500/20">
+                                                <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest mb-1.5">Official Solution</p>
+                                                <p className="font-bold text-sm text-emerald-400">{result.correct_answer}</p>
                                             </div>
                                         )}
                                     </div>
@@ -376,13 +399,17 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
             <div className="max-w-7xl mx-auto px-4 animate-in fade-in duration-700">
                 {/* Clean Sticky Header */}
                 <div className="sticky top-16 md:top-20 z-40 bg-background/95 backdrop-blur pt-4 flex items-center justify-between mb-8 pb-4 border-b border-border/50">
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-black tracking-widest text-primary uppercase">Test Center Simulation</p>
-                        <h1 className="text-2xl font-black uppercase tracking-tight text-gray-900 dark:text-gray-100">{activeQuiz.topic}</h1>
+                    <div className="space-y-0.5">
+                        <p className="text-[10px] font-semibold tracking-widest text-indigo-400 uppercase">Test Center Simulation</p>
+                        <h1 className="text-base font-bold text-white">{activeQuiz.topic}</h1>
                     </div>
 
                     <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm transition-colors ${showCountdown && timeLeft !== null && timeLeft < 300 ? 'bg-red-50 border-red-200 text-red-600 animate-pulse dark:bg-red-900/20 dark:border-red-900/50' : 'bg-card border-border/50'}`}>
+                        <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border shadow-sm transition-colors ${
+                            showCountdown && timeLeft !== null && timeLeft < 300 
+                                ? 'bg-red-500/15 border-red-500/30 text-red-400 animate-pulse' 
+                                : 'glass border-white/10'
+                        }`}>
                             <Timer className={`h-5 w-5 ${showCountdown && timeLeft !== null && timeLeft < 300 ? 'text-red-500' : 'text-primary'}`} aria-hidden />
                             <div className="text-right leading-none">
                                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-0.5">{timerLabel}</p>
@@ -390,7 +417,7 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                             </div>
                         </div>
 
-                        <Button onClick={handleManualSubmit} variant="ghost" size="sm" className="rounded-lg font-bold uppercase text-[10px] bg-muted/50 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 shrink-0 h-[42px] px-5 border border-border/50">
+                        <Button onClick={handleManualSubmit} variant="ghost" size="sm" className="rounded-lg font-bold uppercase text-[10px] glass border-white/10 hover:bg-red-500/15 hover:text-red-400 shrink-0 h-[42px] px-5">
                             Early Exit
                         </Button>
                     </div>
@@ -521,13 +548,19 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
                                 </Button>
                                 <Button 
                                     className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] h-12"
-                                    isLoading={isLoading}
+                                    isLoading={isSubmitting}
+                                    disabled={isSubmitting}
                                     onClick={async () => {
-                                        setShowSubmitModal(false);
-                                        await submitQuiz();
+                                        setIsSubmitting(true);
+                                        try {
+                                            await submitQuiz();
+                                        } finally {
+                                            setIsSubmitting(false);
+                                            setShowSubmitModal(false);
+                                        }
                                     }}
                                 >
-                                    Submit
+                                    {isSubmitting ? 'Submitting...' : 'Submit'}
                                 </Button>
                             </div>
                         </div>
@@ -537,9 +570,40 @@ Result: ${r.is_correct ? 'CORRECT' : 'INCORRECT'}
         );
     }
 
+    // Fallback: render config form — this handles cases where activeQuiz belongs
+    // to a different source (e.g. QuizPage) or state is in an unexpected shape.
     return (
-        <div className="h-screen flex items-center justify-center">
-            <Loading text="Initializing Proctored Simulation Engine..." />
+        <div className="max-w-3xl mx-auto px-4 animate-in fade-in duration-700">
+            <div className="text-center mb-8 space-y-4">
+                <div className="h-16 w-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 transform rotate-3 shadow-inner">
+                    <ShieldCheck className="h-8 w-8 text-primary" />
+                </div>
+                <h1 className="text-xl font-bold text-white uppercase tracking-wide mb-1" style={{ fontFamily: 'Outfit, sans-serif' }}>Exam Test Center</h1>
+                <p className="text-muted-foreground font-medium max-w-lg mx-auto text-base">
+                    20-question exam simulations with timer. Starts in under 10 seconds.
+                </p>
+            </div>
+            <Card className="border-none shadow-xl bg-card rounded-3xl overflow-hidden">
+                <CardContent className="p-8 space-y-6">
+                    <div className="space-y-3 text-center">
+                        <p className="font-black text-[10px] uppercase tracking-[0.2em] text-primary">Enter Target Examination</p>
+                        <Input
+                            placeholder="e.g. UPSC, GATE 2024, JEE Main, NEET"
+                            value={examName}
+                            onChange={(e) => setExamName(e.target.value)}
+                            className="h-12 text-base font-bold text-center rounded-xl border-2 focus:ring-4 transition-all"
+                        />
+                    </div>
+                    <Button
+                        onClick={handleStartTest}
+                        className="w-full h-12 rounded-xl text-base font-black uppercase tracking-widest"
+                        isLoading={isLoading}
+                    >
+                        <Play size={20} className="mr-2 fill-current" />
+                        Initialize Simulation
+                    </Button>
+                </CardContent>
+            </Card>
         </div>
     );
 };

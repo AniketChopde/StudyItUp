@@ -123,7 +123,7 @@ export const QuizPage: React.FC = () => {
                     <div className="h-20 w-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Brain className="h-10 w-10 text-primary" />
                     </div>
-                    <h1 className="text-3xl font-black tracking-tight uppercase">Knowledge Validator</h1>
+                    <h1 className="text-xl font-bold text-white uppercase tracking-wide" style={{ fontFamily: 'Outfit, sans-serif' }}>Knowledge Validator</h1>
                     <p className="text-muted-foreground font-medium max-w-sm mx-auto">
                         Ready to prove your mastery? Generate an AI-powered quiz tailored to your current study topic.
                     </p>
@@ -200,26 +200,26 @@ export const QuizPage: React.FC = () => {
                     </CardHeader>
                     <CardContent className="p-6 pt-4">
                         {standardQuizHistory.length === 0 ? (
-                            <p className="text-sm text-slate-500 italic mt-4 text-center p-4 bg-slate-50 rounded-xl">No quiz history available yet.</p>
+                            <p className="text-sm text-slate-400 italic mt-4 text-center p-4 bg-white/4 rounded-xl">No quiz history available yet.</p>
                         ) : (
                             <div className="space-y-4 mt-6">
                                 {standardQuizHistory.map((entry) => (
                                     <div 
                                         key={entry.id} 
                                         onClick={() => loadQuizResult(entry.id, 'quiz')}
-                                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-slate-100 hover:border-blue-100 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-white/8 hover:border-indigo-500/30 hover:bg-indigo-500/8 transition-colors cursor-pointer group"
                                     >
                                         <div className="min-w-0">
-                                            <p className="font-bold text-foreground truncate">{entry.topic}</p>
-                                            <p className="text-xs text-muted-foreground mt-0.5">{entry.subject} · {entry.difficulty}</p>
+                                            <p className="font-bold text-white truncate group-hover:text-indigo-200 transition-colors">{entry.topic}</p>
+                                            <p className="text-xs text-slate-400 mt-0.5">{entry.subject} · {entry.difficulty}</p>
                                         </div>
                                         <div className="flex items-center gap-4 shrink-0 ml-4">
                                             {entry.status === 'completed' && entry.score != null && (
-                                                <span className={`text-sm font-black px-2.5 py-1 rounded-lg ${entry.score >= 70 ? 'bg-green-500/20 text-green-600' : 'bg-amber-500/20 text-amber-600'}`}>
+                                                <span className={`text-sm font-black px-2.5 py-1 rounded-lg ${entry.score >= 70 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/25' : 'bg-amber-500/15 text-amber-400 border border-amber-500/25'}`}>
                                                     {Math.round(entry.score)}%
                                                 </span>
                                             )}
-                                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                            <span className="text-xs text-slate-400 whitespace-nowrap">
                                                 {entry.completed_at
                                                     ? new Date(entry.completed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
                                                     : new Date(entry.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
@@ -252,7 +252,7 @@ export const QuizPage: React.FC = () => {
                         <ArrowRight className="h-4 w-4 mr-2 rotate-180" /> Back
                     </Button> */}
                     <span className="text-xs font-black uppercase tracking-widest text-muted-foreground opacity-60">Performance Report</span>
-                    <h1 className="text-3xl font-black">{results.topic}</h1>
+                    <h1 className="text-lg font-bold text-white">{results.topic}</h1>
                 </div>
 
                 <Card className={`mb-8 border-none shadow-2xl rounded-[1rem] ${isSuccess ? 'bg-green-500/5' : 'bg-orange-500/5'}`}>
@@ -384,7 +384,7 @@ export const QuizPage: React.FC = () => {
                             <GraduationCap size={14} />
                             <span className="text-[10px] font-black uppercase tracking-widest">{activeQuiz.subject}</span>
                         </div>
-                        <h1 className="text-3xl font-black leading-tight tracking-tight">{activeQuiz.topic}</h1>
+                        <h1 className="text-xl font-bold text-white leading-tight" style={{ fontFamily: 'Outfit, sans-serif' }}>{activeQuiz.topic}</h1>
                     </div>
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-3 p-4 bg-muted/40 rounded-2xl border border-border/50 shadow-sm min-w-32">

@@ -33,16 +33,16 @@ const createPlanSchema = z.object({
 type CreatePlanFormData = z.infer<typeof createPlanSchema>;
 
 const TRENDING_ROLES = [
-    { title: "AI Engineer", durationDays: 90, hoursPerDay: 3, level: "Intermediate", icon: <Brain className="h-6 w-6 text-purple-500" />, bg: "bg-purple-100" },
-    { title: "Forward Deployed Eng", durationDays: 60, hoursPerDay: 3, level: "Intermediate", icon: <Zap className="h-6 w-6 text-orange-500" />, bg: "bg-orange-100" },
-    { title: "DevOps Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Wrench className="h-6 w-6 text-blue-500" />, bg: "bg-blue-100" },
-    { title: "Full Stack Engineer", durationDays: 120, hoursPerDay: 3, level: "Beginner", icon: <Monitor className="h-6 w-6 text-emerald-500" />, bg: "bg-emerald-100" },
-    { title: "Data Scientist", durationDays: 120, hoursPerDay: 2, level: "Beginner", icon: <BarChart className="h-6 w-6 text-amber-500" />, bg: "bg-amber-100" },
-    { title: "ML Engineer", durationDays: 90, hoursPerDay: 3, level: "Intermediate", icon: <Database className="h-6 w-6 text-pink-500" />, bg: "bg-pink-100" },
-    { title: "Cloud Architect", durationDays: 60, hoursPerDay: 2, level: "Intermediate", icon: <Cloud className="h-6 w-6 text-cyan-500" />, bg: "bg-cyan-100" },
-    { title: "Backend Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Server className="h-6 w-6 text-indigo-500" />, bg: "bg-indigo-100" },
-    { title: "Frontend Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Layout className="h-6 w-6 text-rose-500" />, bg: "bg-rose-100" },
-    { title: "Security Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Shield className="h-6 w-6 text-red-500" />, bg: "bg-red-100" },
+    { title: "AI Engineer", durationDays: 90, hoursPerDay: 3, level: "Intermediate", icon: <Brain className="h-5 w-5 text-purple-400" />, bg: "bg-purple-500/10" },
+    { title: "Forward Deployed Eng", durationDays: 60, hoursPerDay: 3, level: "Intermediate", icon: <Zap className="h-5 w-5 text-orange-400" />, bg: "bg-orange-500/10" },
+    { title: "DevOps Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Wrench className="h-5 w-5 text-blue-400" />, bg: "bg-blue-500/10" },
+    { title: "Full Stack Engineer", durationDays: 120, hoursPerDay: 3, level: "Beginner", icon: <Monitor className="h-5 w-5 text-emerald-400" />, bg: "bg-emerald-500/10" },
+    { title: "Data Scientist", durationDays: 120, hoursPerDay: 2, level: "Beginner", icon: <BarChart className="h-5 w-5 text-amber-400" />, bg: "bg-amber-500/10" },
+    { title: "ML Engineer", durationDays: 90, hoursPerDay: 3, level: "Intermediate", icon: <Database className="h-5 w-5 text-pink-400" />, bg: "bg-pink-500/10" },
+    { title: "Cloud Architect", durationDays: 60, hoursPerDay: 2, level: "Intermediate", icon: <Cloud className="h-5 w-5 text-cyan-400" />, bg: "bg-cyan-500/10" },
+    { title: "Backend Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Server className="h-5 w-5 text-indigo-400" />, bg: "bg-indigo-500/10" },
+    { title: "Frontend Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Layout className="h-5 w-5 text-rose-400" />, bg: "bg-rose-500/10" },
+    { title: "Security Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Shield className="h-5 w-5 text-red-400" />, bg: "bg-red-500/10" },
 ];
 
 export const CreateStudyPlanPage: React.FC = () => {
@@ -157,7 +157,7 @@ export const CreateStudyPlanPage: React.FC = () => {
                     <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-widest mb-3">
                         <Sparkles className="h-4 w-4" /> Smart Planner
                     </div>
-                    <h1 className="text-3xl md:text-3xl font-black tracking-tight mb-2">Create Study Plan</h1>
+                    <h1 className="text-xl font-bold text-white mb-2" style={{ fontFamily: 'Outfit, sans-serif' }}>Create Study Plan</h1>
                     <p className="text-muted-foreground text-sm">Pick a trending role below or fill in your own goal.</p>
                 </div>
                 
@@ -182,11 +182,11 @@ export const CreateStudyPlanPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Quick Start — Trending Roles</h3>
                     <div className="flex gap-2">
-                        <button onClick={scrollLeft} type="button" className="p-1.5 rounded-full bg-muted text-muted-foreground hover:bg-slate-200 hover:text-slate-900 transition-colors">
-                            <ChevronLeft size={16} />
+                        <button onClick={scrollLeft} type="button" className="p-1.5 rounded-full bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200 border border-white/8 transition-colors">
+                            <ChevronLeft size={15} />
                         </button>
-                        <button onClick={scrollRight} type="button" className="p-1.5 rounded-full bg-muted text-muted-foreground hover:bg-slate-200 hover:text-slate-900 transition-colors">
-                            <ChevronRight size={16} />
+                        <button onClick={scrollRight} type="button" className="p-1.5 rounded-full bg-white/5 text-slate-400 hover:bg-white/10 hover:text-slate-200 border border-white/8 transition-colors">
+                            <ChevronRight size={15} />
                         </button>
                     </div>
                 </div>
@@ -200,18 +200,18 @@ export const CreateStudyPlanPage: React.FC = () => {
                         <div 
                             key={idx} 
                             onClick={() => handleRoleSelect(role)}
-                            className={`min-w-[200px] flex-shrink-0 cursor-pointer snap-start p-5 rounded-2xl border-2 transition-all hover:shadow-md ${examType === role.title ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border bg-card hover:border-primary/30'}`}
+                            className={`min-w-[180px] flex-shrink-0 cursor-pointer snap-start p-4 rounded-2xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${examType === role.title ? 'border-indigo-500/40 bg-indigo-500/8 ring-1 ring-indigo-500/20' : 'border-white/8 glass-card hover:border-white/15'}`}
                         >
-                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center mb-4 ${role.bg}`}>
+                            <div className={`h-10 w-10 rounded-xl flex items-center justify-center mb-3 border border-white/5 ${role.bg}`}>
                                 {role.icon}
                             </div>
-                            <h4 className="font-bold text-sm mb-1">{role.title}</h4>
-                            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-muted-foreground mb-1">
+                            <h4 className="font-bold text-sm text-white mb-1 truncate">{role.title}</h4>
+                            <div className="flex items-center gap-1 text-[11px] font-medium text-slate-400 mb-0.5">
                                 <span>{role.durationDays}d</span>
                                 <span>·</span>
                                 <span>{role.hoursPerDay}h/day</span>
                             </div>
-                            <div className="text-[11px] font-medium text-slate-500">
+                            <div className="text-[10px] section-label">
                                 {role.level}
                             </div>
                         </div>
@@ -345,67 +345,69 @@ export const CreateStudyPlanPage: React.FC = () => {
 
                 {/* Right Sidebar - Plan Check */}
                 <div className="lg:col-span-4">
-                    <div className="p-8 rounded-[2rem] bg-blue-50/50 border border-blue-100 space-y-8 sticky top-24">
-                        <h3 className="font-bold flex items-center gap-2 text-sm">
-                            <Target className="h-4 w-4 text-primary" />
-                            Plan check
-                        </h3>
+                    <div className="p-6 rounded-[2rem] glass-card border border-indigo-500/15 space-y-6 sticky top-24">
+                        <div className="flex items-center gap-2">
+                            <div className="h-7 w-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                <Target className="h-3.5 w-3.5 text-indigo-400" />
+                            </div>
+                            <p className="section-label">Plan Check</p>
+                        </div>
                         
-                        <div className="space-y-6 relative before:absolute before:inset-0 before:ml-2 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-                            <div className="relative flex items-start gap-4">
-                                <div className={`flex items-center justify-center w-6 h-6 rounded-full bg-white border ${examType ? 'border-green-500 text-green-500' : 'border-slate-300 text-slate-300'}`}>
-                                    <CheckCircle2 className="w-4 h-4" />
+                        <div className="space-y-4 relative before:absolute before:left-3 before:top-0 before:h-full before:w-px before:bg-gradient-to-b before:from-indigo-500/30 before:via-white/5 before:to-transparent">
+                            <div className="relative flex items-start gap-3 pl-2">
+                                <div className={`flex items-center justify-center w-5 h-5 rounded-full border flex-shrink-0 ${examType ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-400' : 'border-white/15 bg-white/3 text-slate-600'}`}>
+                                    <CheckCircle2 className="w-3 h-3" />
                                 </div>
                                 <div>
-                                    <h4 className={`text-sm font-bold ${examType ? 'text-slate-900' : 'text-slate-500'}`}>Specific</h4>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{examType ? examType : 'Add a focused topic'}</p>
+                                    <h4 className={`text-xs font-bold ${examType ? 'text-white' : 'text-slate-500'}`}>Specific</h4>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">{examType ? examType : 'Add a focused topic'}</p>
                                 </div>
                             </div>
                             
-                            <div className="relative flex items-start gap-4">
-                                <div className={`flex items-center justify-center w-6 h-6 rounded-full bg-white border ${measurableTarget ? 'border-green-500 text-green-500' : 'border-slate-300 text-slate-300'}`}>
-                                    <CheckCircle2 className="w-4 h-4" />
+                            <div className="relative flex items-start gap-3 pl-2">
+                                <div className={`flex items-center justify-center w-5 h-5 rounded-full border flex-shrink-0 ${measurableTarget ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-400' : 'border-white/15 bg-white/3 text-slate-600'}`}>
+                                    <CheckCircle2 className="w-3 h-3" />
                                 </div>
                                 <div>
-                                    <h4 className={`text-sm font-bold ${measurableTarget ? 'text-slate-900' : 'text-slate-500'}`}>Measurable</h4>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{measurableTarget ? measurableTarget : 'Add a result you can verify'}</p>
+                                    <h4 className={`text-xs font-bold ${measurableTarget ? 'text-white' : 'text-slate-500'}`}>Measurable</h4>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">{measurableTarget ? measurableTarget : 'Add a result you can verify'}</p>
                                 </div>
                             </div>
 
-                            <div className="relative flex items-start gap-4">
-                                <div className="flex items-center justify-center z-10 w-6 h-6 rounded-full bg-white border border-primary text-primary">
-                                    <Clock className="w-4 h-4" />
+                            <div className="relative flex items-start gap-3 pl-2">
+                                <div className="flex items-center justify-center w-5 h-5 rounded-full border border-indigo-500/40 bg-indigo-500/10 text-indigo-400 flex-shrink-0">
+                                    <Clock className="w-3 h-3" />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-slate-900">Achievable</h4>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{dailyHours} hours per day, {dailyHours <= 2 ? 'light' : dailyHours <= 4 ? 'steady' : 'intense'} pace</p>
+                                    <h4 className="text-xs font-bold text-white">Achievable</h4>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">{dailyHours}h/day · {dailyHours <= 2 ? 'light' : dailyHours <= 4 ? 'steady' : 'intense'} pace</p>
                                 </div>
                             </div>
 
-                            <div className="relative flex items-start gap-4">
-                                <div className="flex items-center justify-center z-10 w-6 h-6 rounded-full bg-white border border-primary text-primary">
-                                    <BookOpen className="w-4 h-4" />
+                            <div className="relative flex items-start gap-3 pl-2">
+                                <div className="flex items-center justify-center w-5 h-5 rounded-full border border-indigo-500/40 bg-indigo-500/10 text-indigo-400 flex-shrink-0">
+                                    <BookOpen className="w-3 h-3" />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-slate-900">Level</h4>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{currentLevel}</p>
+                                    <h4 className="text-xs font-bold text-white">Level</h4>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">{currentLevel}</p>
                                 </div>
                             </div>
 
-                            <div className="relative flex items-start gap-4">
-                                <div className="flex items-center justify-center z-10 w-6 h-6 rounded-full bg-white border border-primary text-primary">
-                                    <Calendar className="w-4 h-4" />
+                            <div className="relative flex items-start gap-3 pl-2">
+                                <div className="flex items-center justify-center w-5 h-5 rounded-full border border-indigo-500/40 bg-indigo-500/10 text-indigo-400 flex-shrink-0">
+                                    <Calendar className="w-3 h-3" />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-slate-900">Time bound</h4>
-                                    <p className="text-xs text-muted-foreground mt-0.5">{daysDiff} days, {totalHours} total hours</p>
+                                    <h4 className="text-xs font-bold text-white">Time bound</h4>
+                                    <p className="text-[11px] text-slate-500 mt-0.5">{daysDiff} days · {totalHours} total hours</p>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm mt-8">
-                            <h4 className="text-xs font-bold text-slate-900 mb-1">{isFastLearn ? 'Fast mode active' : 'Standard mode'}</h4>
-                            <p className="text-[11px] text-muted-foreground">
+                        <div className="p-3.5 bg-white/3 rounded-xl border border-white/6">
+                            <h4 className="text-xs font-bold text-slate-300 mb-1">{isFastLearn ? '⚡ Fast mode active' : '📚 Standard mode'}</h4>
+                            <p className="text-[11px] text-slate-500 leading-relaxed">
                                 {isFastLearn 
                                     ? 'The generated path will focus on core topics first.'
                                     : 'The generated path will include foundations, practice, and review milestones.'}
@@ -415,24 +417,22 @@ export const CreateStudyPlanPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Hours Warning Modal */}
+            {/* Hours Warning */}
             {showHoursWarning && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-                    <div className="bg-card border-2 border-primary/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6">
-                        <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600">
-                            <AlertTriangle size={32} />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="glass-card border border-amber-500/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6 animate-in zoom-in-95 duration-200">
+                        <div className="mx-auto w-14 h-14 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center justify-center text-amber-400">
+                            <AlertTriangle size={28} />
                         </div>
                         <div className="space-y-2">
-                            <h3 className="text-xl font-black">Intensive Schedule!</h3>
-                            <p className="text-sm text-muted-foreground font-medium">
-                                You've selected <span className="text-primary font-bold">{pendingData?.daily_hours} hours</span> per day. This is a very intense commitment. Are you sure you can maintain this pace?
+                            <h3 className="text-lg font-bold text-white">Intensive Schedule!</h3>
+                            <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                                You've selected <span className="text-amber-400 font-bold">{pendingData?.daily_hours} hours</span> per day. This is a very intense commitment. Are you sure you can maintain this pace?
                             </p>
                         </div>
                         <div className="flex flex-col gap-2">
-                            <Button onClick={confirmHighHours} className="w-full h-12 font-black uppercase tracking-widest">
-                                Yes, I'm Committed 🚀
-                            </Button>
-                            <Button variant="outline" onClick={() => {setShowHoursWarning(false); setPendingData(null);}} className="w-full h-12 font-black uppercase tracking-widest border-slate-200">
+                            <Button onClick={confirmHighHours} className="w-full h-11 font-bold uppercase tracking-widest text-sm">Yes, I'm Committed 🚀</Button>
+                            <Button variant="outline" onClick={() => {setShowHoursWarning(false); setPendingData(null);}} className="w-full h-11 font-bold uppercase tracking-widest text-sm border-white/10">
                                 Let Me Reconsider
                             </Button>
                         </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
-import { Button } from '../ui/Button';
 import {
     Home,
     BookOpen,
@@ -15,21 +14,22 @@ import {
     BarChart,
     PanelLeftClose,
     PanelLeftOpen,
-    Settings
+    Settings,
+    ChevronRight
 } from 'lucide-react';
 
 const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Study Plans', href: '/study-plans', icon: BookOpen },
-    { name: 'Learning Chat', href: '/chat', icon: MessageSquare },
-    { name: 'Take Quiz', href: '/quiz', icon: Brain },
-    { name: 'View Analytics', href: '/analytics', icon: BarChart },
-    { name: 'Test Center', href: '/test-center', icon: ShieldCheck },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    { name: 'Dashboard', href: '/dashboard', icon: Home, color: 'text-blue-400' },
+    { name: 'Study Plans', href: '/study-plans', icon: BookOpen, color: 'text-emerald-400' },
+    { name: 'Learning Chat', href: '/chat', icon: MessageSquare, color: 'text-violet-400' },
+    { name: 'Take Quiz', href: '/quiz', icon: Brain, color: 'text-amber-400' },
+    { name: 'View Analytics', href: '/analytics', icon: BarChart, color: 'text-cyan-400' },
+    { name: 'Test Center', href: '/test-center', icon: ShieldCheck, color: 'text-indigo-400' },
+    { name: 'Settings', href: '/settings', icon: Settings, color: 'text-slate-400' },
 ];
 
 const adminNavigation = [
-    { name: 'Admin Panel', href: '/admin', icon: ShieldAlert },
+    { name: 'Admin Panel', href: '/admin', icon: ShieldAlert, color: 'text-purple-400' },
 ];
 
 interface LayoutProps {
@@ -45,7 +45,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     });
     const { user, logout } = useAuthStore();
     const navigate = useNavigate();
-    const [isHidden] = React.useState(false);
 
     React.useEffect(() => {
         localStorage.setItem('sidebar_collapsed', String(isCollapsed));
@@ -58,208 +57,203 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
     const toggleSidebar = () => setIsCollapsed(!isCollapsed);
 
-    return (
-        <div className="min-h-screen bg-background flex">
-            {/* Mobile sidebar */}
-            {sidebarOpen && (
-                <div className="fixed inset-0 z-50 lg:hidden">
-                    <div className="fixed inset-0 bg-black/50" onClick={() => setSidebarOpen(false)} />
-                    <div className="fixed inset-y-0 left-0 w-64 bg-card border-r flex flex-col">
-                        <div className="flex items-center justify-between p-4 border-b">
-                            <div className="flex items-center gap-2">
-                                <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 mix-blend-multiply" />
-                                <h1 className="text-xl font-bold">StudyItUp</h1>
-                            </div>
-                            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
-                                <X className="h-5 w-5" />
-                            </Button>
+    const SidebarContent = ({ onClose }: { onClose?: () => void }) => (
+        <div className="flex flex-col h-full">
+            {/* Brand */}
+            <div className={`flex items-center h-16 px-4 border-b border-white/5 ${isCollapsed && !onClose ? 'justify-center' : 'gap-3'}`}>
+                {(!isCollapsed || onClose) && (
+                    <>
+                        <div className="relative flex-shrink-0">
+                            <div className="absolute inset-0 rounded-xl bg-indigo-500/20 blur-md" />
+                            <img src="/logo.png" alt="StudyItUp" className="relative h-9 w-9 rounded-xl" />
                         </div>
-                        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-                            {navigation.map((item) => (
+                        <div className="min-w-0 flex-1">
+                            <h1 className="text-base font-bold text-white truncate" style={{ fontFamily: 'Outfit, sans-serif' }}>StudyItUp</h1>
+                            <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest">Learning Platform</p>
+                        </div>
+                        {!onClose && (
+                            <button onClick={toggleSidebar} className="p-1.5 rounded-lg hover:bg-white/5 text-slate-500 hover:text-slate-300 transition-colors">
+                                <PanelLeftClose className="h-4 w-4" />
+                            </button>
+                        )}
+                        {onClose && (
+                            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/5 text-slate-500 hover:text-slate-300 transition-colors ml-auto">
+                                <X className="h-4 w-4" />
+                            </button>
+                        )}
+                    </>
+                )}
+                {isCollapsed && !onClose && (
+                    <button
+                        onClick={toggleSidebar}
+                        className="group flex items-center justify-center w-9 h-9 rounded-xl hover:bg-white/5 transition-colors"
+                        title="Expand sidebar"
+                    >
+                        <div className="group-hover:opacity-0 transition-opacity absolute">
+                            <img src="/logo.png" alt="StudyItUp" className="h-7 w-7 rounded-lg" />
+                        </div>
+                        <PanelLeftOpen className="h-4 w-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+                )}
+            </div>
+
+            {/* Navigation */}
+            <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto custom-scrollbar">
+                {navigation.map((item) => {
+                    const isActive = location.pathname.startsWith(item.href);
+                    return (
+                        <Link
+                            key={item.name}
+                            to={item.href}
+                            title={isCollapsed && !onClose ? item.name : undefined}
+                            onClick={onClose}
+                            className={`group flex items-center rounded-xl transition-all duration-200 ${
+                                isCollapsed && !onClose
+                                    ? 'justify-center p-2.5 mx-auto w-10 h-10'
+                                    : 'gap-3 px-3 py-2.5'
+                            } ${
+                                isActive
+                                    ? 'nav-pill-active'
+                                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                            }`}
+                        >
+                            <item.icon className={`flex-shrink-0 transition-colors ${isCollapsed && !onClose ? 'h-5 w-5' : 'h-4 w-4'} ${isActive ? 'text-indigo-400' : `${item.color} group-hover:text-slate-200`}`} />
+                            {(!isCollapsed || onClose) && (
+                                <>
+                                    <span className="flex-1 text-sm font-medium truncate">{item.name}</span>
+                                    {isActive && <ChevronRight className="h-3.5 w-3.5 text-indigo-400 flex-shrink-0" />}
+                                </>
+                            )}
+                        </Link>
+                    );
+                })}
+
+                {user?.is_superuser && (
+                    <>
+                        <div className="border-t border-white/5 my-2" />
+                        {adminNavigation.map((item) => {
+                            const isActive = location.pathname.startsWith(item.href);
+                            return (
                                 <Link
                                     key={item.name}
                                     to={item.href}
-                                    className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
-                                        location.pathname.startsWith(item.href) 
-                                        ? 'bg-primary/10 text-primary font-medium' 
-                                        : 'hover:bg-accent text-foreground'
+                                    title={isCollapsed && !onClose ? item.name : undefined}
+                                    onClick={onClose}
+                                    className={`group flex items-center rounded-xl transition-all duration-200 ${
+                                        isCollapsed && !onClose
+                                            ? 'justify-center p-2.5 mx-auto w-10 h-10'
+                                            : 'gap-3 px-3 py-2.5'
+                                    } ${
+                                        isActive
+                                            ? 'bg-purple-500/15 border border-purple-500/25 text-purple-300'
+                                            : 'text-purple-400/70 hover:text-purple-300 hover:bg-purple-500/10'
                                     }`}
-                                    onClick={() => setSidebarOpen(false)}
                                 >
-                                    <item.icon className="h-5 w-5" />
-                                    <span>{item.name}</span>
+                                    <item.icon className={`flex-shrink-0 ${isCollapsed && !onClose ? 'h-5 w-5' : 'h-4 w-4'}`} />
+                                    {(!isCollapsed || onClose) && (
+                                        <span className="flex-1 text-sm font-medium truncate">{item.name}</span>
+                                    )}
                                 </Link>
-                            ))}
+                            );
+                        })}
+                    </>
+                )}
+            </nav>
 
-                            {user?.is_superuser && (
-                                <>
-                                    <div className="border-t my-2 border-border/50" />
-                                    {adminNavigation.map((item) => (
-                                        <Link
-                                            key={item.name}
-                                            to={item.href}
-                                            className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors font-medium ${
-                                                location.pathname.startsWith(item.href)
-                                                ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-                                                : 'text-purple-600 dark:text-purple-400 hover:bg-accent'
-                                            }`}
-                                            onClick={() => setSidebarOpen(false)}
-                                        >
-                                            <item.icon className="h-5 w-5" />
-                                            <span>{item.name}</span>
-                                        </Link>
-                                    ))}
-                                </>
-                            )}
-                        </nav>
-                        <div className="p-4 border-t">
-                            <Button
-                                variant="ghost"
-                                className="w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={handleLogout}
-                            >
-                                <LogOut className="h-5 w-5 mr-3" />
-                                Logout
-                            </Button>
+            {/* User + Logout */}
+            <div className="p-3 border-t border-white/5">
+                {(!isCollapsed || onClose) ? (
+                    <div className="flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/5 transition-colors group">
+                        <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                            {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
                         </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-200 truncate">{user?.full_name || 'Student'}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{user?.email}</p>
+                        </div>
+                        <button
+                            onClick={handleLogout}
+                            title="Logout"
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </button>
+                    </div>
+                ) : (
+                    <button
+                        onClick={handleLogout}
+                        title="Logout"
+                        className="flex items-center justify-center w-10 h-10 mx-auto rounded-xl text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                        <LogOut className="h-5 w-5" />
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen bg-background flex overflow-x-hidden">
+            {/* Mobile sidebar overlay */}
+            {sidebarOpen && (
+                <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+                    <div
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                    <div className="fixed inset-y-0 left-0 w-64 glass-card border-r border-white/5 flex flex-col">
+                        <SidebarContent onClose={() => setSidebarOpen(false)} />
                     </div>
                 </div>
             )}
 
             {/* Desktop sidebar */}
-            {!isHidden && (
-                <aside 
-                    className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 border-r bg-card transition-all duration-300 ease-in-out ${isCollapsed ? 'lg:w-20' : 'lg:w-64'}`}
-                >
-                <div 
-                    className={`group relative flex items-center h-16 px-4 border-b overflow-hidden transition-all duration-300 ${isCollapsed ? 'justify-center' : 'justify-between'}`}
-                >
-                    {isCollapsed ? (
-                        <div className="flex items-center justify-center w-full h-full">
-                            <div className="group-hover:opacity-0 transition-opacity duration-300 flex items-center justify-center">
-                                <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 flex-shrink-0 mix-blend-multiply" />
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={toggleSidebar}
-                                className="absolute inset-0 m-auto opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 bg-muted/50 hover:bg-muted text-muted-foreground rounded-xl"
-                            >
-                                <PanelLeftOpen className="h-5 w-5" />
-                            </Button>
-                        </div>
-                    ) : (
-                        <>
-                            <div className="flex items-center gap-3 min-w-0">
-                                <img src="/logo.png" alt="StudyItUp" className="h-10 w-10 flex-shrink-0 mix-blend-multiply" />
-                                <h1 className="text-xl font-bold truncate">StudyItUp</h1>
-                            </div>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={toggleSidebar}
-                                className="hidden lg:flex bg-muted/50 hover:bg-muted text-muted-foreground rounded-xl transition-all duration-300"
-                            >
-                                <PanelLeftClose className="h-5 w-5" />
-                            </Button>
-                        </>
-                    )}
-                </div>
-                <nav className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
-                    {navigation.map((item) => (
-                        <Link
-                            key={item.name}
-                            to={item.href}
-                            title={isCollapsed ? item.name : ''}
-                            className={`flex items-center rounded-md transition-colors ${
-                                isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'
-                            } ${
-                                location.pathname.startsWith(item.href) 
-                                ? 'bg-primary/10 text-primary font-medium' 
-                                : 'hover:bg-accent text-foreground'
-                            }`}
-                        >
-                            <item.icon className="h-5 w-5 flex-shrink-0" />
-                            {!isCollapsed && <span className="truncate">{item.name}</span>}
-                        </Link>
-                    ))}
-
-                    {user?.is_superuser && (
-                        <>
-                            <div className="border-t my-2 border-border/50" />
-                            {adminNavigation.map((item) => (
-                                <Link
-                                    key={item.name}
-                                    to={item.href}
-                                    title={isCollapsed ? item.name : ''}
-                                    className={`flex items-center rounded-md transition-colors font-medium ${
-                                        isCollapsed ? 'justify-center p-2' : 'gap-3 px-3 py-2'
-                                    } ${
-                                        location.pathname.startsWith(item.href)
-                                        ? 'bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300'
-                                        : 'text-purple-600 dark:text-purple-400 hover:bg-accent'
-                                    }`}
-                                >
-                                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                                    {!isCollapsed && <span className="truncate">{item.name}</span>}
-                                </Link>
-                            ))}
-                        </>
-                    )}
-                </nav>
-                <div className="p-4 border-t">
-                    <Button
-                        variant="ghost"
-                        className={`w-full text-destructive hover:text-destructive hover:bg-destructive/10 ${isCollapsed ? 'justify-center p-2' : 'justify-start'}`}
-                        onClick={handleLogout}
-                        title={isCollapsed ? 'Logout' : ''}
-                    >
-                        <LogOut className={`h-5 w-5 ${isCollapsed ? '' : 'mr-3'}`} />
-                        {!isCollapsed && <span>Logout</span>}
-                    </Button>
-                </div>
+            <aside
+                className={`hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50 glass-card border-r border-white/5 transition-all duration-300 ease-in-out ${
+                    isCollapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'
+                }`}
+            >
+                <SidebarContent />
             </aside>
-            )}
 
-            {/* Main content */}
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${isHidden ? 'lg:pl-0' : isCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+            {/* Main content area */}
+            <div className={`flex-1 flex flex-col transition-all duration-300 ${isCollapsed ? 'lg:pl-[72px]' : 'lg:pl-[260px]'}`}>
                 {/* Top bar */}
-                <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-card px-4 lg:px-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="lg:hidden"
+                <header className="sticky top-0 z-40 flex h-14 items-center gap-4 px-4 lg:px-6 glass border-b border-white/5">
+                    <button
+                        className="lg:hidden p-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors"
                         onClick={() => setSidebarOpen(true)}
+                        aria-label="Open sidebar"
                     >
                         <Menu className="h-5 w-5" />
-                    </Button>
-                    
-                    {/* <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hidden lg:flex text-muted-foreground hover:bg-muted rounded-xl"
-                        onClick={toggleHideSidebar}
-                        title={isHidden ? "Show Sidebar" : "Hide Sidebar"}
-                    >
-                        {isHidden ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
-                    </Button> */}
-                    
-                    <div className="flex-1" />
-                    
-                    <div className="flex items-center gap-4">
-                        <div className="hidden sm:block text-right">
-                            <p className="text-sm font-medium leading-none">{user?.full_name || user?.email}</p>
-                            <p className="text-xs text-muted-foreground mt-1">{user?.email}</p>
+                    </button>
+
+                    {/* Page title breadcrumb */}
+                    <div className="flex-1">
+                        <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">
+                            {navigation.find(n => location.pathname.startsWith(n.href))?.name || 'NexusLearn'}
+                        </p>
+                    </div>
+
+                    {/* User avatar */}
+                    <div className="flex items-center gap-3">
+                        <div className="hidden sm:flex flex-col items-end">
+                            <p className="text-sm font-semibold text-slate-200 leading-none">{user?.full_name || user?.email}</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{user?.email}</p>
                         </div>
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold border border-primary/20">
-                            {user?.full_name?.[0] || user?.email?.[0] || 'U'}
+                        <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center text-white font-bold text-sm ring-2 ring-indigo-500/20">
+                            {user?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || 'U'}
                         </div>
                     </div>
                 </header>
 
                 {/* Page content */}
-                <main className={`flex-1 ${location.pathname.startsWith('/chat') ? 'p-0' : 'p-4 lg:p-8'}`}>
-                    <div className="max-w-7xl mx-auto h-full">
+                <main className={`flex-1 ${
+                    location.pathname.startsWith('/chat') 
+                        ? 'overflow-hidden' 
+                        : 'px-5 py-6 pb-10 lg:px-8 lg:py-7 lg:pb-12'
+                }`}>
+                    <div className={location.pathname.startsWith('/chat') ? 'h-full' : 'max-w-7xl mx-auto'}>
                         {children}
                     </div>
                 </main>
@@ -267,4 +261,3 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
     );
 };
-

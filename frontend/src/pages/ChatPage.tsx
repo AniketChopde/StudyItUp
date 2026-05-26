@@ -91,7 +91,7 @@ export const ChatPage: React.FC = () => {
     };
 
     return (
-        <div className="h-[calc(100dvh-8rem)] flex flex-col w-full max-w-7xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-0">
+        <div className="h-[calc(100dvh-3.5rem)] flex flex-col w-full max-w-7xl mx-auto space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 min-h-0 px-4 py-4">
             <div className="flex items-center justify-between px-2">
                 <div className="flex items-center gap-2">
                     {planId && (
@@ -103,8 +103,8 @@ export const ChatPage: React.FC = () => {
                         </button>
                     )}
                     <div>
-                        <h1 className="text-3xl font-black tracking-tight">Learning Copilot</h1>
-                        <p className="text-[10px] uppercase font-black tracking-widest text-muted-foreground opacity-60">
+                        <h1 className="text-xl font-bold text-white" style={{ fontFamily: 'Outfit, sans-serif' }}>Learning Copilot</h1>
+                        <p className="section-label mt-0.5">
                             {chapter ? `Focus: ${chapter}` : 'AI Study Assistant'}
                         </p>
                     </div>
@@ -142,19 +142,19 @@ export const ChatPage: React.FC = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
                                 <button 
                                     onClick={() => setInput(`Give me a detailed 7-day study plan for ${chapter || 'this topic'}`)}
-                                    className="p-4 rounded-2xl bg-muted/50 border border-border/50 hover:border-primary/30 text-left transition-all hover:bg-muted group"
+                                    className="p-4 rounded-2xl glass-card border border-white/8 hover:border-indigo-500/30 hover:bg-indigo-500/5 text-left transition-all group"
                                 >
-                                    <Layers className="h-4 w-4 text-primary mb-2 group-hover:scale-110 transition-transform" />
-                                    <p className="text-xs font-black uppercase tracking-widest">Deep Daily Plan</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1">Generate a comprehensive hour-by-hour roadmap.</p>
+                                    <Layers className="h-4 w-4 text-indigo-400 mb-2 group-hover:scale-110 transition-transform" />
+                                    <p className="text-xs font-bold text-white uppercase tracking-wider">Deep Daily Plan</p>
+                                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">Generate a comprehensive hour-by-hour roadmap.</p>
                                 </button>
                                 <button 
                                     onClick={() => setInput(`Explain ${chapter || 'the core concepts'} like I'm 5 years old.`)}
-                                    className="p-4 rounded-2xl bg-muted/50 border border-border/50 hover:border-primary/30 text-left transition-all hover:bg-muted group"
+                                    className="p-4 rounded-2xl glass-card border border-white/8 hover:border-amber-500/30 hover:bg-amber-500/5 text-left transition-all group"
                                 >
-                                    <Sparkles className="h-4 w-4 text-amber-500 mb-2 group-hover:scale-110 transition-transform" />
-                                    <p className="text-xs font-black uppercase tracking-widest">ELI5 Explanation</p>
-                                    <p className="text-[10px] text-muted-foreground mt-1">Simplify complex ideas into easy metaphors.</p>
+                                    <Sparkles className="h-4 w-4 text-amber-400 mb-2 group-hover:scale-110 transition-transform" />
+                                    <p className="text-xs font-bold text-white uppercase tracking-wider">ELI5 Explanation</p>
+                                    <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">Simplify complex ideas into easy metaphors.</p>
                                 </button>
                             </div>
                         </div>
@@ -178,7 +178,11 @@ export const ChatPage: React.FC = () => {
                                         : 'bg-gradient-to-br from-primary/5 to-purple-500/5 border-primary/10 rounded-tl-none'
                                         }`}
                                 >
-                                    <div className={`prose ${message.role === 'user' ? 'prose-invert' : 'prose-zinc dark:prose-invert'} max-w-none text-sm leading-relaxed`}>
+                                    <div className={`prose prose-sm max-w-none leading-relaxed ${
+                                        message.role === 'user' 
+                                            ? 'prose-invert text-white' 
+                                            : 'dark:prose-invert text-foreground'
+                                        }`}>
                                         <ReactMarkdown>{message.content}</ReactMarkdown>
                                     </div>
                                     
@@ -258,12 +262,12 @@ export const ChatPage: React.FC = () => {
                 </div>
 
                 {/* Right Sidebar - Quick Prompts & Tips */}
-                <div className="hidden lg:flex flex-col w-72 flex-shrink-0 gap-2">
-                    <Card className="rounded-[2rem] border border-border/50 shadow-sm bg-card overflow-hidden">
-                        <div className="px-5 py-2 border-b border-border/30">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Quick Prompts</h3>
+                <div className="hidden lg:flex flex-col w-64 flex-shrink-0 gap-3">
+                    <div className="glass-card rounded-2xl border border-white/6 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/5">
+                            <p className="section-label">Quick Prompts</p>
                         </div>
-                        <div className="p-3 space-y-1">
+                        <div className="p-2 space-y-0.5">
                             {[
                                 "Step-by-step plan",
                                 "Explain with examples",
@@ -271,28 +275,28 @@ export const ChatPage: React.FC = () => {
                                 "Common mistakes",
                                 "Interview prep",
                                 "Quick revision"
-                            ].map((prompt, i) => (
+                            ].map((prompt, i, arr) => (
                                 <button
                                     key={i}
                                     onClick={() => setInput(prompt)}
-                                    className="w-full text-left px-4 py-2 rounded-xl hover:bg-muted/60 transition-colors text-sm font-semibold text-foreground/80"
+                                    className={`w-full text-left px-3 py-2 rounded-xl hover:bg-white/5 transition-colors text-xs font-medium text-slate-300 hover:text-white ${i < arr.length - 1 ? 'border-b border-white/4' : ''}`}
                                 >
                                     {prompt}
                                 </button>
                             ))}
                         </div>
-                    </Card>
+                    </div>
 
-                    <Card className="rounded-[2rem] border border-border/50 shadow-sm bg-card overflow-hidden">
-                        <div className="p-5 border-b border-border/30">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Tip</h3>
+                    <div className="glass-card rounded-2xl border border-white/6 overflow-hidden">
+                        <div className="px-4 py-3 border-b border-white/5">
+                            <p className="section-label">Pro Tip</p>
                         </div>
-                        <div className="p-5">
-                            <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                                Ask for a <span className="text-primary font-bold">"step-by-step implementation"</span> to get practical code/project walkthroughs, not just theory.
+                        <div className="p-4">
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                                Ask for a <span className="text-indigo-400 font-semibold">"step-by-step implementation"</span> to get practical code/project walkthroughs, not just theory.
                             </p>
                         </div>
-                    </Card>
+                    </div>
                 </div>
             </div>
         </div>

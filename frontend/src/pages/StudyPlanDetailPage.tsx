@@ -223,7 +223,7 @@ export const StudyPlanDetailPage: React.FC = () => {
         <div className="space-y-6 animate-in fade-in duration-700">
             {/* Header section */}
             {!isDeepLessonMode && (
-            <div className="relative rounded-3xl bg-slate-50 border border-slate-200 p-6 md:p-8 shadow-sm">
+            <div className="relative rounded-3xl glass-card border border-white/8 p-6 md:p-8 shadow-sm">
                 <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
                     <BookOpen className="h-32 w-32 text-slate-400" />
                 </div>
@@ -245,21 +245,21 @@ export const StudyPlanDetailPage: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="bg-slate-200 text-slate-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-slate-300">
+                            <span className="bg-indigo-500/15 text-indigo-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-500/25">
                                 {activePlan.exam_type}
                             </span>
                             {progress === 100 ? (
-                                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-200 flex items-center gap-1">
+                                <span className="bg-emerald-500/15 text-emerald-400 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-emerald-500/25 flex items-center gap-1">
                                     <GraduationCap className="h-3 w-3" />
                                     Certification Eligible
                                 </span>
                             ) : (
-                                <span className="bg-blue-100 text-blue-700 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-blue-200">
+                                <span className="bg-blue-500/15 text-blue-300 text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest border border-blue-500/25">
                                     Course in Progress
                                 </span>
                             )}
                         </div>
-                        <h1 className="text-3xl md:text-3xl font-black uppercase tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                        <h1 className="text-xl font-bold uppercase tracking-tight text-white">
                             {activePlan.exam_type} Masterclass
                         </h1>
                         <p className="text-base md:text-lg text-slate-500 font-medium max-w-2xl leading-relaxed">
@@ -281,7 +281,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                 </Button>
                                 <Button
                                     variant="outline"
-                                    className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-xs bg-white border-slate-200 hover:bg-slate-100"
+                                    className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-xs glass border-white/10 hover:bg-white/8 text-slate-200"
                                     onClick={() => setViewMode('syllabus')}
                                 >
                                     <ListChecks className="mr-2 h-4 w-4 text-slate-500" /> Syllabus
@@ -299,7 +299,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-xl border-slate-200 hover:bg-slate-50 h-10 px-4 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-xl border-white/10 hover:bg-white/8 h-10 px-4 font-bold flex items-center gap-2 shadow-sm text-slate-200"
                                 onClick={() => setIsFeedbackModalOpen(true)}
                             >
                                 <TargetIcon size={14} className="text-slate-500" />
@@ -308,7 +308,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                             <Button
                                 variant="outline"
                                 size="sm"
-                                className="rounded-xl border-slate-200 hover:bg-slate-50 h-10 px-4 font-bold flex items-center gap-2 shadow-sm"
+                                className="rounded-xl border-white/10 hover:bg-white/8 h-10 px-4 font-bold flex items-center gap-2 shadow-sm text-slate-200"
                                 onClick={() => setIsEditModalOpen(true)}
                             >
                                 <Layout size={14} className="text-slate-500" />
@@ -317,7 +317,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                             <Button
                                 variant="secondary"
                                 size="sm"
-                                className="rounded-xl h-10 px-4 font-bold flex items-center gap-2 shadow-sm bg-slate-900 text-white hover:bg-slate-800"
+                                className="rounded-xl h-10 px-4 font-bold flex items-center gap-2 shadow-sm bg-indigo-600 text-white hover:bg-indigo-700"
                                 onClick={handleRegenerate}
                                 isLoading={isCreating}
                             >
@@ -329,11 +329,11 @@ export const StudyPlanDetailPage: React.FC = () => {
                         <div className="w-full md:w-72 space-y-2">
                             <div className="flex justify-between mb-1">
                                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Syllabus Mastery</span>
-                                <span className="text-xs font-black text-slate-900">{progress}%</span>
+                                <span className="text-xs font-black text-white">{progress}%</span>
                             </div>
-                            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
                                 <div
-                                    className="h-full bg-slate-900 transition-all duration-1000 ease-out"
+                                    className="h-full bg-indigo-600 transition-all duration-1000 ease-out"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
@@ -590,7 +590,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     <div className="p-8 pb-0">
                                         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
                                             <div>
-                                                <h2 className="text-3xl font-black">{selectedChapter.chapter_name}</h2>
+                                                <h2 className="text-xl font-bold text-white">{selectedChapter.chapter_name}</h2>
                                                 <p className="text-primary font-bold uppercase text-xs tracking-widest mt-1">
                                                     Focus: {selectedChapter.subject}
                                                 </p>
@@ -659,7 +659,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                             </Button>
                                             <Button
                                                 variant="outline"
-                                                className="px-4 rounded-2xl h-10 text-sm font-black uppercase tracking-widest border-slate-200"
+                                                className="px-4 rounded-2xl h-10 text-sm font-black uppercase tracking-widest border-white/10"
                                                 onClick={() => navigate(`/quiz?topic=${encodeURIComponent(selectedChapter.chapter_name)}&subject=${encodeURIComponent(selectedChapter.subject)}&chapterId=${selectedChapter.id.toString()}&examType=${encodeURIComponent(activePlan.exam_type)}&autoStart=true`)}
                                             >
                                                 Assessment
@@ -668,7 +668,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                         <div className="flex justify-center pt-2">
                                             <button
                                                 onClick={() => navigate(`/chat?planId=${activePlan.id}&chapter=${selectedChapter.chapter_name}&query=Give me a detailed 7-day breakdown for ${selectedChapter.chapter_name}`)}
-                                                className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 tracking-widest transition-colors flex items-center gap-1.5"
+                                                className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-300 tracking-widest transition-colors flex items-center gap-1.5"
                                             >
                                                 <ListChecks size={12} />
                                                 Request detailed daily study breakdown
@@ -705,7 +705,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                 <div className="p-8 md:p-12 space-y-12">
                                                     <div className="space-y-4">
                                                         <div className="flex items-center justify-between">
-                                                            <h2 className="text-3xl font-black tracking-tight">{selectedChapter.chapter_name}</h2>
+                                                            <h2 className="text-xl font-bold tracking-tight text-white">{selectedChapter.chapter_name}</h2>
                                                             {selectedChapter.weightage_percent > 0 && (
                                                                 <div className="flex items-center gap-2 bg-indigo-500/10 text-indigo-600 px-3 py-1 rounded-full border border-indigo-500/20">
                                                                     <Zap className="h-4 w-4" />
@@ -726,7 +726,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                 <div className="flex items-center justify-between">
                                                                     <div className="flex items-center gap-3">
                                                                         <span className="px-3 py-1 bg-primary/10 text-primary text-[10px] font-black rounded-lg uppercase">Concept 0{i + 1}</span>
-                                                                        <h3 className="text-3xl font-black tracking-tight">{lesson.topic}</h3>
+                                                                        <h3 className="text-lg font-bold tracking-tight text-white">{lesson.topic}</h3>
                                                                     </div>
                                                                     <Button
                                                                         variant="outline"
@@ -842,12 +842,12 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                 )}
 
                                                                 {lesson.examples?.map((ex: any, exI: number) => (
-                                                                    <div key={exI} className="bg-slate-900 rounded-[2rem] overflow-hidden shadow-xl border border-white/5">
-                                                                        <div className="px-6 py-4 bg-slate-800/50 flex items-center justify-between border-b border-white/5">
-                                                                            <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">{ex.title}</span>
+                                                                    <div key={exI} className="glass-card rounded-[2rem] overflow-hidden shadow-xl border border-white/8">
+                                                                        <div className="px-6 py-4 bg-indigo-500/10 flex items-center justify-between border-b border-white/6">
+                                                                            <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-widest">{ex.title}</span>
                                                                         </div>
                                                                         <div className="p-8 space-y-4">
-                                                                            <p className="text-slate-400 text-sm leading-relaxed">{ex.description}</p>
+                                                                            <p className="text-slate-200 text-sm leading-relaxed">{ex.description}</p>
                                                                             {ex.code && (
                                                                                 <pre className="p-6 bg-black/40 rounded-2xl border border-white/5 overflow-x-auto">
                                                                                     <code className="text-green-400 text-xs font-mono">{ex.code}</code>
@@ -858,27 +858,27 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                 ))}
 
                                                                 {lesson.practical_implementation && (
-                                                                    <div className="mt-8 bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl border border-blue-500/30">
-                                                                        <div className="px-6 py-5 bg-gradient-to-r from-blue-900/40 to-slate-800 flex items-center gap-3 border-b border-white/5">
-                                                                            <Terminal size={20} className="text-blue-400" />
-                                                                            <h3 className="text-sm font-black text-blue-300 uppercase tracking-widest">Practical Implementation</h3>
+                                                                    <div className="mt-8 glass-card rounded-[2rem] overflow-hidden shadow-2xl border border-indigo-500/15">
+                                                                        <div className="px-6 py-5 bg-gradient-to-r from-indigo-500/10 to-violet-500/5 flex items-center gap-3 border-b border-white/6">
+                                                                            <Terminal size={20} className="text-indigo-400" />
+                                                                            <h3 className="text-sm font-black text-indigo-300 uppercase tracking-widest">Practical Implementation</h3>
                                                                         </div>
                                                                         <div className="p-8 space-y-6">
                                                                             <div>
                                                                                 <h4 className="text-lg font-bold text-white mb-2">{lesson.practical_implementation.project_title}</h4>
-                                                                                <p className="text-slate-400 text-sm leading-relaxed">{lesson.practical_implementation.description}</p>
+                                                                                <p className="text-slate-300 text-sm leading-relaxed">{lesson.practical_implementation.description}</p>
                                                                             </div>
 
                                                                             <div className="space-y-6">
                                                                                 {lesson.practical_implementation.steps.map((step: any, sIdx: number) => (
-                                                                                    <div key={sIdx} className="relative pl-8 border-l-2 border-blue-500/20 last:border-transparent pb-6 last:pb-0">
-                                                                                        <div className="absolute left-[-9px] top-0 h-4 w-4 rounded-full bg-blue-500 border-4 border-slate-900" />
-                                                                                        <h5 className="text-md font-bold text-slate-200 mb-1">{step.title}</h5>
-                                                                                        <p className="text-sm text-slate-400 mb-3">{step.description}</p>
+                                                                                    <div key={sIdx} className="relative pl-8 border-l-2 border-indigo-500/25 last:border-transparent pb-6 last:pb-0">
+                                                                                        <div className="absolute left-[-9px] top-0 h-4 w-4 rounded-full bg-indigo-500 border-4 border-[#0d1122]" />
+                                                                                        <h5 className="text-md font-bold text-white mb-1">{step.title}</h5>
+                                                                                        <p className="text-sm text-slate-300 mb-3">{step.description}</p>
 
                                                                                         {step.command && (
                                                                                             <div className="mb-3">
-                                                                                                <div className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Terminal</div>
+                                                                                                <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Terminal</div>
                                                                                                 <pre className="p-4 bg-black/60 rounded-xl border border-white/5 overflow-x-auto text-green-400 font-mono text-xs">
                                                                                                     $ {step.command}
                                                                                                 </pre>
@@ -887,8 +887,8 @@ export const StudyPlanDetailPage: React.FC = () => {
 
                                                                                         {step.code && (
                                                                                             <div>
-                                                                                                <div className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1">Code / Config</div>
-                                                                                                <pre className="p-4 bg-slate-950 rounded-xl border border-white/5 overflow-x-auto text-blue-300 font-mono text-xs">
+                                                                                                <div className="text-[10px] uppercase font-black tracking-widest text-slate-400 mb-1">Code / Config</div>
+                                                                                                <pre className="p-4 bg-black/50 rounded-xl border border-indigo-500/10 overflow-x-auto text-indigo-300 font-mono text-xs">
                                                                                                     {step.code}
                                                                                                 </pre>
                                                                                             </div>
@@ -948,7 +948,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                         </Button>
 
                                                         {/* Premium Navigation Footer */}
-                                                        <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 mt-6 border-t border-slate-100/80">
+                                                        <div className="w-full flex flex-col sm:flex-row justify-between items-center gap-4 pt-8 mt-6 border-t border-white/8/80">
                                                             <Button
                                                                 variant="outline"
                                                                 onClick={() => {
@@ -958,7 +958,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                     };
                                                                     scrollToTopGlobal('smooth');
                                                                 }}
-                                                                className="w-full sm:w-auto rounded-full px-6 h-12 font-bold flex items-center justify-center gap-2 border-slate-200 hover:bg-slate-50 transition-all text-slate-700"
+                                                                className="w-full sm:w-auto rounded-full px-6 h-12 font-bold flex items-center justify-center gap-2 border-white/10 hover:bg-white/10/5/3 transition-all text-slate-200"
                                                             >
                                                                 <ArrowUp size={16} />
                                                                 Go to Top
@@ -990,7 +990,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                                                 setTimeout(() => scrollToTopGlobal('instant'), 150);
                                                                                 setTimeout(() => scrollToTopGlobal('instant'), 300);
                                                                             }}
-                                                                            className="w-full sm:w-auto rounded-full px-4 h-12 font-black uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-lg"
+                                                                            className="w-full sm:w-auto rounded-full px-4 h-12 font-black uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 shadow-lg"
                                                                         >
                                                                             Next Chapter: {nextChapter.chapter_name.length > 25 ? nextChapter.chapter_name.slice(0, 25) + '...' : nextChapter.chapter_name}
                                                                             <ChevronRight size={16} />
@@ -1266,3 +1266,4 @@ export const StudyPlanDetailPage: React.FC = () => {
         </div>
     );
 };
+

@@ -131,3 +131,46 @@ async def upload_content(
         )
 
 
+
+
+@router.delete("/resource/{plan_id}/{resource_id}", status_code=200)
+async def delete_resource(
+    plan_id: str,
+    resource_id: str,
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Remove a resource from the plan's knowledge base by its ID."""
+    try:
+        result = await db.execute(
+            select(StudyPlan).filter(
+                StudyPlan.id == plan_id,
+                StudyPlan.user_id == current_user.user_id
+            )
+        )
+        plan = result.scalars().first()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Study plan not found")
+
+        current_metadata = dict(plan.plan_metadata) if plan.plan_metadata else {}
+        resources = current_metadata.get("resources", [])
+        original_count = len(resources)
+        resources = [r for r in resources if r.get("id") != resource_id]
+
+        if len(resources) == original_count:
+            raise HTTPException(status_code=404, detail="Resource not found")
+
+        current_metadata["resources"] = resources
+
+        from sqlalchemy.orm.attributes import flag_modified
+        plan.plan_metadata = current_metadata
+        flag_modified(plan, "plan_metadata")
+        await db.commit()
+
+        return {"status": "success", "message": "Resource removed"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting resource: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))

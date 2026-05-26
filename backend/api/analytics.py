@@ -84,6 +84,10 @@ async def get_dashboard_stats(
         hours_studied = round(total_seconds / 3600.0, 1)
         quiz_average = round(total_score / score_count, 0) if score_count else None
 
+        # Separate: test center sessions (subject=="General") vs regular quizzes
+        tests_taken = sum(1 for q in completed_list if q.subject == "General")
+        quizzes_taken = score_count - tests_taken
+
         # --- Study plan: topics completed / total (across user's plans) ---
         plans_with_chapters = await db.execute(
             select(StudyPlan)
@@ -106,7 +110,8 @@ async def get_dashboard_stats(
             "topics_completed": completed_topics,
             "topics_total": total_topics,
             "quiz_average_percent": quiz_average,
-            "quizzes_taken": score_count,
+            "quizzes_taken": quizzes_taken,
+            "tests_taken": tests_taken,
         }
     except Exception as e:
         logger.error(f"Error computing dashboard stats: {str(e)}", exc_info=True)

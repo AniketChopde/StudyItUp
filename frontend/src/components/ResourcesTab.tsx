@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import { Upload, Link as LinkIcon, FileText, Image, File as FileIcon, X, ExternalLink, Eye, Play } from 'lucide-react';
-import { uploadContent } from '../api/client';
+import { Upload, Link as LinkIcon, FileText, Image, File as FileIcon, X, ExternalLink, Eye, Play, Trash2 } from 'lucide-react';
+import { uploadContent, deleteResource } from '../api/client';
 import toast from 'react-hot-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -130,6 +130,7 @@ export const ResourcesTab: React.FC<ResourcesTabProps> = ({ planId, resources = 
     const [url, setUrl] = useState('');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewResource, setPreviewResource] = useState<Resource | null>(null);
+    const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleDrag = (e: React.DragEvent) => {
@@ -189,14 +190,32 @@ export const ResourcesTab: React.FC<ResourcesTabProps> = ({ planId, resources = 
             setSelectedFile(null);
             setUrl('');
             if (fileInputRef.current) fileInputRef.current.value = '';
-            
-            // Notify parent to refresh
             onResourceAdded?.();
         } catch (error: any) {
             console.error(error);
             toast.error(error?.response?.data?.detail || 'Failed to upload content', { id: toastId });
         } finally {
             setIsUploading(false);
+        }
+    };
+
+    const handleDelete = async (resource: Resource, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isDeletingId) return;
+
+        const confirmed = window.confirm(`Remove "${resource.title}" from your knowledge base?`);
+        if (!confirmed) return;
+
+        setIsDeletingId(resource.id);
+        const toastId = toast.loading('Removing resource...');
+        try {
+            await deleteResource(planId, resource.id);
+            toast.success('Resource removed', { id: toastId });
+            onResourceAdded?.(); // refresh parent
+        } catch (error: any) {
+            toast.error(error?.response?.data?.detail || 'Failed to remove resource', { id: toastId });
+        } finally {
+            setIsDeletingId(null);
         }
     };
 
@@ -321,7 +340,11 @@ export const ResourcesTab: React.FC<ResourcesTabProps> = ({ planId, resources = 
                      <h3 className="text-lg font-bold px-4">Your Resources ({resources.length})</h3>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {resources.map((resource) => (
-                            <Card key={resource.id} className="rounded-3xl border-none shadow-sm hover:shadow-md transition-all cursor-pointer group" onClick={() => setPreviewResource(resource)}>
+                            <Card
+                                key={resource.id}
+                                className="rounded-3xl border-none shadow-sm hover:shadow-md transition-all cursor-pointer group"
+                                onClick={() => setPreviewResource(resource)}
+                            >
                                 <div className="p-4 flex items-center gap-4">
                                     <div className="h-12 w-12 rounded-2xl bg-muted flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
                                         {getFileIcon(resource.type, resource.file_type)}
@@ -329,13 +352,37 @@ export const ResourcesTab: React.FC<ResourcesTabProps> = ({ planId, resources = 
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-sm truncate">{resource.title}</h4>
                                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                                            {resource.type === 'youtube' ? 'YouTube' : resource.file_type?.split('/')[1]?.toUpperCase() || 'FILE'} 
+                                            {resource.type === 'youtube' ? 'YouTube' : resource.file_type?.split('/')[1]?.toUpperCase() || 'FILE'}
                                             <span className="text-[10px] opacity-50">• {new Date(resource.added_at || Date.now()).toLocaleDateString()}</span>
                                         </p>
                                     </div>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <Eye size={16} />
-                                    </Button>
+                                    {/* Action buttons — show on hover */}
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full text-muted-foreground hover:text-white hover:bg-white/10"
+                                            onClick={(e) => { e.stopPropagation(); setPreviewResource(resource); }}
+                                        >
+                                            <Eye size={15} />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full text-muted-foreground hover:text-red-400 hover:bg-red-500/10"
+                                            disabled={isDeletingId === resource.id}
+                                            onClick={(e) => handleDelete(resource, e)}
+                                        >
+                                            {isDeletingId === resource.id ? (
+                                                <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                </svg>
+                                            ) : (
+                                                <Trash2 size={15} />
+                                            )}
+                                        </Button>
+                                    </div>
                                 </div>
                             </Card>
                         ))}

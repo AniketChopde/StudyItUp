@@ -75,10 +75,17 @@ export const ChatPage: React.FC = () => {
         await sendMessage(message);
     };
 
-    const handleRetry = async () => {
-        const lastUserMessage = [...messages].reverse().find(m => m.role === 'user');
-        if (lastUserMessage) {
-            await sendMessage(lastUserMessage.content);
+    const handleRetry = async (assistantIndex: number) => {
+        // Walk backwards from the assistant message to find the user message that triggered it
+        let userMessage: string | null = null;
+        for (let i = assistantIndex - 1; i >= 0; i--) {
+            if (messages[i].role === 'user') {
+                userMessage = messages[i].content;
+                break;
+            }
+        }
+        if (userMessage) {
+            await sendMessage(userMessage);
         }
     };
 
@@ -190,9 +197,9 @@ export const ChatPage: React.FC = () => {
                                             <div className="flex items-center gap-3">
                                                 <ReadAloudButton text={message.content} className="h-8 w-8 rounded-lg hover:bg-primary/10 text-primary" />
                                                 <button 
-                                                    onClick={handleRetry}
+                                                    onClick={() => handleRetry(index)}
                                                     className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-primary/10 text-primary transition-colors"
-                                                    title="Retry response"
+                                                    title="Retry this response"
                                                 >
                                                     <RotateCcw size={14} />
                                                 </button>

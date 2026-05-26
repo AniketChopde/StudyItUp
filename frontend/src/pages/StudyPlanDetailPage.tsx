@@ -37,6 +37,8 @@ export const StudyPlanDetailPage: React.FC = () => {
 
     const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editDailyHours, setEditDailyHours] = useState<number>(2);
+    const [editTargetDate, setEditTargetDate] = useState<string>('');
     const [sortByWeightage, setSortByWeightage] = useState(false);
     const { isCreating, createPlan, deletePlan } = useStudyPlanStore();
     const contentAreaRef = React.useRef<HTMLDivElement>(null);
@@ -71,6 +73,10 @@ export const StudyPlanDetailPage: React.FC = () => {
         if (!activePlan) return;
         const oldPlanId = activePlan.id;
         try {
+            // 1. Delete the old plan FIRST to prevent duplicates (silent = no toast)
+            await deletePlan(oldPlanId.toString(), true);
+
+            // 2. Now create the regenerated plan
             const data: {
                 exam_type: string;
                 target_date: string;
@@ -90,12 +96,14 @@ export const StudyPlanDetailPage: React.FC = () => {
             };
             const result = await createPlan(data);
             if (result && result.study_plan) {
-                // Remove the old plan to prevent duplicates after re-optimizing
-                await deletePlan(oldPlanId.toString());
                 navigate(`/study-plans/${result.study_plan.id}`);
+            } else {
+                navigate('/study-plans');
             }
         } catch (error) {
             console.error('Failed to regenerate plan:', error);
+            // Navigate back to plans list if something went wrong
+            navigate('/study-plans');
         }
     };
 
@@ -148,27 +156,27 @@ export const StudyPlanDetailPage: React.FC = () => {
     }, [viewMode]);
 
     // Calculate plan duration to dynamically display Day / Week / Module
-    const getChapterLabel = (index: number) => {
+    // Uses cumulative chapter hours / daily_hours to compute the actual day a chapter falls on.
+    const getChapterLabel = (index: number, sortedChapters: any[]) => {
         if (sortByWeightage) return `Impact #${index + 1}`;
-        if (!activePlan) return `Week ${index + 1}`;
+        if (!activePlan) return `Chapter ${index + 1}`;
 
-        try {
-            const start = new Date(activePlan.start_date || activePlan.created_at);
-            const target = new Date(activePlan.target_date);
-            start.setHours(0, 0, 0, 0);
-            target.setHours(0, 0, 0, 0);
-            const diffTime = target.getTime() - start.getTime();
-            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        const dailyHours = activePlan.daily_hours || 2;
+        // Sum hours of all chapters before this one
+        const previousChapters = sortedChapters.slice(0, index);
+        const cumulativeHours = previousChapters.reduce((acc: number, ch: any) => acc + (ch.estimated_hours || 0), 0);
+        const startDay = Math.floor(cumulativeHours / dailyHours) + 1;
 
-            if (diffDays <= 7) {
-                return `Day ${index + 1}`;
-            } else if (diffDays <= 21) {
-                return `Module ${index + 1}`;
-            } else {
-                return `Week ${index + 1}`;
-            }
-        } catch (e) {
-            return `Week ${index + 1}`;
+        // Determine total days needed at the user's daily pace
+        const totalHours = activePlan.chapters.reduce((acc: number, c: any) => acc + (c.estimated_hours || 0), 0);
+        const totalDaysNeeded = Math.ceil(totalHours / Math.max(dailyHours, 1));
+
+        if (totalDaysNeeded <= 7) {
+            return `Day ${startDay}`;
+        } else if (totalDaysNeeded <= 30) {
+            return `Week ${Math.ceil(startDay / 7)}`;
+        } else {
+            return `Month ${Math.ceil(startDay / 30)}`;
         }
     };
 
@@ -189,10 +197,18 @@ export const StudyPlanDetailPage: React.FC = () => {
     //     console.log('Downloading PDF...');
     // };
 
-    if (isLoading && !activePlan) {
+    if ((isLoading || isCreating) && !activePlan) {
         return (
             <div className="space-y-8 animate-in fade-in">
-                <Skeleton className="h-[250px] rounded-3xl w-full" />
+                {isCreating ? (
+                    <div className="h-[250px] rounded-3xl w-full border border-primary/20 bg-primary/5 flex items-center justify-center flex-col gap-4 shadow-inner">
+                        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+                        <h3 className="text-xl font-black">AI is re-optimizing your plan...</h3>
+                        <p className="text-sm font-bold text-muted-foreground tracking-wide">Crafting a better learning trajectory (usually takes ~15 seconds)</p>
+                    </div>
+                ) : (
+                    <Skeleton className="h-[250px] rounded-3xl w-full" />
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     <div className="lg:col-span-4 space-y-4">
                         <Skeleton className="h-12 rounded-2xl w-full" />
@@ -219,6 +235,23 @@ export const StudyPlanDetailPage: React.FC = () => {
     const progress = Math.round((completedChapters / activePlan.chapters.length) * 100) || 0;
     const isDeepLessonMode = Boolean(selectedChapter && viewMode === 'lesson');
 
+    // Feasibility check: can the user complete this plan in the given window?
+    const totalPlanHours = activePlan.chapters.reduce((acc: number, c: any) => acc + (c.estimated_hours || 0), 0);
+    const planDailyHours = activePlan.daily_hours || 2;
+    const planStartDate = new Date(activePlan.start_date || activePlan.created_at);
+    const planTargetDate = new Date(activePlan.target_date);
+    planStartDate.setHours(0, 0, 0, 0);
+    planTargetDate.setHours(0, 0, 0, 0);
+    const planDays = Math.max(1, Math.floor((planTargetDate.getTime() - planStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const availableHours = planDays * planDailyHours;
+    const isPlanInfeasible = totalPlanHours > availableHours * 1.2; // 20% buffer tolerance
+    const daysNeeded = Math.ceil(totalPlanHours / Math.max(planDailyHours, 1));
+    const suggestedDate = (() => {
+        const d = new Date(activePlan.start_date || activePlan.created_at);
+        d.setDate(d.getDate() + daysNeeded);
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+    })();
+
     return (
         <div className="space-y-6 animate-in fade-in duration-700">
             {/* Header section */}
@@ -233,17 +266,41 @@ export const StudyPlanDetailPage: React.FC = () => {
                         <div className="flex flex-wrap gap-2">
                             <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
                                 <Clock className="h-3 w-3" />
-                                {activePlan.chapters.reduce((acc: number, c: any) => acc + (c.estimated_hours || 0), 0)} Hours Total
+                                {totalPlanHours} Hours Total
                             </div>
                             <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
                                 <Calendar className="h-3 w-3" />
                                 Started {format(new Date(activePlan.start_date || activePlan.created_at), 'MMM dd, yyyy')}
                             </div>
-                            <div className="flex items-center gap-1.5 bg-muted/50 px-3 py-1 rounded-full">
+                            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full ${isPlanInfeasible ? 'bg-red-500/15 text-red-400 border border-red-500/20' : 'bg-muted/50'}`}>
                                 <Calendar className="h-3 w-3" />
                                 Target {format(new Date(activePlan.target_date), 'MMM dd, yyyy')}
+                                {isPlanInfeasible && <AlertTriangle className="h-3 w-3 ml-1" />}
                             </div>
                         </div>
+
+                        {/* Feasibility warning banner */}
+                        {isPlanInfeasible && (
+                            <div className="flex items-start gap-3 p-3 rounded-2xl bg-amber-500/8 border border-amber-500/20 max-w-xl">
+                                <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-bold text-amber-300">
+                                        Plan not achievable in {planDays} day{planDays !== 1 ? 's' : ''}
+                                    </p>
+                                    <p className="text-[11px] text-amber-400/70 mt-0.5 leading-relaxed">
+                                        {totalPlanHours}h needed · only {availableHours}h available at {planDailyHours}h/day.
+                                        Realistic completion: <span className="font-bold text-amber-300">{suggestedDate}</span> ({daysNeeded} days).
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleRegenerate}
+                                    className="shrink-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/20 transition-colors whitespace-nowrap"
+                                >
+                                    Re-optimize
+                                </button>
+                            </div>
+                        )}
+
                         <div className="flex items-center gap-2">
                             <span className="bg-indigo-500/15 text-indigo-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-500/25">
                                 {activePlan.exam_type}
@@ -309,7 +366,11 @@ export const StudyPlanDetailPage: React.FC = () => {
                                 variant="outline"
                                 size="sm"
                                 className="rounded-xl border-white/10 hover:bg-white/8 h-10 px-4 font-bold flex items-center gap-2 shadow-sm text-slate-200"
-                                onClick={() => setIsEditModalOpen(true)}
+                                onClick={() => {
+                                    setEditDailyHours(activePlan.daily_hours || 2);
+                                    setEditTargetDate(activePlan.target_date || '');
+                                    setIsEditModalOpen(true);
+                                }}
                             >
                                 <Layout size={14} className="text-slate-500" />
                                 Adjust
@@ -391,31 +452,34 @@ export const StudyPlanDetailPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-3 pr-2">
-                        {[...activePlan.chapters]
-                            .sort((a, b) => sortByWeightage ? (b.weightage_percent - a.weightage_percent) : (a.order_index - b.order_index))
-                            .map((chapter, index) => (
+                        {(() => {
+                            const sortedChapters = [...activePlan.chapters]
+                                .sort((a, b) => sortByWeightage ? (b.weightage_percent - a.weightage_percent) : (a.order_index - b.order_index));
+                            return sortedChapters.map((chapter, index) => (
                                 <button
                                     key={chapter.id.toString()}
                                     onClick={() => {
                                         setSelectedChapterId(chapter.id.toString());
                                         setViewMode('overview');
                                     }}
-                                    className={`w-full text-left p-3 rounded-2xl border transition-all duration-300 group relative ${selectedChapterId === chapter.id.toString()
-                                        ? 'border-primary bg-primary/5 shadow-lg shadow-primary/5 ring-1 ring-primary/20'
-                                        : 'border-transparent bg-muted/30 hover:bg-muted/50'
+                                    className={`w-full text-left p-3 rounded-2xl border transition-all duration-300 group relative ${
+                                        selectedChapterId === chapter.id.toString()
+                                            ? 'border-primary bg-primary/5 shadow-lg shadow-primary/5 ring-1 ring-primary/20'
+                                            : 'border-transparent bg-muted/30 hover:bg-muted/50'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
-                                        <div className={`mt-1 h-4 w-4 rounded-full flex items-center justify-center ${chapter.status === 'completed'
-                                            ? 'bg-green-500/20 text-green-500'
-                                            : 'bg-muted text-muted-foreground/30'
+                                        <div className={`mt-1 h-4 w-4 rounded-full flex items-center justify-center ${
+                                            chapter.status === 'completed'
+                                                ? 'bg-green-500/20 text-green-500'
+                                                : 'bg-muted text-muted-foreground/30'
                                             }`}>
                                             {chapter.status === 'completed' ? <CheckCircle2 className="h-3 w-3" /> : <div className="h-1 w-1 rounded-full bg-current" />}
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-0.5">
                                                 <span className="text-[8px] font-black uppercase text-muted-foreground/60 tracking-tighter">
-                                                    {getChapterLabel(index)}
+                                                    {getChapterLabel(index, sortedChapters)}
                                                 </span>
                                                 {chapter.weightage_percent > 0 && (
                                                     <div className="flex items-center gap-1 bg-indigo-500/10 text-indigo-600 px-1.5 py-0.5 rounded-full border border-indigo-500/20 shadow-sm">
@@ -435,7 +499,9 @@ export const StudyPlanDetailPage: React.FC = () => {
                                         </div>
                                     </div>
                                 </button>
-                            ))}
+                            ));
+                        })()}
+
                     </div>
                 </div>
                 )}
@@ -1071,67 +1137,143 @@ export const StudyPlanDetailPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {isEditModalOpen && (
-                                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
-                                    <Card className="w-full max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-card border border-border">
-                                        <CardHeader className="p-8 pb-4">
-                                            <CardTitle className="text-2xl font-black">Edit Study Plan</CardTitle>
-                                            <CardDescription>Adjust your learning pace and deadline</CardDescription>
-                                        </CardHeader>
-                                        <CardContent className="p-8 pt-4 space-y-6">
-                                            <div className="space-y-4">
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Daily Hours</label>
-                                                    <input
-                                                        type="number"
-                                                        defaultValue={activePlan.daily_hours}
-                                                        min={1}
-                                                        max={24}
-                                                        className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
-                                                        onChange={(e) => {
-                                                            const val = parseInt(e.target.value);
-                                                            if (val > 0) activePlan.daily_hours = val;
-                                                        }}
-                                                    />
+                            {isEditModalOpen && (() => {
+                                // Live feasibility inside modal
+                                const editDays = (() => {
+                                    if (!editTargetDate) return 0;
+                                    const start = new Date(activePlan.start_date || activePlan.created_at);
+                                    const end = new Date(editTargetDate);
+                                    start.setHours(0, 0, 0, 0);
+                                    end.setHours(0, 0, 0, 0);
+                                    return Math.max(1, Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+                                })();
+                                const editAvailableHours = editDays * Math.max(editDailyHours, 1);
+                                const editInfeasible = totalPlanHours > editAvailableHours * 1.2;
+                                const editDaysNeeded = Math.ceil(totalPlanHours / Math.max(editDailyHours, 1));
+                                const editSuggestedDate = (() => {
+                                    const d = new Date(activePlan.start_date || activePlan.created_at);
+                                    d.setDate(d.getDate() + editDaysNeeded);
+                                    return d.toISOString().split('T')[0];
+                                })();
+                                const editSuggestedLabel = (() => {
+                                    const d = new Date(activePlan.start_date || activePlan.created_at);
+                                    d.setDate(d.getDate() + editDaysNeeded);
+                                    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+                                })();
+
+                                return (
+                                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
+                                        <Card className="w-full max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden bg-card border border-border">
+                                            <CardHeader className="p-8 pb-4">
+                                                <CardTitle className="text-2xl font-black">Edit Study Plan</CardTitle>
+                                                <CardDescription>Adjust your learning pace and deadline</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="p-8 pt-4 space-y-6">
+                                                <div className="space-y-4">
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Daily Hours</label>
+                                                        <input
+                                                            type="number"
+                                                            value={editDailyHours}
+                                                            min={1}
+                                                            max={16}
+                                                            className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
+                                                            onChange={(e) => {
+                                                                const val = parseInt(e.target.value);
+                                                                if (val > 0 && val <= 16) setEditDailyHours(val);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Target Date</label>
+                                                        <input
+                                                            type="date"
+                                                            value={editTargetDate}
+                                                            min={new Date().toISOString().split('T')[0]}
+                                                            className={`w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 outline-none transition-all ${
+                                                                editInfeasible ? 'ring-2 ring-red-500/40 focus:ring-red-500/60' : 'focus:ring-primary'
+                                                            }`}
+                                                            onChange={(e) => setEditTargetDate(e.target.value)}
+                                                        />
+                                                    </div>
+
+                                                    {/* Live feasibility feedback */}
+                                                    {editTargetDate && (
+                                                        <div className={`p-4 rounded-2xl border transition-all ${
+                                                            editInfeasible
+                                                                ? 'bg-red-500/8 border-red-500/20'
+                                                                : 'bg-emerald-500/8 border-emerald-500/20'
+                                                        }`}>
+                                                            <div className="flex items-start gap-2.5">
+                                                                <div className={`shrink-0 mt-0.5 ${
+                                                                    editInfeasible ? 'text-red-400' : 'text-emerald-400'
+                                                                }`}>
+                                                                    <AlertTriangle className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="flex-1 space-y-1">
+                                                                    <p className={`text-xs font-bold ${
+                                                                        editInfeasible ? 'text-red-300' : 'text-emerald-300'
+                                                                    }`}>
+                                                                        {editInfeasible
+                                                                            ? `Not achievable in ${editDays} day${editDays !== 1 ? 's' : ''} ⚠️`
+                                                                            : `Looks good! ✓ ${editDays} day${editDays !== 1 ? 's' : ''}`
+                                                                        }
+                                                                    </p>
+                                                                    <p className={`text-[11px] leading-relaxed ${
+                                                                        editInfeasible ? 'text-red-400/70' : 'text-emerald-400/70'
+                                                                    }`}>
+                                                                        {editInfeasible
+                                                                            ? `${totalPlanHours}h needed · only ${editAvailableHours}h available at ${editDailyHours}h/day · need at least ${editDaysNeeded} days`
+                                                                            : `${totalPlanHours}h needed · ${editAvailableHours}h available at ${editDailyHours}h/day`
+                                                                        }
+                                                                    </p>
+                                                                    {editInfeasible && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setEditTargetDate(editSuggestedDate)}
+                                                                            className="mt-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+                                                                        >
+                                                                            → Use {editSuggestedLabel}
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="space-y-2">
-                                                    <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Target Date</label>
-                                                    <input
-                                                        type="date"
-                                                        defaultValue={activePlan.target_date}
-                                                        className="w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 focus:ring-primary outline-none"
-                                                        onChange={(e) => {
-                                                            activePlan.target_date = e.target.value;
+
+                                                <div className="flex gap-3 pt-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="flex-1 rounded-2xl h-12 font-bold"
+                                                        onClick={() => setIsEditModalOpen(false)}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                    <Button
+                                                        className={`flex-1 rounded-2xl h-12 font-bold transition-all ${
+                                                            editInfeasible
+                                                                ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                                                : ''
+                                                        }`}
+                                                        onClick={async () => {
+                                                            const { updatePlan } = useStudyPlanStore.getState();
+                                                            await updatePlan(activePlan.id, {
+                                                                daily_hours: editDailyHours,
+                                                                target_date: editTargetDate || activePlan.target_date
+                                                            });
+                                                            setIsEditModalOpen(false);
                                                         }}
-                                                    />
+                                                    >
+                                                        {editInfeasible ? 'Save Anyway ⚠️' : 'Save Changes'}
+                                                    </Button>
                                                 </div>
-                                            </div>
-                                            <div className="flex gap-3 pt-2">
-                                                <Button
-                                                    variant="outline"
-                                                    className="flex-1 rounded-2xl h-12 font-bold"
-                                                    onClick={() => setIsEditModalOpen(false)}
-                                                >
-                                                    Cancel
-                                                </Button>
-                                                <Button
-                                                    className="flex-1 rounded-2xl h-12 font-bold"
-                                                    onClick={async () => {
-                                                        const { updatePlan } = useStudyPlanStore.getState();
-                                                        await updatePlan(activePlan.id, {
-                                                            daily_hours: activePlan.daily_hours,
-                                                            target_date: activePlan.target_date
-                                                        });
-                                                        setIsEditModalOpen(false);
-                                                    }}
-                                                >
-                                                    Save Changes
-                                                </Button>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                </div>
-                            )}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                );
+                            })()}
+
 
                             <Card className="mt-8 rounded-[2rem] border-none bg-gradient-to-br from-primary/10 to-primary/5 shadow-inner overflow-hidden">
                                 <CardContent className="p-8 flex items-start gap-6">

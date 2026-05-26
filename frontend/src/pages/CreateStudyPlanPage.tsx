@@ -45,10 +45,13 @@ const TRENDING_ROLES = [
     { title: "Security Engineer", durationDays: 90, hoursPerDay: 2, level: "Beginner", icon: <Shield className="h-5 w-5 text-red-400" />, bg: "bg-red-500/10" },
 ];
 
+const MINIMUM_DAYS = 7; // No plan should be shorter than 1 week regardless of hours
+
 export const CreateStudyPlanPage: React.FC = () => {
     const navigate = useNavigate();
     const { createPlan } = useStudyPlanStore();
     const [showHoursWarning, setShowHoursWarning] = useState(false);
+    const [showFeasibilityWarning, setShowFeasibilityWarning] = useState(false);
     const [pendingData, setPendingData] = useState<CreatePlanFormData | null>(null);
 
     const {
@@ -87,11 +90,33 @@ export const CreateStudyPlanPage: React.FC = () => {
     }
 
     const totalHours = daysDiff * (dailyHours || 0);
+    // Minimum days required: at the user's chosen daily_hours, how many days to reach a meaningful plan?
+    // A decent course needs at least 20+ hours of content. Use the backend-generated total or 40h as baseline.
+    const MINIMUM_TOTAL_HOURS = 20; // anything below this is trivially short
+    const minDaysNeeded = Math.max(
+        MINIMUM_DAYS,
+        dailyHours > 0 ? Math.ceil(MINIMUM_TOTAL_HOURS / dailyHours) : MINIMUM_DAYS
+    );
+    // Feasibility: user must allocate at least minDaysNeeded days
+    const isTooShort = daysDiff > 0 && daysDiff < minDaysNeeded;
+    // Compute a suggested realistic target date
+    const suggestedTargetDate = (() => {
+        if (!startDate) return '';
+        const s = new Date(startDate);
+        s.setDate(s.getDate() + minDaysNeeded);
+        return s.toISOString().split('T')[0];
+    })();
 
     const isCreatingLocal = useStudyPlanStore(state => state.isCreating);
 
     const onSubmit = async (data: CreatePlanFormData) => {
-        if (data.daily_hours > 8 && !pendingData) {
+        // Feasibility gate: block if the window is too short
+        if (isTooShort && !pendingData) {
+            setPendingData(data);
+            setShowFeasibilityWarning(true);
+            return;
+        }
+        if (data.daily_hours > 8 && !showFeasibilityWarning && !pendingData) {
             setPendingData(data);
             setShowHoursWarning(true);
             return;
@@ -403,6 +428,29 @@ export const CreateStudyPlanPage: React.FC = () => {
                                     <p className="text-[11px] text-slate-500 mt-0.5">{daysDiff} days · {totalHours} total hours</p>
                                 </div>
                             </div>
+
+                            {/* Feasibility warning inside sidebar */}
+                            {isTooShort && daysDiff > 0 && (
+                                <div className="relative flex items-start gap-3 pl-2">
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full border border-red-500/60 bg-red-500/10 text-red-400 flex-shrink-0">
+                                        <AlertTriangle className="w-3 h-3" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-red-400">Not Achievable ⚠️</h4>
+                                        <p className="text-[11px] text-red-400/70 mt-0.5 leading-relaxed">
+                                            {daysDiff} day{daysDiff !== 1 ? 's' : ''} is too short. Need at least {minDaysNeeded} days.
+                                        </p>
+                                        <button
+                                            type="button"
+                                            onClick={() => setValue('target_date', suggestedTargetDate, { shouldValidate: true })}
+                                            className="mt-1.5 text-[10px] font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+                                        >
+                                            → Set to {suggestedTargetDate}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
 
                         <div className="p-3.5 bg-white/3 rounded-xl border border-white/6">
@@ -418,6 +466,57 @@ export const CreateStudyPlanPage: React.FC = () => {
             </div>
 
             {/* Hours Warning */}
+            {showFeasibilityWarning && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+                    <div className="glass-card border border-red-500/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6 animate-in zoom-in-95 duration-200">
+                        <div className="mx-auto w-14 h-14 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center justify-center text-red-400">
+                            <AlertTriangle size={28} />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-bold text-white">Plan Not Achievable</h3>
+                            <p className="text-sm text-slate-400 font-medium leading-relaxed">
+                                Even studying <span className="text-white font-bold">{dailyHours}h/day</span>, you need at least{' '}
+                                <span className="text-red-400 font-bold">{minDaysNeeded} days</span> to complete a meaningful course — but your window is only{' '}
+                                <span className="text-red-400 font-bold">{daysDiff} days</span>.
+                            </p>
+                            <p className="text-xs text-slate-500">
+                                Suggested target: <span className="text-indigo-400 font-bold">{suggestedTargetDate}</span>
+                            </p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Button
+                                onClick={() => {
+                                    setValue('target_date', suggestedTargetDate, { shouldValidate: true });
+                                    setShowFeasibilityWarning(false);
+                                    setPendingData(null);
+                                }}
+                                className="w-full h-11 font-bold uppercase tracking-widest text-sm"
+                            >
+                                Use {suggestedTargetDate} ✓
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => {
+                                    setShowFeasibilityWarning(false);
+                                    if (pendingData) onSubmit({ ...pendingData });
+                                    setPendingData(null);
+                                }}
+                                className="w-full h-11 font-bold text-sm border-white/10 text-slate-400"
+                            >
+                                Proceed Anyway
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                onClick={() => { setShowFeasibilityWarning(false); setPendingData(null); }}
+                                className="w-full h-9 text-sm text-slate-500"
+                            >
+                                Cancel
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {showHoursWarning && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
                     <div className="glass-card border border-amber-500/20 p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center space-y-6 animate-in zoom-in-95 duration-200">
@@ -439,6 +538,7 @@ export const CreateStudyPlanPage: React.FC = () => {
                     </div>
                 </div>
             )}
+
         </div>
     );
 };

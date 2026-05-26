@@ -16,7 +16,7 @@ interface StudyPlanState {
     fetchPlans: () => Promise<void>;
     createPlan: (data: CreatePlanData) => Promise<any>;
     getPlan: (id: string) => Promise<void>;
-    deletePlan: (id: string) => Promise<void>;
+    deletePlan: (id: string, silent?: boolean) => Promise<void>;
     updateChapterStatus: (chapterId: string, status: 'pending' | 'in_progress' | 'completed') => Promise<void>;
     teachChapter: (chapterId: string) => Promise<any>;
     getCourses: (planId: string) => Promise<void>;
@@ -102,7 +102,7 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
         }
     },
 
-    deletePlan: async (id: string) => {
+    deletePlan: async (id: string, silent = false) => {
         try {
             await studyPlanService.delete(id);
 
@@ -112,9 +112,13 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
                 activePlan: state.activePlan?.id === id ? null : state.activePlan,
             }));
 
-            toast.success('Study plan deleted');
+            if (!silent) {
+                toast.success('Study plan deleted');
+            }
         } catch (error) {
-            toast.error('Failed to delete study plan');
+            if (!silent) {
+                toast.error('Failed to delete study plan');
+            }
             throw error;
         }
     },

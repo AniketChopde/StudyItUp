@@ -59,8 +59,8 @@ export const DashboardPage: React.FC = () => {
     const statCards = [
         { label: 'Study Time', value: `${stats?.hours_studied || 0}h`, icon: Clock, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/15' },
         { label: 'Chapters Done', value: stats?.topics_completed || 0, icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/15' },
-        { label: 'Quiz Average', value: `${Math.round(stats?.quiz_average_percent || 0)}%`, icon: Brain, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/15' },
-        { label: 'Quizzes Taken', value: stats?.quizzes_taken || 0, icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/15' },
+        { label: 'Quizzes Taken', value: stats?.quizzes_taken || 0, icon: Brain, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/15' },
+        { label: 'Exams Taken', value: stats?.tests_taken || 0, icon: Zap, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/15' },
     ];
 
     return (

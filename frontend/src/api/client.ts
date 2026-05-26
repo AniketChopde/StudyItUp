@@ -198,4 +198,8 @@ export const uploadContent = async (planId: string, file: File | null, url: stri
     return response.data;
 };
 
+export const deleteResource = async (planId: string, resourceId: string): Promise<void> => {
+    await apiClient.delete(`/content/resource/${planId}/${resourceId}`);
+};
+
 export default apiClient;

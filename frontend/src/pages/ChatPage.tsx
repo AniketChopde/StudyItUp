@@ -131,7 +131,7 @@ export const ChatPage: React.FC = () => {
                     <Button 
                         variant="outline" 
                         size="sm" 
-                        className="rounded-xl font-bold h-9 text-[10px] uppercase tracking-widest border-indigo-500/25 bg-indigo-500/10 hover:bg-indigo-500/20 text-white flex items-center gap-1.5"
+                        className="md:hidden rounded-xl font-bold h-9 text-[10px] uppercase tracking-widest border-indigo-500/25 bg-indigo-500/10 hover:bg-indigo-500/20 text-white flex items-center gap-1.5"
                         onClick={() => createSession()}
                     >
                         <Plus size={12} />

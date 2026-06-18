@@ -20,6 +20,21 @@ export const LoginPage: React.FC = () => {
     const location = useLocation();
     const { login, googleLogin, verifyMfaLogin, isLoading } = useAuthStore();
     const [googleLoading, setGoogleLoading] = React.useState(false);
+    const googleContainerRef = React.useRef<HTMLDivElement>(null);
+    const [googleWidth, setGoogleWidth] = React.useState<number>(320);
+
+    React.useEffect(() => {
+        if (googleContainerRef.current) {
+            setGoogleWidth(googleContainerRef.current.offsetWidth);
+        }
+        const handleResize = () => {
+            if (googleContainerRef.current) {
+                setGoogleWidth(googleContainerRef.current.offsetWidth);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const [mfaTempToken, setMfaTempToken] = useState<string | null>(null);
     const [showMfa, setShowMfa] = useState(false);
@@ -343,7 +358,7 @@ export const LoginPage: React.FC = () => {
                                         <span className="px-3 text-xs text-slate-500 font-medium">or continue with</span>
                                         <div className="flex-1 border-t border-white/8" />
                                     </div>
-                                    <div className="flex justify-center">
+                                    <div ref={googleContainerRef} className="w-full flex justify-center">
                                         {googleLoading ? (
                                             <div className="w-full h-11 rounded-xl flex items-center justify-center gap-3 bg-white/5 border border-white/10 text-slate-400 text-sm">
                                                 <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
@@ -353,7 +368,7 @@ export const LoginPage: React.FC = () => {
                                                 Signing in with Google...
                                             </div>
                                         ) : (
-                                            <div style={{ colorScheme: 'dark' }} className="w-[320px] mx-auto rounded-xl overflow-hidden border border-white/10 flex justify-center items-center min-h-[44px]">
+                                            <div style={{ colorScheme: 'dark' }} className="w-full flex justify-center">
                                                 <GoogleLogin
                                                     onSuccess={handleGoogleSuccess}
                                                     onError={() => setApiError('Google login failed')}
@@ -361,7 +376,7 @@ export const LoginPage: React.FC = () => {
                                                     theme="filled_black"
                                                     shape="rectangular"
                                                     size="large"
-                                                    width="320"
+                                                    width={googleWidth.toString()}
                                                     text="signin_with"
                                                 />
                                             </div>

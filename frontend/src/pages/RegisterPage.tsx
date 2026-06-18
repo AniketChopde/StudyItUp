@@ -30,6 +30,21 @@ export const RegisterPage: React.FC = () => {
     const [apiError, setApiError] = React.useState<string | null>(null);
     const [showPassword, setShowPassword] = React.useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+    const googleContainerRef = React.useRef<HTMLDivElement>(null);
+    const [googleWidth, setGoogleWidth] = React.useState<number>(320);
+
+    React.useEffect(() => {
+        if (googleContainerRef.current) {
+            setGoogleWidth(googleContainerRef.current.offsetWidth);
+        }
+        const handleResize = () => {
+            if (googleContainerRef.current) {
+                setGoogleWidth(googleContainerRef.current.offsetWidth);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const {
         register,
@@ -241,8 +256,8 @@ export const RegisterPage: React.FC = () => {
                                     <span className="px-3 text-xs text-slate-500 font-medium">or sign up with</span>
                                     <div className="flex-1 border-t border-white/8" />
                                 </div>
-                                <div className="flex justify-center">
-                                    <div style={{ colorScheme: 'dark' }} className="w-[320px] rounded-xl overflow-hidden border border-white/10 flex justify-center items-center min-h-[44px]">
+                                <div ref={googleContainerRef} className="w-full flex justify-center">
+                                    <div style={{ colorScheme: 'dark' }} className="w-full flex justify-center">
                                         <GoogleLogin
                                             onSuccess={handleGoogleSuccess}
                                             onError={() => setApiError('Google signup failed')}
@@ -250,7 +265,7 @@ export const RegisterPage: React.FC = () => {
                                             theme="filled_black"
                                             shape="rectangular"
                                             size="large"
-                                            width="320"
+                                            width={googleWidth.toString()}
                                             text="signup_with"
                                         />
                                     </div>

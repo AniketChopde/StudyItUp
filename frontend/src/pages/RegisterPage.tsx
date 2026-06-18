@@ -242,7 +242,7 @@ export const RegisterPage: React.FC = () => {
                                     <div className="flex-1 border-t border-white/8" />
                                 </div>
                                 <div className="flex justify-center">
-                                    <div className="w-full rounded-xl overflow-hidden bg-[#0a0b14] border border-white/10 flex justify-center items-center min-h-[44px]">
+                                    <div style={{ colorScheme: 'dark' }} className="w-[320px] rounded-xl overflow-hidden border border-white/10 flex justify-center items-center min-h-[44px]">
                                         <GoogleLogin
                                             onSuccess={handleGoogleSuccess}
                                             onError={() => setApiError('Google signup failed')}

@@ -257,7 +257,7 @@ export const RegisterPage: React.FC = () => {
                                     <div className="flex-1 border-t border-white/8" />
                                 </div>
                                 <div ref={googleContainerRef} className="w-full flex justify-center">
-                                    <div style={{ colorScheme: 'dark' }} className="w-full flex justify-center">
+                                    <div style={{ colorScheme: 'light' }} className="w-full flex justify-center">
                                         <GoogleLogin
                                             onSuccess={handleGoogleSuccess}
                                             onError={() => setApiError('Google signup failed')}

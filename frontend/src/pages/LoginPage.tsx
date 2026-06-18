@@ -368,7 +368,7 @@ export const LoginPage: React.FC = () => {
                                                 Signing in with Google...
                                             </div>
                                         ) : (
-                                            <div style={{ colorScheme: 'dark' }} className="w-full flex justify-center">
+                                            <div style={{ colorScheme: 'light' }} className="w-full flex justify-center">
                                                 <GoogleLogin
                                                     onSuccess={handleGoogleSuccess}
                                                     onError={() => setApiError('Google login failed')}

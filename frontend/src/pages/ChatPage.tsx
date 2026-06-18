@@ -1,14 +1,25 @@
 import React from 'react';
 import { useChatStore } from '../stores/chatStore';
 import { Button } from '../components/ui/Button';
-import { Send, Bot, User, ArrowLeft, RotateCcw, Sparkles, Layers } from 'lucide-react';
+import { Send, Bot, User, ArrowLeft, RotateCcw, Sparkles, Layers, Plus, Trash2, MessageSquare } from 'lucide-react';
 import { VoiceInputButton, ReadAloudButton } from '../components/voice/VoiceButton';
 import { formatDate } from '../lib/utils';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 
 export const ChatPage: React.FC = () => {
-    const { messages, isTyping, sendMessage, createSession, activeSession, setChatContext, fetchSessions, loadHistory } = useChatStore();
+    const { 
+        messages, 
+        isTyping, 
+        sendMessage, 
+        createSession, 
+        activeSession, 
+        setChatContext, 
+        fetchSessions, 
+        loadHistory,
+        sessions,
+        deleteSession
+    } = useChatStore();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const [input, setInput] = React.useState('');
@@ -117,11 +128,20 @@ export const ChatPage: React.FC = () => {
                 </div>
                 
                 <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="rounded-xl font-bold h-9 text-[10px] uppercase tracking-widest border-indigo-500/25 bg-indigo-500/10 hover:bg-indigo-500/20 text-white flex items-center gap-1.5"
+                        onClick={() => createSession()}
+                    >
+                        <Plus size={12} />
+                        New Chat
+                    </Button>
                     {planId && (
                         <Button 
                             variant="outline" 
                             size="sm" 
-                            className="rounded-xl font-bold h-9 text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary/5 hidden sm:flex"
+                            className="rounded-xl font-bold h-9 text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary/5 hidden sm:flex text-slate-300"
                             onClick={() => navigate(`/study-plans/${planId}`)}
                         >
                             View Plan
@@ -130,7 +150,66 @@ export const ChatPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex-1 flex gap-4 min-h-0 w-full overflow-hidden">
+             <div className="flex-1 flex gap-4 min-h-0 w-full overflow-hidden">
+                {/* Left Sidebar - Chat History */}
+                <div className="hidden md:flex flex-col w-64 shrink-0 bg-[#0a0b14]/40 border border-white/5 rounded-2xl overflow-hidden">
+                    <div className="p-4 border-b border-white/5">
+                        <Button
+                            onClick={() => createSession()}
+                            className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs uppercase tracking-widest h-11 flex items-center justify-center gap-2 shadow-md border-none"
+                        >
+                            <Plus size={16} />
+                            New Chat
+                        </Button>
+                    </div>
+                    
+                    <div className="flex-1 overflow-y-auto p-3 space-y-1.5 scrollbar-thin scrollbar-thumb-white/5 scrollbar-track-transparent">
+                        <div className="px-2 pb-2">
+                            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Recent Chats</span>
+                        </div>
+                        {sessions.length === 0 ? (
+                            <div className="text-center py-6 text-slate-600 text-xs font-semibold">
+                                No previous chats
+                            </div>
+                        ) : (
+                            sessions.map((session) => {
+                                const isActive = activeSession?.id === session.id;
+                                return (
+                                    <div
+                                        key={session.id}
+                                        className={`group relative flex items-center rounded-xl transition-all duration-200 cursor-pointer ${
+                                            isActive
+                                                ? 'bg-indigo-600/10 text-white border border-indigo-500/20'
+                                                : 'hover:bg-white/5 text-slate-400 hover:text-white border border-transparent'
+                                        }`}
+                                    >
+                                        <button
+                                            onClick={() => loadHistory(session.id)}
+                                            className="flex-1 text-left px-3 py-3 pr-10 text-xs font-semibold truncate flex items-center gap-2"
+                                            title={session.title || 'Untitled Chat'}
+                                        >
+                                            <MessageSquare size={13} className={isActive ? 'text-indigo-400' : 'text-slate-500'} />
+                                            <span className="truncate">{session.title || 'Untitled Chat'}</span>
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (confirm('Are you sure you want to delete this chat session?')) {
+                                                    deleteSession(session.id);
+                                                }
+                                            }}
+                                            className="absolute right-2.5 p-1 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
+                                            title="Delete chat session"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+
                 {/* Main Chat Area */}
                 <div className="flex-1 flex flex-col overflow-hidden relative min-h-0">
                 <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent min-h-0">

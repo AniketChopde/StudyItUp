@@ -242,7 +242,18 @@ export const RegisterPage: React.FC = () => {
                                     <div className="flex-1 border-t border-white/8" />
                                 </div>
                                 <div className="flex justify-center">
-                                    <GoogleLogin onSuccess={handleGoogleSuccess} onError={() => setApiError('Google signup failed')} useOneTap theme="filled_black" shape="pill" text="signup_with" />
+                                    <div className="w-full rounded-xl overflow-hidden bg-[#0a0b14] border border-white/10 flex justify-center items-center min-h-[44px]">
+                                        <GoogleLogin
+                                            onSuccess={handleGoogleSuccess}
+                                            onError={() => setApiError('Google signup failed')}
+                                            useOneTap={false}
+                                            theme="filled_black"
+                                            shape="rectangular"
+                                            size="large"
+                                            width="320"
+                                            text="signup_with"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}

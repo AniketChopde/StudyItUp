@@ -441,6 +441,203 @@ async def create_study_plan(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
         )
+@router.post("/{plan_id}/reoptimize", response_model=StudyPlanCreateResponse)
+@observe()
+async def reoptimize_study_plan(
+    plan_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    current_user: TokenData = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Re-optimize an existing study plan in-place using multi-agent system."""
+    try:
+        with propagate_attributes(user_id=str(current_user.user_id)):
+            from sqlalchemy import delete
+            from sqlalchemy.orm import selectinload
+            from models.study_plan import StudyPlanChapter
+            
+            # Fetch existing plan
+            result = await db.execute(
+                select(StudyPlan)
+                .where(
+                    StudyPlan.id == plan_id,
+                    StudyPlan.user_id == current_user.user_id
+                ).options(selectinload(StudyPlan.chapters))
+            )
+            study_plan = result.scalar_one_or_none()
+            if not study_plan:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Study plan not found"
+                )
+
+            # Fetch user profile
+            from models.user import User
+            user_result = await db.execute(select(User).where(User.id == current_user.user_id))
+            full_user = user_result.scalar_one_or_none()
+            user_profile = full_user.profile_data if full_user else {}
+
+            # Run orchestrator
+            from datetime import date
+            start_date_str = study_plan.start_date.isoformat() if isinstance(study_plan.start_date, (date, datetime)) else str(study_plan.start_date)
+            target_date_str = study_plan.target_date.isoformat() if isinstance(study_plan.target_date, (date, datetime)) else str(study_plan.target_date)
+
+            result_ai = await orchestrator.handle_exam_preparation(
+                user_goal=f"Learn {study_plan.exam_type}",
+                exam_type=study_plan.exam_type,
+                target_date=target_date_str,
+                start_date=start_date_str,
+                daily_hours=study_plan.daily_hours,
+                current_knowledge=study_plan.current_knowledge,
+                fast_learn=True,
+                language=study_plan.language,
+                user_profile=user_profile
+            )
+
+            plan_metadata = result_ai.get("study_plan", {})
+            plan_metadata["official_syllabus"] = result_ai.get("exam_info", {})
+            plan_metadata["goal_analysis"] = result_ai.get("goal_analysis", {})
+
+            # Enforce short-term plan rules or formatting on modules
+            modules = plan_metadata.get("modules", [])
+            if not modules:
+                modules = [{
+                    "module_name": "Fundamentals & Assessment",
+                    "estimated_days": "7",
+                    "difficulty": "Medium",
+                    "topics": ["Exam Pattern Overview", "Current Knowledge Assessment"]
+                }]
+
+            def get_days_diff(start, end):
+                try:
+                    start_date_obj = datetime.strptime(start, "%Y-%m-%d").date() if isinstance(start, str) else start
+                    end_date_obj = datetime.strptime(end, "%Y-%m-%d").date() if isinstance(end, str) else end
+                    if isinstance(start_date_obj, datetime):
+                        start_date_obj = start_date_obj.date()
+                    if isinstance(end_date_obj, datetime):
+                        end_date_obj = end_date_obj.date()
+                    return (end_date_obj - start_date_obj).days + 1
+                except Exception:
+                    return 0
+
+            req_days = get_days_diff(start_date_str, target_date_str)
+            if req_days > 0 and req_days <= 7:
+                if len(modules) != req_days:
+                    if len(modules) > req_days:
+                        keep_modules = modules[:req_days]
+                        excess_modules = modules[req_days:]
+                        last_module = keep_modules[-1]
+                        last_module["topics"] = list(last_module.get("topics", []))
+                        for em in excess_modules:
+                            last_module["topics"].extend(em.get("topics", []))
+                            last_module["module_name"] = f"{last_module['module_name']} & {em.get('module_name')}"
+                        last_module["topics"] = list(dict.fromkeys(last_module["topics"]))
+                        if len(last_module["module_name"]) > 60:
+                            last_module["module_name"] = last_module["module_name"][:57] + "..."
+                        modules = keep_modules
+                    else:
+                        while len(modules) < req_days:
+                            modules.append({
+                                "module_name": "Practice & Final Review",
+                                "estimated_days": "1",
+                                "difficulty": "Medium",
+                                "topics": ["Comprehensive assessment practice", "Reviewing focus areas"],
+                                "weightage_percent": 10.0
+                            })
+                for module in modules:
+                    module["estimated_days"] = "1"
+                total_weight = sum(float(m.get("weightage_percent", 0.0)) for m in modules)
+                if total_weight > 0:
+                    for m in modules:
+                        m["weightage_percent"] = round((float(m.get("weightage_percent", 0.0)) / total_weight) * 100.0, 1)
+                else:
+                    weight_per_mod = round(100.0 / len(modules), 1)
+                    for m in modules:
+                        m["weightage_percent"] = weight_per_mod
+            else:
+                for module in modules:
+                    try:
+                        days_float = float(module.get("estimated_days", 1))
+                        days_int = max(1, round(days_float))
+                        module["estimated_days"] = str(days_int)
+                    except Exception:
+                        module["estimated_days"] = "1"
+
+            plan_metadata["modules"] = modules
+            study_plan.plan_metadata = plan_metadata
+
+            # Delete existing chapters first
+            await db.execute(delete(StudyPlanChapter).where(StudyPlanChapter.plan_id == study_plan.id))
+            await db.flush()
+
+            # Create new chapters
+            first_chapter = None
+            for idx, module in enumerate(modules):
+                module_name = module.get("module_name", f"Module {idx+1}")
+                topics = module.get("topics", [])
+                chapter = StudyPlanChapter(
+                    plan_id=study_plan.id,
+                    chapter_name=module_name,
+                    subject=study_plan.exam_type,
+                    topics=topics,
+                    estimated_hours=max(1, round(float(module.get("estimated_days", 1)) * study_plan.daily_hours)),
+                    order_index=idx,
+                    status="pending",
+                    weightage_percent=float(module.get("weightage_percent", 0.0)),
+                    weightage_source="ai_estimate",
+                    resources=[]
+                )
+                db.add(chapter)
+                if idx == 0:
+                    first_chapter = chapter
+
+            await db.flush()
+
+            # Pre-generate teaching content for the first chapter
+            if first_chapter:
+                try:
+                    logger.info(f"⏳ Pre-generating teaching content for Week 1 chapter: '{first_chapter.chapter_name}'")
+                    teaching_content = await orchestrator.handle_chapter_teaching(
+                        chapter_id=str(first_chapter.id),
+                        chapter_name=first_chapter.chapter_name,
+                        topics=first_chapter.topics if isinstance(first_chapter.topics, list) else [first_chapter.topics],
+                        db=db,
+                        exam_type=study_plan.exam_type,
+                        language=study_plan.language
+                    )
+                    first_chapter.content = teaching_content
+                except Exception as ex:
+                    logger.warning(f"⚠️ Failed to pre-generate first chapter content: {ex}")
+
+            await db.commit()
+            await db.refresh(study_plan)
+
+            # Trigger background generation for remaining chapters
+            background_tasks.add_task(pregenerate_remaining_chapters, study_plan.id)
+
+            # Re-fetch for response
+            final_plan = await db.execute(
+                select(StudyPlan)
+                .where(StudyPlan.id == study_plan.id)
+                .options(selectinload(StudyPlan.chapters))
+            )
+            plan_obj = final_plan.scalar_one()
+
+            return {
+                "study_plan": plan_obj,
+                "ai_metadata": {
+                    "exam_info": result_ai.get("exam_info"),
+                    "plan_analysis": result_ai.get("goal_analysis"),
+                    "immediate_actions": result_ai.get("immediate_actions")
+                }
+            }
+
+    except Exception as e:
+        logger.error(f"Error re-optimizing study plan: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
 @router.put("/{plan_id}", response_model=StudyPlanResponse)

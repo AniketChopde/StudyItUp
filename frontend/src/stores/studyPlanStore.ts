@@ -22,6 +22,7 @@ interface StudyPlanState {
     getCourses: (planId: string) => Promise<void>;
     setActivePlan: (plan: StudyPlan | null) => void;
     updatePlan: (id: string, data: Partial<StudyPlan>) => Promise<void>;
+    reoptimizePlan: (id: string) => Promise<any>;
 }
 
 export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
@@ -197,6 +198,30 @@ export const useStudyPlanStore = create<StudyPlanState>((set, get) => ({
         } catch (error) {
             set({ isLoading: false });
             toast.error('Failed to update study plan');
+            throw error;
+        }
+    },
+
+    reoptimizePlan: async (id: string) => {
+        try {
+            set({ isCreating: true });
+            const response = await studyPlanService.reoptimize(id);
+
+            // Refresh plans list to ensure dashboard is up to date
+            await get().fetchPlans();
+
+            // Set the active plan if we have a detailed object back
+            if (response.data.study_plan) {
+                set({ activePlan: response.data.study_plan });
+            }
+
+            set({ isCreating: false });
+            toast.success('Study plan re-optimized successfully!');
+
+            return response.data;
+        } catch (error: any) {
+            set({ isCreating: false });
+            toast.error(error.response?.data?.detail || 'Failed to re-optimize study plan');
             throw error;
         }
     },

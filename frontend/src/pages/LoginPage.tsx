@@ -353,16 +353,18 @@ export const LoginPage: React.FC = () => {
                                                 Signing in with Google...
                                             </div>
                                         ) : (
-                                            <GoogleLogin
-                                                onSuccess={handleGoogleSuccess}
-                                                onError={() => setApiError('Google login failed')}
-                                                useOneTap={false}
-                                                theme="filled_black"
-                                                shape="rectangular"
-                                                size="large"
-                                                width="320"
-                                                text="signin_with"
-                                            />
+                                            <div className="w-full rounded-xl overflow-hidden bg-[#0a0b14] border border-white/10 flex justify-center items-center min-h-[44px]">
+                                                <GoogleLogin
+                                                    onSuccess={handleGoogleSuccess}
+                                                    onError={() => setApiError('Google login failed')}
+                                                    useOneTap={false}
+                                                    theme="filled_black"
+                                                    shape="rectangular"
+                                                    size="large"
+                                                    width="320"
+                                                    text="signin_with"
+                                                />
+                                            </div>
                                         )}
                                     </div>
                                 </div>

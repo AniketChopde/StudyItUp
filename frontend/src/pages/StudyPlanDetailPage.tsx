@@ -40,7 +40,7 @@ export const StudyPlanDetailPage: React.FC = () => {
     const [editDailyHours, setEditDailyHours] = useState<number>(2);
     const [editTargetDate, setEditTargetDate] = useState<string>('');
     const [sortByWeightage, setSortByWeightage] = useState(false);
-    const { isCreating, createPlan, deletePlan } = useStudyPlanStore();
+    const { isCreating, reoptimizePlan } = useStudyPlanStore();
     const contentAreaRef = React.useRef<HTMLDivElement>(null);
 
     const selectedChapter = activePlan?.chapters.find(
@@ -71,39 +71,10 @@ export const StudyPlanDetailPage: React.FC = () => {
 
     const handleRegenerate = async () => {
         if (!activePlan) return;
-        const oldPlanId = activePlan.id;
         try {
-            // 1. Delete the old plan FIRST to prevent duplicates (silent = no toast)
-            await deletePlan(oldPlanId.toString(), true);
-
-            // 2. Now create the regenerated plan
-            const data: {
-                exam_type: string;
-                target_date: string;
-                daily_hours: number;
-                current_knowledge: Record<string, any>;
-                start_date: string;
-                fast_learn: boolean;
-                force_regenerate: boolean;
-            } = {
-                exam_type: activePlan.exam_type,
-                target_date: activePlan.target_date,
-                daily_hours: activePlan.daily_hours,
-                current_knowledge: activePlan.current_knowledge,
-                start_date: new Date().toISOString().split('T')[0],
-                fast_learn: true,
-                force_regenerate: true
-            };
-            const result = await createPlan(data);
-            if (result && result.study_plan) {
-                navigate(`/study-plans/${result.study_plan.id}`);
-            } else {
-                navigate('/study-plans');
-            }
+            await reoptimizePlan(activePlan.id.toString());
         } catch (error) {
-            console.error('Failed to regenerate plan:', error);
-            // Navigate back to plans list if something went wrong
-            navigate('/study-plans');
+            console.error('Failed to re-optimize plan:', error);
         }
     };
 
@@ -279,27 +250,53 @@ export const StudyPlanDetailPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Feasibility warning banner */}
-                        {isPlanInfeasible && (
-                            <div className="flex items-start gap-3 p-3 rounded-2xl bg-amber-500/8 border border-amber-500/20 max-w-xl">
-                                <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-bold text-amber-300">
-                                        Plan not achievable in {planDays} day{planDays !== 1 ? 's' : ''}
-                                    </p>
-                                    <p className="text-[11px] text-amber-400/70 mt-0.5 leading-relaxed">
-                                        {totalPlanHours}h needed · only {availableHours}h available at {planDailyHours}h/day.
-                                        Realistic completion: <span className="font-bold text-amber-300">{suggestedDate}</span> ({daysNeeded} days).
-                                    </p>
+                        {/* Feasibility/Workload warning banner */}
+                        {(() => {
+                            const reqDailyHoursMain = planDays > 0 ? Math.ceil(totalPlanHours / planDays) : 0;
+                            const isImpossibleTimingMain = reqDailyHoursMain > 12 || (planDays <= 4 && reqDailyHoursMain > 8);
+                            
+                            if (!isPlanInfeasible && !isImpossibleTimingMain) return null;
+                            
+                            return (
+                                <div className={`flex items-start gap-3 p-3 rounded-2xl border max-w-xl ${
+                                    isImpossibleTimingMain 
+                                        ? 'bg-red-500/8 border-red-500/20' 
+                                        : 'bg-amber-500/8 border-amber-500/20'
+                                }`}>
+                                    <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${
+                                        isImpossibleTimingMain ? 'text-red-400' : 'text-amber-400'
+                                    }`} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-xs font-bold ${
+                                            isImpossibleTimingMain ? 'text-red-300' : 'text-amber-300'
+                                        }`}>
+                                            {isImpossibleTimingMain 
+                                                ? `Impossible Workload: ${reqDailyHoursMain}h of study per day needed ⚠️`
+                                                : `Plan not achievable in ${planDays} day${planDays !== 1 ? 's' : ''}`
+                                            }
+                                        </p>
+                                        <p className={`text-[11px] mt-0.5 leading-relaxed ${
+                                            isImpossibleTimingMain ? 'text-red-400/70' : 'text-amber-400/70'
+                                        }`}>
+                                            {totalPlanHours}h needed · only {availableHours}h available at {planDailyHours}h/day.
+                                            Realistic completion: <span className={`font-bold ${
+                                                isImpossibleTimingMain ? 'text-red-300' : 'text-amber-300'
+                                            }`}>{suggestedDate}</span> ({daysNeeded} days).
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleRegenerate}
+                                        className={`shrink-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border transition-colors whitespace-nowrap ${
+                                            isImpossibleTimingMain 
+                                                ? 'bg-red-500/15 text-red-300 hover:bg-red-500/25 border-red-500/20' 
+                                                : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border-amber-500/20'
+                                        }`}
+                                    >
+                                        Re-optimize
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={handleRegenerate}
-                                    className="shrink-0 text-[10px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 border border-amber-500/20 transition-colors whitespace-nowrap"
-                                >
-                                    Re-optimize
-                                </button>
-                            </div>
-                        )}
+                            );
+                        })()}
 
                         <div className="flex items-center gap-2">
                             <span className="bg-indigo-500/15 text-indigo-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-indigo-500/25">
@@ -1149,6 +1146,8 @@ export const StudyPlanDetailPage: React.FC = () => {
                                 })();
                                 const editAvailableHours = editDays * Math.max(editDailyHours, 1);
                                 const editInfeasible = totalPlanHours > editAvailableHours * 1.2;
+                                const editReqDailyHours = editDays > 0 ? Math.ceil(totalPlanHours / editDays) : 0;
+                                const editImpossibleTiming = editReqDailyHours > 12 || (editDays <= 4 && editReqDailyHours > 8);
                                 const editDaysNeeded = Math.ceil(totalPlanHours / Math.max(editDailyHours, 1));
                                 const editSuggestedDate = (() => {
                                     const d = new Date(activePlan.start_date || activePlan.created_at);
@@ -1191,7 +1190,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                             value={editTargetDate}
                                                             min={new Date().toISOString().split('T')[0]}
                                                             className={`w-full bg-muted/50 border-none rounded-2xl h-12 px-4 font-bold focus:ring-2 outline-none transition-all ${
-                                                                editInfeasible ? 'ring-2 ring-red-500/40 focus:ring-red-500/60' : 'focus:ring-primary'
+                                                                editImpossibleTiming ? 'ring-2 ring-red-500/40 focus:ring-red-500/60' : editInfeasible ? 'ring-2 ring-amber-500/40 focus:ring-amber-500/60' : 'focus:ring-primary'
                                                             }`}
                                                             onChange={(e) => setEditTargetDate(e.target.value)}
                                                         />
@@ -1200,40 +1199,46 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                     {/* Live feasibility feedback */}
                                                     {editTargetDate && (
                                                         <div className={`p-4 rounded-2xl border transition-all ${
-                                                            editInfeasible
+                                                            editImpossibleTiming
                                                                 ? 'bg-red-500/8 border-red-500/20'
-                                                                : 'bg-emerald-500/8 border-emerald-500/20'
+                                                                : editInfeasible
+                                                                    ? 'bg-amber-500/8 border-amber-500/20'
+                                                                    : 'bg-emerald-500/8 border-emerald-500/20'
                                                         }`}>
                                                             <div className="flex items-start gap-2.5">
                                                                 <div className={`shrink-0 mt-0.5 ${
-                                                                    editInfeasible ? 'text-red-400' : 'text-emerald-400'
+                                                                    editImpossibleTiming ? 'text-red-400' : editInfeasible ? 'text-amber-400' : 'text-emerald-400'
                                                                 }`}>
                                                                     <AlertTriangle className="h-4 w-4" />
                                                                 </div>
                                                                 <div className="flex-1 space-y-1">
                                                                     <p className={`text-xs font-bold ${
-                                                                        editInfeasible ? 'text-red-300' : 'text-emerald-300'
+                                                                        editImpossibleTiming ? 'text-red-300' : editInfeasible ? 'text-amber-300' : 'text-emerald-300'
                                                                     }`}>
-                                                                        {editInfeasible
-                                                                            ? `Not achievable in ${editDays} day${editDays !== 1 ? 's' : ''} ⚠️`
-                                                                            : `Looks good! ✓ ${editDays} day${editDays !== 1 ? 's' : ''}`
+                                                                        {editImpossibleTiming
+                                                                            ? `Impossible workload: ${editReqDailyHours}h/day needed ⚠️`
+                                                                            : editInfeasible
+                                                                                ? `Not achievable in ${editDays} day${editDays !== 1 ? 's' : ''} ⚠️`
+                                                                                : `Looks good! ✓ ${editDays} day${editDays !== 1 ? 's' : ''}`
                                                                         }
                                                                     </p>
                                                                     <p className={`text-[11px] leading-relaxed ${
-                                                                        editInfeasible ? 'text-red-400/70' : 'text-emerald-400/70'
+                                                                        editImpossibleTiming ? 'text-red-400/70' : editInfeasible ? 'text-amber-400/70' : 'text-emerald-400/70'
                                                                     }`}>
-                                                                        {editInfeasible
-                                                                            ? `${totalPlanHours}h needed · only ${editAvailableHours}h available at ${editDailyHours}h/day · need at least ${editDaysNeeded} days`
-                                                                            : `${totalPlanHours}h needed · ${editAvailableHours}h available at ${editDailyHours}h/day`
+                                                                        {editImpossibleTiming
+                                                                            ? `A ${editDays}-day timeline requires studying ${editReqDailyHours}h per day, which is physically impossible/unrealistic.`
+                                                                            : editInfeasible
+                                                                                ? `${totalPlanHours}h needed · only ${editAvailableHours}h available at ${editDailyHours}h/day · need at least ${editDaysNeeded} days`
+                                                                                : `${totalPlanHours}h needed · ${editAvailableHours}h available at ${editDailyHours}h/day`
                                                                         }
                                                                     </p>
-                                                                    {editInfeasible && (
+                                                                    {(editInfeasible || editImpossibleTiming) && (
                                                                         <button
                                                                             type="button"
                                                                             onClick={() => setEditTargetDate(editSuggestedDate)}
-                                                                            className="mt-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors"
+                                                                            className="mt-1 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 underline underline-offset-2 transition-colors block"
                                                                         >
-                                                                            → Use {editSuggestedLabel}
+                                                                            → Use {editSuggestedLabel} (requires {editDailyHours}h/day)
                                                                         </button>
                                                                     )}
                                                                 </div>
@@ -1252,9 +1257,11 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                     </Button>
                                                     <Button
                                                         className={`flex-1 rounded-2xl h-12 font-bold transition-all ${
-                                                            editInfeasible
-                                                                ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                                                                : ''
+                                                            editImpossibleTiming
+                                                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                                                : editInfeasible
+                                                                    ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                                                    : ''
                                                         }`}
                                                         onClick={async () => {
                                                             const { updatePlan } = useStudyPlanStore.getState();
@@ -1265,7 +1272,7 @@ export const StudyPlanDetailPage: React.FC = () => {
                                                             setIsEditModalOpen(false);
                                                         }}
                                                     >
-                                                        {editInfeasible ? 'Save Anyway ⚠️' : 'Save Changes'}
+                                                        {editImpossibleTiming ? 'Save Anyway ⚠️' : editInfeasible ? 'Save Anyway ⚠️' : 'Save Changes'}
                                                     </Button>
                                                 </div>
                                             </CardContent>
@@ -1280,13 +1287,24 @@ export const StudyPlanDetailPage: React.FC = () => {
                                     <div className="h-12 w-12 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
                                         <Lightbulb className="h-6 w-6 text-primary" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <h4 className="text-sm font-black uppercase tracking-widest text-primary">AI Strategy Note</h4>
-                                        <p className="text-xs font-bold text-muted-foreground leading-relaxed">
-                                            Your study plan is dynamic. If you find certain chapters too easy or too hard, use the <span className="text-primary">Regenerate</span> feature.
-                                            Our AI analyzes your quiz performance to re-prioritize topics, ensuring you spend time where it matters most.
-                                            <span className="block mt-2 opacity-60">Smarter plans = Faster mastery.</span>
-                                        </p>
+                                    <div className="space-y-4 flex-1">
+                                        <div className="space-y-2">
+                                            <h4 className="text-sm font-black uppercase tracking-widest text-primary">AI Strategy Note</h4>
+                                            <p className="text-xs font-bold text-muted-foreground leading-relaxed">
+                                                Your study plan is dynamic. If you find certain chapters too easy or too hard, use the <span className="text-primary">Re-optimize</span> feature.
+                                                Our AI analyzes your quiz performance to re-prioritize topics, ensuring you spend time where it matters most.
+                                                <span className="block mt-2 opacity-60">Smarter plans = Faster mastery.</span>
+                                            </p>
+                                        </div>
+                                        <Button
+                                            onClick={handleRegenerate}
+                                            isLoading={isCreating}
+                                            variant="secondary"
+                                            className="rounded-xl h-10 px-4 font-bold flex items-center gap-2 shadow-sm bg-indigo-600 text-white hover:bg-indigo-700 w-fit"
+                                        >
+                                            <RefreshCw size={14} className={isCreating ? "animate-spin" : ""} />
+                                            Re-optimize Plan
+                                        </Button>
                                     </div>
                                 </CardContent>
                             </Card>

@@ -84,36 +84,7 @@ async def start_test_center(
         from sqlalchemy import func
         
         with propagate_attributes(user_id=str(current_user.user_id)):
-            # Global Cache Check: Look for an existing test center simulation for this exam_name
-            cached_test_result = await db.execute(
-                select(QuizSession)
-                .where(
-                    func.lower(QuizSession.topic) == test_data.exam_name.lower(),
-                    QuizSession.questions != [],
-                    QuizSession.total_questions > 0
-                )
-                .limit(1)
-            )
-            cached_test = cached_test_result.scalar_one_or_none()
-
-            if cached_test and len(cached_test.questions) > 0:
-                logger.info(f"♻️ REUSING existing Test Center Simulation for: {test_data.exam_name}")
-                quiz_session = QuizSession(
-                    user_id=current_user.user_id,
-                    topic=cached_test.topic,
-                    subject=cached_test.subject,
-                    difficulty=cached_test.difficulty,
-                    questions=cached_test.questions,
-                    total_questions=cached_test.total_questions,
-                    time_limit_minutes=None,
-                    status="in_progress",
-                )
-                db.add(quiz_session)
-                await db.commit()
-                await db.refresh(quiz_session)
-                return quiz_session
-
-            # Generation Pathway
+            # Generation Pathway (Bypassed global cache check to ensure unique questions per attempt)
             logger.info(f"Test Center requested for exam: {test_data.exam_name} (async)")
             quiz_session = QuizSession(
                 user_id=current_user.user_id,

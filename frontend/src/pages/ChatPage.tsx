@@ -127,7 +127,7 @@ export const ChatPage: React.FC = () => {
                     </div>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                {/* <div className="flex items-center gap-2">
                     <Button 
                         variant="outline" 
                         size="sm" 
@@ -147,7 +147,7 @@ export const ChatPage: React.FC = () => {
                             View Plan
                         </Button>
                     )}
-                </div>
+                </div> */}
             </div>
 
              <div className="flex-1 flex gap-4 min-h-0 w-full overflow-hidden">

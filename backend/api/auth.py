@@ -398,14 +398,11 @@ async def reset_password(
         
     except HTTPException:
         raise
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=str(e)
-        )
     except Exception as e:
         logger.error(f"Error in reset_password: {str(e)}")
         raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reset password. Please try again."
         )
 
 @router.post("/mfa/setup", response_model=MFASetupResponse)

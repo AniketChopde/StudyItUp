@@ -100,10 +100,16 @@ app.add_middleware(
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Handle validation errors with detailed messages."""
     logger.error(f"Validation error: {exc.errors()}")
+    # Extract the first human-readable message for the client
+    errors = exc.errors()
+    first_msg = errors[0].get("msg", "Validation error") if errors else "Validation error"
+    # Strip pydantic's "Value error, " prefix if present
+    if first_msg.lower().startswith("value error, "):
+        first_msg = first_msg[len("value error, "):]
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
-            "detail": exc.errors(),
+            "detail": first_msg,
             "message": "Validation error occurred"
         }
     )
